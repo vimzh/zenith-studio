@@ -6,11 +6,11 @@ export default function Home() {
   return (
     <div className="min-h-svh">
       <SiteNavbar />
-      <main className="mx-8 border-x sm:mx-12 lg:mx-16" id="main-content">
+      <main className="mx-10 border-x sm:mx-16 lg:mx-24" id="main-content">
         <HomeHero {...homeContent.hero} />
       </main>
       <div aria-hidden="true" className="h-12 border-t">
-        <div className="mx-8 grid h-full border-x sm:mx-12 lg:mx-16 lg:grid-cols-[minmax(0,1.15fr)_minmax(24rem,0.85fr)]">
+        <div className="mx-10 grid h-full border-x sm:mx-16 lg:mx-24 lg:grid-cols-[minmax(0,1.15fr)_minmax(24rem,0.85fr)]">
           <div className="hidden lg:col-start-2 lg:block lg:border-l" />
         </div>
       </div>
