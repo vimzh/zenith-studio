@@ -5,13 +5,14 @@ import { siteContent } from "@/data/site";
 
 export default function Home() {
   return (
-    <>
+    <div className="min-h-svh">
       <SiteNavbar title={siteContent.title} />
-      <div className="border-b">
-        <main className="mx-4 max-w-6xl border-x sm:mx-6 xl:mx-auto">
-          <HomeHero {...homeContent.hero} />
-        </main>
+      <main className="mx-4 border-x sm:mx-6 lg:mx-8">
+        <HomeHero {...homeContent.hero} />
+      </main>
+      <div aria-hidden="true" className="h-12 border-t">
+        <div className="mx-4 h-full border-x sm:mx-6 lg:mx-8" />
       </div>
-    </>
+    </div>
   );
 }
