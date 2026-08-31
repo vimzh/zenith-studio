@@ -18,4 +18,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Use restrained shadcn buttons with minimal corner radius for the starter landing page. Keep Smooth UI available, but use candy buttons only when a project explicitly calls for that direction.
 - Do not imitate Windows- or macOS-specific native UI. Preserve semantic HTML and accessibility, but use the project’s shadcn visual language for product controls.
 - Never define components inline or nest them inside pages or other components. Keep pages as composition files; put every component used by a page in its own module and import it.
-- Use DM Sans for interface and display text. Use DM Mono for code, technical values, and monospaced text.
+- Use Founders Grotesk for interface and display text. Use DM Mono for code, technical values, and monospaced text.

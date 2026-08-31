@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-dm-sans);
-    --font-sans: var(--font-dm-sans);
+    --font-heading: var(--font-founders-grotesk);
+    --font-sans: var(--font-founders-grotesk);
     --font-mono: var(--font-dm-mono);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -193,5 +193,6 @@
     }
   html {
     @apply font-sans;
+    font-synthesis: none;
     }
 }
