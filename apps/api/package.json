@@ -1,0 +1,16 @@
+{
+  "name": "api",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --hot --port 3002 src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.13.3"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}
