@@ -17,7 +17,7 @@ export function SiteNavbar({ title }: SiteNavbarProps) {
         >
           {title}
         </Link>
-        <div aria-hidden="true" className="border-l" />
+        <div aria-hidden="true" />
       </nav>
     </header>
   );

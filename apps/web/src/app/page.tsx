@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <div className="min-h-svh">
       <SiteNavbar />
-      <main className="mx-6 border-l sm:mx-8 lg:mx-12" id="main-content">
+      <main className="mx-6 border-x sm:mx-8 lg:mx-12" id="main-content">
         <HomeHero {...homeContent.hero} />
       </main>
       <div aria-hidden="true" className="h-12 border-t">
