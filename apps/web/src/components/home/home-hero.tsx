@@ -1,5 +1,5 @@
 import { AuthControl } from "@/components/auth/auth-control";
-import { HeroMotif } from "@/components/home/hero-motif";
+import { HeroVisual } from "@/components/home/hero-visual";
 
 type HomeHeroProps = {
   eyebrow: string;
@@ -27,7 +27,7 @@ export function HomeHero({ eyebrow, heading, subheading }: HomeHeroProps) {
         </div>
       </div>
 
-      <HeroMotif />
+      <HeroVisual />
     </section>
   );
 }
