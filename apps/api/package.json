@@ -4,13 +4,18 @@
   "scripts": {
     "dev": "bun run --hot --port 3002 src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun run src/db/migrate.ts",
+    "db:studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.13.3"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "drizzle-kit": "^0.31.10",
     "typescript": "^5"
   }
 }

@@ -9,7 +9,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { authContent } from "@/data/auth";
 
-export async function AuthControl() {
+type AuthControlProps = {
+  appearance?: "default" | "navbar";
+  label?: string;
+  showGoogleIcon?: boolean;
+};
+
+export async function AuthControl({
+  appearance,
+  label,
+  showGoogleIcon,
+}: AuthControlProps = {}) {
   const isConfigured = Boolean(
     process.env.AUTH_SECRET &&
       process.env.AUTH_GOOGLE_ID &&
@@ -19,7 +29,10 @@ export async function AuthControl() {
   if (!isConfigured) {
     return (
       <ContinueWithGoogleButton
+        appearance={appearance}
         disabled
+        label={label}
+        showGoogleIcon={showGoogleIcon}
         title={authContent.oauthNotConfigured}
       />
     );
@@ -28,7 +41,13 @@ export async function AuthControl() {
   const session = await auth();
 
   if (!session?.user) {
-    return <ContinueWithGoogleButton />;
+    return (
+      <ContinueWithGoogleButton
+        appearance={appearance}
+        label={label}
+        showGoogleIcon={showGoogleIcon}
+      />
+    );
   }
 
   const accountName =
@@ -38,7 +57,7 @@ export async function AuthControl() {
     <form action={signOutFromGoogle}>
       <Button
         aria-label={`${authContent.signOut}: ${accountName}`}
-        className="h-10 rounded-[4px]"
+        className="h-11 rounded-[4px]"
         title={accountName}
         type="submit"
         variant="outline"
