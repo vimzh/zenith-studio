@@ -10,7 +10,9 @@ export default function Home() {
         <HomeHero {...homeContent.hero} />
       </main>
       <div aria-hidden="true" className="h-12 border-t">
-        <div className="mx-4 h-full border-x sm:mx-6 lg:mx-8" />
+        <div className="mx-4 grid h-full border-x sm:mx-6 lg:mx-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(24rem,0.85fr)]">
+          <div className="hidden lg:col-start-2 lg:block lg:border-l" />
+        </div>
       </div>
     </div>
   );
