@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export function HeroVisual() {
   return (
-    <div className="relative min-h-[38svh] overflow-hidden bg-muted lg:min-h-svh">
+    <div className="relative min-h-80 overflow-hidden border-t bg-muted lg:min-h-[34rem] lg:border-l lg:border-t-0">
       <Image
         alt=""
         className="object-cover object-[68%_center]"
