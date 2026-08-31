@@ -1,4 +1,12 @@
 export const homeContent = {
+  hackathonBanner: {
+    dismissLabel: "Dismiss hackathon banner",
+    link: {
+      href: "https://example.com",
+      label: "this hackathon",
+    },
+    prefix: "Built for",
+  },
   hero: {
     heading: "Start with\nthe product.",
     subheading:
