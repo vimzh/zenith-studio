@@ -1,15 +1,13 @@
 export const navigationContent = {
+  action: { href: "/home", label: "Try now" },
   brand: {
-    imageAlt: "",
-    imageSrc: "/images/hero-coast.jpeg",
-    title: "Product",
+    homeLabel: "Product home",
+    name: "Product",
   },
+  label: "Primary navigation",
   links: [
-    { href: "#features", label: "Features" },
+    { href: "https://github.com", label: "GitHub" },
     { href: "#use-cases", label: "Use cases" },
     { href: "#how-it-works", label: "How it works" },
-    { href: "https://github.com", label: "GitHub" },
   ],
-  login: "Login",
-  skipToContent: "Skip to content",
 } as const;
