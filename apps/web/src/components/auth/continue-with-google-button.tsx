@@ -1,6 +1,5 @@
 import { signInWithGoogle } from "@/actions/auth";
 import { GoogleIcon } from "@/components/icons/google-icon";
-import { NavbarLoginButton } from "@/components/auth/navbar-login-button";
 import { Button } from "@/components/ui/button";
 import { authContent } from "@/data/auth";
 import { cn } from "@/lib/utils";
@@ -22,18 +21,18 @@ export function ContinueWithGoogleButton({
   showGoogleIcon = true,
   title,
 }: ContinueWithGoogleButtonProps) {
-  const AuthButton = appearance === "navbar" ? NavbarLoginButton : Button;
-
   return (
     <form
       action={signInWithGoogle}
       className={cn("w-full sm:w-fit", className)}
     >
-      <AuthButton
+      <Button
         aria-label={disabled ? authContent.oauthNotConfigured : undefined}
-        className={
-          appearance === "navbar" ? "w-full" : "h-11 w-full rounded-[4px]"
-        }
+        className={cn(
+          "h-11 w-full px-4 text-base shadow-none",
+          appearance === "navbar" &&
+            "rounded-md border-primary bg-primary text-primary-foreground hover:border-foreground hover:bg-foreground hover:text-background"
+        )}
         disabled={disabled}
         title={title}
         type="submit"
@@ -43,7 +42,7 @@ export function ContinueWithGoogleButton({
           <GoogleIcon aria-hidden="true" className="size-4" />
         )}
         {label}
-      </AuthButton>
+      </Button>
     </form>
   );
 }

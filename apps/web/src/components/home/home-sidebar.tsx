@@ -1,5 +1,9 @@
 import Link from "next/link";
-import { HouseIcon, PackageIcon } from "lucide-react";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import {
   Sidebar,
   SidebarContent,
@@ -11,80 +15,61 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarRail,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { SidebarProfileCard } from "@/components/home/sidebar-profile-card";
 import { homeContent } from "@/data/home";
 
 export function HomeSidebar() {
   return (
-    <TooltipProvider>
-      <SidebarProvider>
-        <Sidebar collapsible="icon">
-          <SidebarHeader className="border-b">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  size="lg"
-                  tooltip={homeContent.sidebar.brand.name}
-                >
-                  <Link
-                    aria-label={homeContent.sidebar.brand.homeLabel}
-                    href="/home"
-                  >
-                    <span className="grid size-8 shrink-0 place-items-center bg-primary text-primary-foreground">
-                      <PackageIcon aria-hidden="true" />
-                    </span>
-                    <span className="font-medium">
-                      {homeContent.sidebar.brand.name}
-                    </span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarHeader>
+    <SidebarProvider>
+      <ResizablePanelGroup className="min-h-dvh" orientation="horizontal">
+        <ResizablePanel
+          defaultSize={256}
+          groupResizeBehavior="preserve-pixel-size"
+          maxSize={320}
+          minSize={220}
+        >
+          <Sidebar className="w-full" collapsible="none">
+            <SidebarHeader>
+              <Link
+                aria-label={homeContent.sidebar.brand.homeLabel}
+                className="flex min-h-11 items-center px-2 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+                href="/home"
+              >
+                {homeContent.sidebar.brand.name}
+              </Link>
+            </SidebarHeader>
 
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <nav aria-label={homeContent.sidebar.label}>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive
-                        tooltip={homeContent.sidebar.home.label}
-                      >
-                        <Link
-                          aria-current="page"
-                          href={homeContent.sidebar.home.href}
-                        >
-                          <HouseIcon aria-hidden="true" />
-                          <span>{homeContent.sidebar.home.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
-                </nav>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
+            <SidebarContent>
+              <SidebarGroup>
+                <SidebarGroupContent>
+                  <nav aria-label={homeContent.sidebar.label}>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive>
+                          <Link
+                            aria-current="page"
+                            href={homeContent.sidebar.home.href}
+                          >
+                            <span>{homeContent.sidebar.home.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </nav>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </SidebarContent>
+            <SidebarProfileCard />
+          </Sidebar>
+        </ResizablePanel>
 
-          <SidebarRail />
-        </Sidebar>
+        <ResizableHandle aria-label="Resize sidebar" />
 
-        <SidebarInset>
-          <header className="flex h-16 items-center gap-3 border-b px-4">
-            <SidebarTrigger
-              aria-label={homeContent.sidebar.toggleLabel}
-              className="size-11"
-            />
-            <h1 className="font-mono text-sm">{homeContent.title}</h1>
-          </header>
-        </SidebarInset>
-      </SidebarProvider>
-    </TooltipProvider>
+        <ResizablePanel>
+          <SidebarInset />
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </SidebarProvider>
   );
 }

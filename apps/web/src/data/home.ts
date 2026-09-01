@@ -8,7 +8,10 @@ export const homeContent = {
       label: "Home",
     },
     label: "Workspace navigation",
-    toggleLabel: "Toggle sidebar",
+    profile: {
+      accountLabel: "Account",
+      signedInLabel: "Signed in",
+      signedOutLabel: "Not signed in",
+    },
   },
-  title: "Home",
 } as const;
