@@ -1,0 +1,285 @@
+import { BUILTIN_PALETTES, paletteHexes } from "@zenith/core";
+import {
+  buildCharacterFromReference,
+  generateTileset,
+  importImageAsAsset,
+  recolorAsset,
+  session,
+  type AssetType,
+} from "@/lib/editor";
+import { DIRECTIONS, DIRECTION_SETS, type Direction, type DirectionSet } from "@/lib/directions";
+import { CANVAS_PRESETS } from "@/lib/pixel";
+import { estimateSkeleton, POSE_TEMPLATES, TEMPLATE_NAMES } from "@/lib/skeleton";
+import { readEnum, readOptionalInteger, readOptionalString, readString } from "../args";
+import { assetNavigation } from "../navigation";
+import { deriveImage } from "../api";
+import { decodeBase64Png } from "../raster";
+import { ToolError, type ToolArgs, type ToolDefinition } from "../types";
+import { requireActiveAsset } from "./active";
+
+/**
+ * Authoring tools — the deferred half of the catalog that makes assets.
+ *
+ * Everything here wraps library code that the human UI already calls, so the
+ * agent and the human reach the same implementation. That matters more than it
+ * sounds: a second code path for the agent is a second set of bugs, and the two
+ * would drift the first time either side was fixed.
+ *
+ * None of these calls a model. The generation tools that cost money and time
+ * live in `generation.ts` and say so in their descriptions; these are
+ * deterministic, so an agent should reach for them first.
+ */
+
+const ASSET_TYPES: readonly AssetType[] = ["character", "tile", "texture", "tileset", "item", "ui"];
+const SETS = Object.keys(DIRECTION_SETS) as DirectionSet[];
+
+/** Named palettes an agent can ask for without listing sixteen hex strings. */
+const NAMED_PALETTES: Readonly<Record<string, { label: string; colors: readonly string[] }>> = Object.freeze(
+  Object.fromEntries([
+    ...Object.entries(BUILTIN_PALETTES).map(([id, palette]) => [
+      id,
+      { label: palette.name, colors: paletteHexes(palette) },
+    ]),
+    ...CANVAS_PRESETS.map((preset) => [preset.id, { label: preset.name, colors: preset.colors }]),
+  ])
+);
+
+const PALETTE_NAMES = Object.keys(NAMED_PALETTES);
+
+/**
+ * An 8x8 PNG, so the Agent Console's Run button works without an upload.
+ *
+ * A placeholder string would make the example unrunnable, and the tool-surface
+ * test executes every example — an example that cannot run is not an example.
+ * Kept tiny because it ships inside the tool schema on every listing.
+ */
+const TINY_PNG =
+  "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAN0lEQVR42mNggII7qyr+I2MGZIAuiVWRjU3Af2SMIumWt+o/NoyiAFkhshhOUxjQAbIgTt3Y+ACUCFRDgJyrvQAAAABJRU5ErkJggg==";
+
+export const generateTilesetTool: ToolDefinition = {
+  name: "generate_tileset",
+  scope: "tile",
+  description:
+    "Derive the 47-tile blob autotile set from the open tile and add it to the library as one sheet. Deterministic and free — no model is involved, so every tile shares the source texture and the edges meet by construction. Prefer this over generating tiles individually. Optionally pass edge_index to darken or outline the outer border of each tile.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      edge_index: {
+        type: "integer",
+        minimum: 0,
+        maximum: 15,
+        description: "Palette index to draw tile edges in. Omit for no edge treatment.",
+      },
+    },
+  },
+  example: {},
+  execute: (args) => {
+    const { id } = requireActiveAsset();
+    const edge = readOptionalInteger(args, "edge_index", 0, 15);
+    return generateTileset(id, edge);
+  },
+};
+
+export const setPaletteTool: ToolDefinition = {
+  name: "set_palette",
+  description:
+    `Remap the open asset into another palette, matching every colour to its nearest shade perceptually in Oklab. Structure is preserved, so this is safe on finished art and works even when the new palette has fewer colours. Pass palette for a named one (${PALETTE_NAMES.join(", ")}) or colors for an explicit list of hex strings.`,
+  inputSchema: {
+    type: "object",
+    properties: {
+      palette: { type: "string", enum: [...PALETTE_NAMES], description: "A named palette." },
+      colors: {
+        type: "array",
+        items: { type: "string" },
+        description: "Explicit hex colours, e.g. ['#0f380f', '#9bbc0f']. Max 16.",
+      },
+    },
+  },
+  example: { palette: "gb-dmg" },
+  execute: (args) => {
+    const { id } = requireActiveAsset();
+    const named = readOptionalString(args, "palette");
+    const raw = args["colors"];
+
+    if (named !== undefined) {
+      const entry = NAMED_PALETTES[named];
+      if (entry === undefined) {
+        throw new ToolError(`No palette '${named}'. Available: ${PALETTE_NAMES.join(", ")}.`);
+      }
+      return recolorAsset(id, entry.colors, entry.label);
+    }
+
+    if (!Array.isArray(raw)) {
+      throw new ToolError(`Pass either palette (one of ${PALETTE_NAMES.join(", ")}) or colors as an array of hex strings.`);
+    }
+    const colors = raw.map((value, index) => {
+      if (typeof value !== "string" || !/^#[0-9a-fA-F]{6}$/.test(value)) {
+        throw new ToolError(`colors[${String(index)}] must be a hex colour like '#3a5a40'.`);
+      }
+      return value;
+    });
+    if (colors.length < 2 || colors.length > 16) {
+      throw new ToolError(`A palette needs 2 to 16 colours, received ${String(colors.length)}.`);
+    }
+    return recolorAsset(id, colors, "custom palette");
+  },
+};
+
+export const estimateSkeletonTool: ToolDefinition = {
+  name: "estimate_skeleton",
+  scope: "character",
+  readOnly: true,
+  description:
+    "Estimate joint positions from the open character's silhouette. Coordinates are normalised against the sprite's content bounds, not pixels, so a pose read from one character transfers to another of a different size. Limb joints are hung off the measured shoulder and hip spread and may sit marginally outside 0-1 (roughly -0.1 to 1.1) on a wide or square silhouette, so clamp before converting to pixels. Use it to check proportions before editing, or to confirm a limb is where you think it is.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      character_type: { type: "string", enum: ["bipedal", "quadrupedal"], description: "Defaults to bipedal." },
+    },
+  },
+  example: { character_type: "bipedal" },
+  execute: (args) => {
+    const { id, name } = requireActiveAsset();
+    const store = session.get(id);
+    if (store === undefined) throw new ToolError(`No asset '${id}' is open.`);
+
+    const type = readEnum<"bipedal" | "quadrupedal">(args, "character_type", ["bipedal", "quadrupedal"], "bipedal");
+    const pose = estimateSkeleton(store.readComposite(), type);
+    if (pose === null) {
+      throw new ToolError(`'${name}' is empty, so it has no silhouette to estimate a skeleton from.`);
+    }
+
+    const joints = Object.entries(pose.joints)
+      .map(([joint, at]) => `${joint} (${at.x.toFixed(2)}, ${at.y.toFixed(2)})`)
+      .join(", ");
+    return `${pose.type} skeleton for '${name}', normalised within the content bounds: ${joints}.`;
+  },
+};
+
+export const listPoseTemplatesTool: ToolDefinition = {
+  name: "list_pose_templates",
+  scope: "character",
+  readOnly: true,
+  description:
+    "List the built-in pose sequences available for characters, with the number of poses in each. These describe joint positions over time; they are reference material for drawing frames, not an automatic redraw.",
+  inputSchema: { type: "object", properties: {} },
+  example: {},
+  execute: () =>
+    `Pose templates: ${TEMPLATE_NAMES.map((name) => {
+      const sequence = POSE_TEMPLATES[name];
+      const count = sequence === undefined ? 0 : sequence.poses.length;
+      return `${name} (${String(count)} pose${count === 1 ? "" : "s"}, ${sequence?.type ?? "bipedal"})`;
+    }).join(", ")}.`,
+};
+
+export const importImageTool: ToolDefinition = {
+  network: true,
+  name: "import_image",
+  scope: "always",
+  description:
+    "Turn a base64 PNG into an editable pixel-art asset and open it. Runs the full pixelisation pipeline: classifies the input, detects its native cell size, picks one colour per cell perceptually, binarises alpha and reduces to an indexed palette. The result is a real indexed grid every editing tool can write to — not a resized bitmap. Use this when the human gives you an image to work from.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      image: { type: "string", description: "Base64-encoded PNG. No data: URL prefix." },
+      name: { type: "string", description: "Name for the new asset." },
+      target_width: { type: "integer", minimum: 8, maximum: 128, description: "Output width in pixels. Defaults to the detected native size." },
+      max_colors: { type: "integer", minimum: 2, maximum: 16, description: "Palette size cap. Defaults to 16." },
+      type: { type: "string", enum: [...ASSET_TYPES], description: "Asset type. Defaults to tile." },
+    },
+    required: ["image", "name"],
+  },
+  example: { image: TINY_PNG, name: "Reference sprite" },
+  execute: async (args) => {
+    const raster = await decodeBase64Png(readString(args, "image"));
+    const { id, summary } = importImageAsAsset(raster, readString(args, "name"), {
+      targetWidth: readOptionalInteger(args, "target_width", 8, 128),
+      maxColors: readOptionalInteger(args, "max_colors", 2, 16),
+      type: readEnum<AssetType>(args, "type", ASSET_TYPES, "tile"),
+    });
+    session.open(id);
+    assetNavigation.request(id);
+    return `${summary} Opened as ${id}; it is fully editable.`;
+  },
+};
+
+export const buildCharacterTool: ToolDefinition = {
+  network: true,
+  name: "build_character_from_reference",
+  scope: "always",
+  description:
+    "Turn a base64 PNG reference into one clean base game sprite. SLOW AND PAID: an image edit isolates and redraws the primary character as a clean full-body raster, then local framing and pixelisation create the indexed sprite. Call generate_direction_set afterwards for cardinal or eight-angle output; keeping the steps separate lets the human inspect and repair the base before multiplying it. Use import_image only when the input is already a clean isolated sprite.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      image: { type: "string", description: "Base64-encoded PNG of the concept art. No data: URL prefix." },
+      name: { type: "string", description: "Base name; each direction is named '<name> <direction>'." },
+      direction_set: { type: "string", enum: [...SETS], description: "Defaults to cardinal4." },
+      base_direction: { type: "string", enum: [...DIRECTIONS], description: "Direction shown by the reference. Defaults to south/front, or east for side2." },
+      target_width: { type: "integer", minimum: 8, maximum: 128, description: "Square sprite size in pixels. Defaults to 32." },
+    },
+    required: ["image", "name"],
+  },
+  example: { image: TINY_PNG, name: "Knight", direction_set: "cardinal4", base_direction: "south" },
+  execute: async (args) => {
+    const result = await buildCharacterFromConcept(args);
+    session.open(result.baseId);
+    assetNavigation.request(result.baseId);
+    return result.summary;
+  },
+};
+
+/** Shared concept preparation used by the UI tray and the WebMCP wrapper. */
+export async function buildCharacterFromConcept(args: ToolArgs): Promise<{
+  readonly baseId: string;
+  readonly summary: string;
+}> {
+  const sourceBase64 = readString(args, "image");
+  const targetWidth = readOptionalInteger(args, "target_width", 8, 128) ?? 32;
+  const name = readString(args, "name");
+  const directionSet = readEnum<DirectionSet>(args, "direction_set", SETS, "cardinal4");
+  const defaultBase: Direction = directionSet === "side2" ? "east" : "south";
+  const baseDirection = readEnum<Direction>(args, "base_direction", DIRECTIONS, defaultBase);
+  if (!DIRECTION_SETS[directionSet].some((direction) => direction === baseDirection)) {
+    throw new ToolError(`${baseDirection} is not part of ${directionSet}.`);
+  }
+
+  // Decode first so malformed uploads fail before a paid request is attempted.
+  await decodeBase64Png(sourceBase64);
+  const binary = atob(sourceBase64);
+  const source = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  const extracted = await deriveImage(
+    source,
+    `Extract the most visually prominent character as one complete, clean, isolated full-body game-character reference prepared for a ${String(targetWidth)}x${String(targetWidth)} sprite.`,
+    "sprite",
+    "extract",
+  );
+  const raster = await decodeBase64Png(extracted.image);
+  const existing = new Set(session.list().map((asset) => asset.id));
+  const summary = await buildCharacterFromReference(raster, name, {
+    directionSet,
+    baseDirection,
+    targetWidth,
+  });
+
+  const base = session.list().find(
+    (asset) => !existing.has(asset.id) && asset.name === `${name} ${baseDirection}`,
+  );
+  if (base === undefined) {
+    throw new ToolError(`The extracted base direction '${name} ${baseDirection}' was not created.`);
+  }
+  return {
+    baseId: base.id,
+    summary: `Extracted one clean character raster with ${extracted.model}, then ${summary}`,
+  };
+}
+
+/** Kept for the tool-surface tests, which assert the exported set of this file. */
+export const AUTHORING_TOOLS: readonly ToolDefinition[] = [
+  generateTilesetTool,
+  setPaletteTool,
+  estimateSkeletonTool,
+  listPoseTemplatesTool,
+  importImageTool,
+  buildCharacterTool,
+];
