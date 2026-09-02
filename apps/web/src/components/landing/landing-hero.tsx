@@ -1,30 +1,24 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { GeistPixelSquare } from "geist/font/pixel";
+import { LandingPrompt } from "@/components/landing/landing-prompt";
 import { landingContent } from "@/data/landing";
+
+const { hero } = landingContent;
 
 export function LandingHero() {
   return (
-    <section className="flex min-h-[calc(100dvh-4rem)] items-center justify-center py-20 text-center">
-      <div className="max-w-3xl">
-        <h1 className="text-balance text-4xl leading-[1.08] font-medium tracking-tight sm:text-6xl">
-          {landingContent.hero.title}
+    <section className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[url('/images/hero-pixel-landscape.png')] bg-cover bg-center py-20 text-center text-white [image-rendering:pixelated]">
+      <div aria-hidden="true" className="absolute inset-0 bg-black/55" />
+      <div className="relative mx-auto w-full max-w-5xl px-6">
+        <h1
+          className={`${GeistPixelSquare.className} text-balance text-4xl leading-[1.08] font-medium sm:text-5xl lg:text-6xl`}
+        >
+          {hero.title}
         </h1>
-        <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-          {landingContent.hero.description}
+        <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-white/80 sm:text-lg">
+          {hero.description}
         </p>
-        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Button asChild className="h-11 rounded-md px-6 text-base">
-            <Link href={landingContent.hero.primaryAction.href}>
-              {landingContent.hero.primaryAction.label}
-            </Link>
-          </Button>
-          <Button
-            className="h-11 rounded-md px-6 text-base"
-            type="button"
-            variant="outline"
-          >
-            {landingContent.hero.secondaryAction.label}
-          </Button>
+        <div className="mt-8">
+          <LandingPrompt />
         </div>
       </div>
     </section>
