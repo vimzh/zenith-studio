@@ -1,8 +1,8 @@
 {
-  "name": "template",
+  "name": "zenith-studio",
   "private": true,
   "packageManager": "bun@1.3.14",
-  "workspaces": ["apps/*"],
+  "workspaces": ["apps/*", "packages/*"],
   "overrides": {
     "@types/node": "^24"
   },
@@ -11,6 +11,7 @@
     "dev": "bun run --workspaces --parallel dev",
     "build": "bun run --workspaces --if-present build",
     "lint": "bun run --workspaces --if-present lint",
+    "test": "bun run --workspaces --if-present test",
     "typecheck": "bun run --workspaces --if-present typecheck"
   }
 }

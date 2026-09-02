@@ -7,17 +7,20 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "bun test",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@radix-ui/react-slot": "^1.3.3",
     "@shadcn/react": "^0.3.0",
+    "@zenith/core": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
     "embla-carousel-react": "^8.6.0",
+    "geist": "^1.7.2",
     "input-otp": "^1.5.0",
     "lucide-react": "^1.33.0",
     "motion": "^13.1.0",
@@ -38,6 +41,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bun": "^1.4.0",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",

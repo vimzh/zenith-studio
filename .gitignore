@@ -2,3 +2,9 @@ node_modules
 .DS_Store
 dist
 .serena
+
+# env files — never commit secrets. `apps/api/.env` holds the OpenAI key, and
+# this repository is public, so an un-ignored .env is a key disclosure.
+.env
+.env.*
+!.env.example
