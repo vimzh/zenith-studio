@@ -7,11 +7,14 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun run src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
+    "@zenith/core": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.13.3"
+    "hono": "^4.13.3",
+    "openai": "^7.8.0"
   },
   "devDependencies": {
     "@types/bun": "latest",

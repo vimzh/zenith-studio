@@ -3,3 +3,8 @@ node_modules/
 *.db
 *.db-shm
 *.db-wal
+
+# secrets
+.env
+.env.*
+!.env.example
