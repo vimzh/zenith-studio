@@ -4,13 +4,13 @@ import { StickyNavbarShell } from "@/components/layout/sticky-navbar-shell";
 
 export default function LandingLayout({ children }: { children: ReactNode }) {
   return (
-    <>
+    <div className="dark min-h-dvh bg-background text-foreground [color-scheme:dark]">
       <StickyNavbarShell>
-        <div className="px-[14%]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <SiteNavbar />
         </div>
       </StickyNavbarShell>
-      <main className="px-[14%]">{children}</main>
-    </>
+      <main>{children}</main>
+    </div>
   );
 }

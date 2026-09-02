@@ -31,9 +31,10 @@ export function StickyNavbarShell({ children }: StickyNavbarShellProps) {
         ref={sentinelRef}
       />
       <header
+        data-scrolled={isScrolled}
         className={cn(
-          "sticky top-0 z-20 border-b border-transparent bg-background transition-colors duration-150 motion-reduce:transition-none",
-          isScrolled && "border-border"
+          "group/navbar fixed inset-x-0 top-0 z-20 border-b border-transparent text-white transition-colors duration-150 motion-reduce:transition-none",
+          isScrolled && "border-border bg-background text-foreground"
         )}
       >
         {children}
