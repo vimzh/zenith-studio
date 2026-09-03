@@ -1,16 +1,28 @@
-# Zenith Studio
+<p align="center">
+  <img src="output/banner/zenith-studio-banner-3x2.png" alt="Zenith Studio pixel-art characters and editing workflow" width="100%">
+</p>
 
-A pixel-art editor where a human and an AI agent draw on the same canvas, at the
-same time, through [WebMCP](https://developer.chrome.com/docs/ai/webmcp).
+<h1 align="center">Zenith Studio</h1>
 
-**The idea in one line:** constrain pixel art hard enough and it becomes text a
-language model can read and write losslessly — so the agent edits the canonical
-grid rather than generating pictures of one.
+<p align="center">
+  A browser-native pixel-art studio where a person and an AI agent edit the same indexed canvas, share one undo history, and ship game-ready assets through WebMCP.
+</p>
 
-A 32×32 sprite on a 16-colour palette is 1024 cells, each a single character:
-`0`–`9` and `A`–`F` for palette indices, `.` for transparent.
+<p align="center">
+  <strong><a href="https://zenith-web-mif2krwk2q-el.a.run.app">Open the live studio</a></strong>
+  ·
+  <a href="#run-locally">Run locally</a>
+</p>
 
-```
+<!-- README-HACK:NEEDS-OWNER key="demo-video" instruction="Add the final public YouTube demo URL after replacing the four-minute cut with a version under three minutes." -->
+
+## The idea
+
+AI image generators can imitate pixel art, but their output usually breaks the constraints that make pixel art useful: exact cells, a controlled palette, hard alpha, aligned frames, and repeatable edits.
+
+Zenith Studio makes those constraints the document model. A 32×32 sprite on a 16-colour palette becomes 1,024 indexed cells: `0`–`9` and `A`–`F` select colours, while `.` means transparent.
+
+```text
 ................
 ......2222......
 ....22333322....
@@ -23,162 +35,140 @@ A 32×32 sprite on a 16-colour palette is 1024 cells, each a single character:
 ......1111......
 ```
 
-A model can read that, reason about it spatially, and write it back exactly.
-There is no rasterisation step to blur it, no downscale to knock it off-grid,
-no palette to explode. The defects that make AI "pixel art" unusable —
-anti-aliasing, off-grid pixels, four hundred colours, semi-transparent edges —
-are not repaired after the fact. They are unrepresentable.
+An agent can read this grid, reason about coordinates, change exact cells, inspect the result, and try again. It edits the canonical artwork instead of generating another approximation of it.
 
-## Status
+## What Zenith Studio does
 
-Deployed to Google Cloud Run:
+- **Shares one canvas.** Human gestures and WebMCP calls reach the same document store and the same undo stack.
+- **Keeps every edit pixel-exact.** Indexed palettes, integer coordinates, binary transparency, and nearest-neighbour rendering are enforced at the model boundary.
+- **Lets agents inspect before editing.** Tools expose canvas regions, palettes, silhouettes, frame differences, and validation results as structured data.
+- **Builds complete asset workflows.** Create and organize sprites, derive directions, animate frames, check tile seams, and export PNG, GIF, engine, palette, or project files.
+- **Scopes tools to the current work.** The library exposes project operations; an open character adds direction and skeleton tools; a tile adds tiling tools.
 
-- Web: https://zenith-web-mif2krwk2q-el.a.run.app
-- API: https://zenith-api-mif2krwk2q-el.a.run.app
+```text
+Prompt or existing sprite
+          │
+          ▼
+ Human ── shared indexed canvas ── WebMCP agent
+          │                         │
+          └──── read → edit → check ┘
+                    │
+                    ▼
+       PNG · GIF · engine bundle · project
+```
 
-Pushes to `main` deploy both services through the Cloud Build trigger defined in
-`cloudbuild.yaml`.
+## The result
 
-Run it locally with the instructions below.
+The shipped showcase contains five characters and fifteen generated moves. Each animation is planned from its source sprite, drawn as a single sheet to preserve scale and registration, reduced into the character's indexed palette, and exported by the pipeline.
 
-## Running it
+| Knight: overhead slash | Fire mage: fireball | Elf archer: draw and loose |
+| :---: | :---: | :---: |
+| ![Knight performing an overhead slash](apps/web/public/images/showcase/knight-slash.gif) | ![Fire mage casting a fireball](apps/web/public/images/showcase/mage-fireball.gif) | ![Elf archer drawing and releasing an arrow](apps/web/public/images/showcase/archer-loose.gif) |
 
-Requires [Bun](https://bun.com) 1.3.14 or later.
+The editor also supports deterministic animation, direction mirroring, palette extraction and replacement, project style profiles, tile validation, and restorable project exports. These operations remain editable after they run; the generated image is never the end of the workflow.
+
+## Why WebMCP fits
+
+Most creative integrations stop at a prompt box. Zenith Studio exposes the application's real editing vocabulary, so the agent can participate in the same loop as the artist:
+
+1. Read the open asset and its constraints.
+2. Make a precise, named operation.
+3. Inspect the changed pixels or frame diff.
+4. Run a domain check such as readability, animation coherence, or tile continuity.
+5. Repair only the coordinates that failed and export the result.
+
+Tools register through `document.modelContext.registerTool`. A compatibility adapter also supports the earlier `navigator.modelContext` surface. Both WebMCP calls and the built-in Agent Console pass through the same runner, which records one transcript and refuses to edit when the visible route and active asset disagree.
+
+## Architecture
+
+```text
+ChatGPT in-app browser / Chrome 149+
+                 │ WebMCP
+                 ▼
+┌───────────────────────────────────────────────────────┐
+│ Next.js web app · Google Cloud Run                    │
+│                                                       │
+│ Studio UI ── WebMCP runner ── scoped tool catalogue   │
+│      │              │                                 │
+│      └────── DocumentStore (@zenith/core) ────────────┤
+│                     │                                 │
+│            IndexedDB persistence                      │
+│            Web Worker pixelisation                    │
+└─────────────────────┬─────────────────────────────────┘
+                      │ generation · chat · pixel API
+                      ▼
+          Hono API · Google Cloud Run
+                      │
+                      ▼
+                  OpenAI API
+```
+
+The browser owns the artwork. `@zenith/core` is pure TypeScript with no DOM or framework dependency; it stores cells in `Int16Array` grids, validates mutations, and records undo as pixel patches rather than full snapshots. React subscribes to store revisions with `useSyncExternalStore`, allowing UI actions and agent calls to update the same mutable document safely.
+
+IndexedDB saves assets and project structure locally without an account. The Hono service keeps the OpenAI key and model-backed generation, derivation, and chat routes on the server; it also exposes health and deterministic pixel endpoints. Editing, canvas rendering, project organization, local pixelisation, and export stay in the browser.
+
+The checked-in Google Cloud Build pipeline builds and deploys both services to Cloud Run:
+
+- **Web:** <https://zenith-web-mif2krwk2q-el.a.run.app>
+- **API:** <https://zenith-api-mif2krwk2q-el.a.run.app>
+
+## Built with
+
+- TypeScript, React 19, and Next.js 16
+- WebMCP via `document.modelContext.registerTool`
+- Bun workspaces
+- Hono and the OpenAI API
+- IndexedDB, Canvas 2D, and Web Workers
+- Google Cloud Build and Google Cloud Run
+
+## Run locally
+
+Requires Bun 1.3.14 or later.
 
 ```bash
 bun run setup
 bun run dev
 ```
 
-The editor is at http://localhost:3000. Three example assets are seeded on first
-visit, so there is something to draw on immediately. No account, no login.
+Open <http://localhost:3000>. The first visit seeds example assets, and no login is required.
 
-Everything except image generation runs in the browser and works with the API
-service down: the whole editor, every deterministic tool, and the entire
-pixelisation pipeline.
-
-### Optional: image generation
-
-Generation needs an OpenAI key. Without one the app is fully usable and the
-generation tools return a clear "not configured" error rather than failing
-obscurely.
+The core editor and deterministic tools work without the API service. To enable model-backed generation and chat, copy the API environment template and provide an OpenAI key:
 
 ```bash
-cp apps/api/.env.example apps/api/.env   # then set OPENAI_API_KEY
+cp apps/api/.env.example apps/api/.env
+# Set OPENAI_API_KEY in apps/api/.env
 ```
 
-Generation takes **minutes, not seconds** — the model call alone has been
-measured between 20 and 157 seconds depending on quality, and pixelising the
-result takes about as long again. Concurrent requests are refused rather than
-queued, because each one is a paid image.
+Model generation can take minutes. The editor reports missing configuration clearly and prevents concurrent paid generation requests instead of silently queuing them.
 
-## Turning on WebMCP
+## Test WebMCP
 
-WebMCP is behind a flag. Either of these works:
+Use either environment:
 
-**Chrome 149 or later**
+- Open the live studio in ChatGPT's in-app browser; WebMCP is available there automatically.
+- In Chrome 149 or later, enable `chrome://flags/#enable-webmcp-testing`, relaunch, and open an asset.
 
-1. Open `chrome://flags/#enable-webmcp-testing`
-2. Set it to **Enabled** and relaunch
-3. Open http://localhost:3000 and click any asset
+The Agent Console reports the detected WebMCP surface and registered tool count. Its built-in runner remains available when WebMCP is not present, using the same tool handlers for local testing.
 
-The agent panel's badge tells you what happened: **WebMCP connected** with the
-tool count, or **WebMCP unavailable** with what to check. It also names which
-binding was found — Chrome 150 moved the API from `navigator.modelContext` to
-`document.modelContext`, and both are supported.
-
-**The ChatGPT in-app browser** — open the URL there; tools register on load.
-
-**Neither?** The app is still fully usable. The agent panel has a built-in chat
-and a tool runner that call the *same handlers* a WebMCP client would, so the
-collaboration works with no WebMCP client present at all.
-
-## How it fits together
-
-```
-apps/web    Next.js on Vercel. UI, canvas, document store, WebMCP tools,
-            IndexedDB persistence, and the pixelisation pipeline in a worker.
-apps/api    Hono on Cloud Run. Model calls only — the one thing that needs a
-            key. Rate limited per client and globally.
-packages/core   The document model. Pure TypeScript, no DOM, no framework:
-            indexed grids, invariants, mutations, undo/redo, Oklab, serialisation.
-```
-
-**One store, two front doors.** Human actions and agent tool calls land on the
-same mutation, share one undo stack, and appear in one transcript. There is no
-separate "agent path" to drift out of sync — which is why `Ctrl+Z` undoes the
-agent's work as readily as your own.
-
-Five invariants are enforced at the store boundary rather than per caller:
-
-1. Every pixel is a valid palette index or transparent
-2. Every pixel is fully opaque or fully transparent
-3. Dimensions are immutable except by explicit resize
-4. Rasterisation is integer nearest-neighbour only
-5. All frames of an asset share dimensions and palette
-
-Violations are rejected with a message naming what was wrong and what to do
-instead — never silently corrected.
-
-## The tool surface
-
-Tools are registered **scoped to the current view** rather than all at once: the
-library offers project and file operations, a tile is never offered skeleton tools, and frame
-diffing appears only once an asset has a second frame.
-
-External agents can drive the main flow without the built-in chat: image input,
-indexed editing, animation, project organization, save checks and complete file
-output. Long model calls have pollable jobs with request-ID deduplication;
-exports have readable byte chunks instead of requiring download clicks. This is
-live-tab WebMCP, not a standalone remote MCP server.
-
-| Group | Tools |
-| --- | --- |
-| Projects | `list_projects` `create_project` `open_project` `list_project_contents` `create_folder` `move_asset` `rename_project` `import_project` `get_style_profile` `set_style_profile` `add_style_reference` `check_style_consistency` `conform_to_style` |
-| Jobs and storage | `start_tool_job` `get_tool_job` `get_storage_status` `flush_storage` |
-| Context | `list_assets` `create_asset` `open_asset` `rename_asset` `duplicate_asset` `delete_asset` `describe_asset` |
-| Viewport | `get_viewport` `focus_viewport` |
-| Perception | `read_canvas` `read_region` `get_palette` `get_color_at` `find_color_regions` `check_readability` |
-| Editing | `write_region` `set_pixels` `fill_region` `bucket_fill` `replace_color` `clear_region` `shift` `mirror` `draw_line` `draw_rect` `dither_region` `rotate_grid` `resize_canvas` `crop_to_content` |
-| Frames | `list_frames` `add_frame` `select_frame` `delete_frame` `reorder_frames` `set_frame_duration` `read_frame` `get_silhouette` |
-| Animation | `read_frames_diff` `read_animation_summary` `check_animation_coherence` `animate_procedural` `animate_with_skeleton` `animate_with_text` `interpolate_frames` |
-| Directions | `get_directions` `select_direction` `derive_direction_by_mirror` `rotate_character` `generate_direction_set` |
-| History | `undo` `redo` |
-| Generation | `generate_asset` `derive_variant` `generate_variation_set` `pixelize` `import_image` `build_character_from_reference` `generate_tileset` `reduce_colors` `remove_background` `extract_palette` `check_grid_alignment` |
-| Authoring | `set_palette` `estimate_skeleton` `list_pose_templates` |
-| Worlds | `generate_texture` `generate_isometric_tile` `assemble_map` `extend_map` |
-| Validation | `check_seamless_tiling` |
-| Export | `export_png` `export_animation` `export_for_engine` `export_palette` `export_project` `list_exports` `read_export` `release_export` |
-
-Three of these are worth singling out.
-
-**`read_canvas`** is the read path. Most agent integrations only let a model
-*write*; this one lets it see what it is editing, as text, and iterate.
-
-**`read_frames_diff`** returns only the pixels that changed between two frames.
-A typical animation frame pair differs by 5–15%, so an agent can reason about
-motion for a fraction of the cost of reading either frame — which is only
-possible because the format is indexed. You cannot diff two PNGs and get
-something a model can act on.
-
-**`check_seamless_tiling`** returns coordinates, not a verdict, so the agent can
-fail, fix exactly those pixels, and re-check. The test is not whether opposite
-edges match — almost no hand-drawn tile passes that. A seam pairing is
-acceptable when the same pairing already occurs inside the tile, so mortar
-beside stone at the seam is invisible when mortar sits beside stone throughout.
-
-## Development
+## Verify the repository
 
 ```bash
-bun run test        # tests across three workspaces
+bun test
 bun run typecheck
 bun run lint
 bun run build
 ```
 
-Conventions, performance rules and the invariants live in
-[`AGENTS.md`](./AGENTS.md).
+## Hackathon scope
+
+Before the challenge, this repository contained a reusable landing-page and app-shell template. The indexed pixel model, canvas editor, WebMCP integration, agent console, generation and pixelisation pipeline, animation and direction workflows, project system, exports, showcase, and Cloud Run deployment were built for the WebMCP Challenge.
+
+## Current boundaries
+
+- Persistence is local to the browser through IndexedDB; there are no shared cloud projects or user accounts.
+- Model-backed generation requires the deployed API or a local `OPENAI_API_KEY`.
+- WebMCP requires ChatGPT's in-app browser or a compatible Chrome build with the testing flag enabled.
 
 ## License
 
-Zenith Studio is available under the [MIT License](./LICENSE).
+Zenith Studio is available under the [MIT License](LICENSE). Copyright © 2026 Vimzh.
