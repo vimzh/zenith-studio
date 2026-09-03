@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description" data-layout-version="cloudy-native-v2" data-spec-sha256="da3e6983d14cf1148db1c5cf9e7ce7c88825e3868be2fa7c3c073a5797385883">
+  <title id="title">How Zenith Studio keeps humans and agents in sync</title>
+  <desc id="description">A three-zone flow showing human and WebMCP inputs, Zenith Studio&#x27;s shared runner and indexed document, optional model generation, validation, iteration, and export.</desc>
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker>
+    <marker id="arrow-violet" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#7c3aed"/></marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#16a34a"/></marker>
+    <marker id="arrow-amber" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#d97706"/></marker>
+    <marker id="arrow-teal" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#0f766e"/></marker>
+    <marker id="arrow-rose" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#e11d48"/></marker>
+    <marker id="arrow-slate" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#57534e"/></marker>
+    <style>
+      text { font-family: "Comic Sans MS", "Segoe Print", cursive; }
+      .title { font-size: 36px; fill: #292524; }
+      .subtitle { font-size: 17px; fill: #78716c; }
+      .zone-label { font-size: 14px; letter-spacing: 1px; }
+      .node-title { font-size: 20px; fill: #292524; }
+      .node-body { font-size: 15px; fill: #44403c; }
+      .node-note { font-size: 13px; fill: #57534e; }
+      .edge-label { font-size: 13px; fill: #57534e; paint-order: stroke; stroke: #fffdf8; stroke-width: 4px; stroke-linejoin: round; }
+      .footer { font-size: 13px; fill: #57534e; }
+      .arrow { fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#fffdf8"/>
+  <text x="54" y="62" class="title">How Zenith Studio keeps humans and agents in sync</text>
+  <text x="54" y="94" class="subtitle">Two front doors share one indexed document, one feedback loop, and exports that remain pixel-exact</text>
+  <rect data-zone-id="inputs" x="42.0" y="130" width="333.7" height="690" rx="28" fill="#eff6ff" stroke="#93c5fd" stroke-width="2" stroke-dasharray="8 8"/>
+  <text x="62.0" y="160" class="zone-label" fill="#1e40af">1 · TWO CREATORS</text>
+  <rect data-zone-id="workspace" x="403.7" y="130" width="688.3" height="690" rx="28" fill="#faf5ff" stroke="#c4b5fd" stroke-width="2" stroke-dasharray="8 8"/>
+  <text x="423.7" y="160" class="zone-label" fill="#5b21b6">2 · ONE SHARED WORKSPACE</text>
+  <rect data-zone-id="outcomes" x="1120.0" y="130" width="438.0" height="690" rx="28" fill="#f0fdf4" stroke="#86efac" stroke-width="2" stroke-dasharray="8 8"/>
+  <text x="1140.0" y="160" class="zone-label" fill="#166534">3 · CHECK AND SHIP</text>
+  <path class="arrow" data-edge="human--runner" d="M345.7 258.0 C376.5 258.0 402.9 258.0 433.7 258.0" stroke="#2563eb" marker-end="url(#arrow-blue)"/>
+  <path class="arrow" data-edge="agent--runner" d="M345.7 408.0 H389.7 V258.0 H433.7" stroke="#7c3aed" marker-end="url(#arrow-violet)"/>
+  <path class="arrow" data-edge="runner--browser" d="M1062.0 258.0 H1076.0 V408.0 H738.9" stroke="#7c3aed" marker-end="url(#arrow-violet)"/>
+  <path class="arrow" data-edge="runner--model" d="M1062.0 258.0 H1076.0 V408.0 H1062.0" stroke="#d97706" marker-end="url(#arrow-amber)"/>
+  <path class="arrow" data-edge="browser--document" d="M738.9 408.0 H1076.0 V558.0 H1062.0" stroke="#7c3aed" marker-end="url(#arrow-violet)"/>
+  <path class="arrow" data-edge="model--document" d="M1062.0 408.0 H1076.0 V558.0 H1062.0" stroke="#d97706" marker-end="url(#arrow-amber)"/>
+  <path class="arrow" data-edge="document--inspect" d="M1062.0 558.0 H1106.0 V408.0 H1150.0" stroke="#16a34a" marker-end="url(#arrow-green)"/>
+  <path class="arrow" data-edge="inspect--export" d="M1339.0 476.0 V502.0" stroke="#16a34a" marker-end="url(#arrow-green)"/>
+  <path class="arrow" data-edge="inspect--runner" d="M1528.0 408.0 H1546.0 V806.0 H415.7 V258.0 H433.7" stroke="#e11d48" marker-end="url(#arrow-rose)"/>
+  <rect class="node" data-node-id="human" data-status="external" x="72.0" y="202.0" width="273.7" height="112.0" rx="22" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="208.9" y="237.0" text-anchor="middle" class="node-title">You draw and direct</text>
+  <text x="208.9" y="268.0" text-anchor="middle" class="node-body">pointer strokes · palette ·</text>
+  <text x="208.9" y="290.0" text-anchor="middle" class="node-body">timeline</text>
+  <rect class="node" data-node-id="agent" data-status="external" x="72.0" y="338.0" width="273.7" height="140.0" rx="22" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="208.9" y="373.0" text-anchor="middle" class="node-title">Your agent reads and</text>
+  <text x="208.9" y="399.0" text-anchor="middle" class="node-title">acts</text>
+  <text x="208.9" y="430.0" text-anchor="middle" class="node-body">structured WebMCP tool calls</text>
+  <text x="208.9" y="460.0" text-anchor="middle" class="node-note">Tools change with the open asset</text>
+  <rect class="node" data-node-id="runner" data-status="implemented" x="433.7" y="202.0" width="628.3" height="112.0" rx="22" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="747.9" y="237.0" text-anchor="middle" class="node-title">Both use the same command path</text>
+  <text x="747.9" y="268.0" text-anchor="middle" class="node-body">one runner · one transcript · visible-target guard</text>
+  <rect class="node" data-node-id="browser" data-status="implemented" x="433.7" y="342.0" width="305.1" height="132.0" rx="22" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="586.3" y="377.0" text-anchor="middle" class="node-title">The browser does precise</text>
+  <text x="586.3" y="403.0" text-anchor="middle" class="node-title">work</text>
+  <text x="586.3" y="434.0" text-anchor="middle" class="node-body">edit · animate · mirror</text>
+  <text x="586.3" y="456.0" text-anchor="middle" class="node-body">pixelise · organise</text>
+  <rect class="node" data-node-id="model" data-status="implemented" x="756.9" y="338.0" width="305.1" height="140.0" rx="22" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="909.4" y="373.0" text-anchor="middle" class="node-title">Optional model</text>
+  <text x="909.4" y="399.0" text-anchor="middle" class="node-title">generation</text>
+  <text x="909.4" y="430.0" text-anchor="middle" class="node-body">Hono holds the OpenAI key</text>
+  <text x="909.4" y="460.0" text-anchor="middle" class="node-note">Deterministic tools stay local</text>
+  <rect class="node" data-node-id="document" data-status="implemented" x="433.7" y="490.0" width="628.3" height="136.0" rx="22" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="747.9" y="525.0" text-anchor="middle" class="node-title">Every result lands in one indexed document</text>
+  <text x="747.9" y="556.0" text-anchor="middle" class="node-body">Int16 grids · controlled palette</text>
+  <text x="747.9" y="578.0" text-anchor="middle" class="node-body">patch undo · shared frames</text>
+  <text x="747.9" y="608.0" text-anchor="middle" class="node-note">Saved locally in IndexedDB</text>
+  <rect class="node" data-node-id="inspect" data-status="implemented" x="1150.0" y="340.0" width="378.0" height="136.0" rx="22" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="1339.0" y="375.0" text-anchor="middle" class="node-title">Inspect before calling it done</text>
+  <text x="1339.0" y="406.0" text-anchor="middle" class="node-body">canvas reads · frame diffs</text>
+  <text x="1339.0" y="428.0" text-anchor="middle" class="node-body">readability · tile seams</text>
+  <text x="1339.0" y="458.0" text-anchor="middle" class="node-note">Failures return coordinates to repair</text>
+  <rect class="node" data-node-id="export" data-status="implemented" x="1150.0" y="502.0" width="378.0" height="112.0" rx="22" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="1339.0" y="537.0" text-anchor="middle" class="node-title">Ship editable game assets</text>
+  <text x="1339.0" y="568.0" text-anchor="middle" class="node-body">PNG · GIF · engine bundle</text>
+  <text x="1339.0" y="590.0" text-anchor="middle" class="node-body">palette · restorable project</text>
+  <text x="389.7" y="245.0" text-anchor="middle" class="edge-label">gestures</text>
+  <text x="367.7" y="395.0" text-anchor="middle" class="edge-label">WebMCP</text>
+  <rect x="54" y="844" width="1492" height="36" rx="14" fill="#f5f5f4" stroke="#d6d3d1"/>
+  <text x="800" y="868" text-anchor="middle" class="footer">Inspect, repair exact cells, and re-check. Every agent edit stays visible and undoable.</text>
+</svg>

@@ -81,27 +81,7 @@ Tools register through `document.modelContext.registerTool`. A compatibility ada
 
 ## Architecture
 
-```text
-ChatGPT in-app browser / Chrome 149+
-                 │ WebMCP
-                 ▼
-┌───────────────────────────────────────────────────────┐
-│ Next.js web app · Google Cloud Run                    │
-│                                                       │
-│ Studio UI ── WebMCP runner ── scoped tool catalogue   │
-│      │              │                                 │
-│      └────── DocumentStore (@zenith/core) ────────────┤
-│                     │                                 │
-│            IndexedDB persistence                      │
-│            Web Worker pixelisation                    │
-└─────────────────────┬─────────────────────────────────┘
-                      │ generation · chat · pixel API
-                      ▼
-          Hono API · Google Cloud Run
-                      │
-                      ▼
-                  OpenAI API
-```
+![How human edits and WebMCP agent calls share one indexed document, validation loop, and export path](docs/graphs/how-zenith-studio-works.svg)
 
 The browser owns the artwork. `@zenith/core` is pure TypeScript with no DOM or framework dependency; it stores cells in `Int16Array` grids, validates mutations, and records undo as pixel patches rather than full snapshots. React subscribes to store revisions with `useSyncExternalStore`, allowing UI actions and agent calls to update the same mutable document safely.
 

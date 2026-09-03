@@ -1,0 +1,233 @@
+{
+  "title": "How Zenith Studio keeps humans and agents in sync",
+  "subtitle": "Two front doors share one indexed document, one feedback loop, and exports that remain pixel-exact",
+  "description": "A three-zone flow showing human and WebMCP inputs, Zenith Studio's shared runner and indexed document, optional model generation, validation, iteration, and export.",
+  "footer": "Inspect, repair exact cells, and re-check. Every agent edit stays visible and undoable.",
+  "zones": [
+    {
+      "id": "inputs",
+      "label": "1 \u00b7 TWO CREATORS",
+      "tone": "blue",
+      "width": 0.8
+    },
+    {
+      "id": "workspace",
+      "label": "2 \u00b7 ONE SHARED WORKSPACE",
+      "tone": "violet",
+      "width": 1.65
+    },
+    {
+      "id": "outcomes",
+      "label": "3 \u00b7 CHECK AND SHIP",
+      "tone": "green",
+      "width": 1.05
+    }
+  ],
+  "nodes": [
+    {
+      "id": "human",
+      "zone": "inputs",
+      "title": "You draw and direct",
+      "body": [
+        "pointer strokes \u00b7 palette \u00b7 timeline"
+      ],
+      "status": "external",
+      "size": "standard",
+      "row": 1,
+      "span": 2,
+      "evidence": [
+        "apps/web/src/components/editor/pixel-canvas.tsx",
+        "apps/web/src/components/editor/use-editor-controller.ts"
+      ]
+    },
+    {
+      "id": "agent",
+      "zone": "inputs",
+      "title": "Your agent reads and acts",
+      "body": [
+        "structured WebMCP tool calls"
+      ],
+      "note": "Tools change with the open asset",
+      "status": "external",
+      "size": "standard",
+      "row": 2,
+      "span": 2,
+      "evidence": [
+        "apps/web/src/lib/webmcp/adapter.ts",
+        "apps/web/src/lib/webmcp/scope.ts"
+      ]
+    },
+    {
+      "id": "runner",
+      "zone": "workspace",
+      "title": "Both use the same command path",
+      "body": [
+        "one runner \u00b7 one transcript \u00b7 visible-target guard"
+      ],
+      "status": "implemented",
+      "size": "wide",
+      "row": 1,
+      "span": 2,
+      "evidence": [
+        "apps/web/src/lib/webmcp/run.ts",
+        "apps/web/src/components/agent/registered-tool.tsx",
+        "apps/web/src/components/agent/tool-runner.tsx"
+      ]
+    },
+    {
+      "id": "browser",
+      "zone": "workspace",
+      "title": "The browser does precise work",
+      "body": [
+        "edit \u00b7 animate \u00b7 mirror",
+        "pixelise \u00b7 organise"
+      ],
+      "status": "implemented",
+      "size": "standard",
+      "row": 2,
+      "column": 1,
+      "span": 1,
+      "evidence": [
+        "apps/web/src/lib/webmcp/tools/editing.ts",
+        "apps/web/src/lib/animation/procedural.ts",
+        "apps/web/src/lib/pixelize/client.ts"
+      ]
+    },
+    {
+      "id": "model",
+      "zone": "workspace",
+      "title": "Optional model generation",
+      "body": [
+        "Hono holds the OpenAI key"
+      ],
+      "note": "Deterministic tools stay local",
+      "tone": "amber",
+      "status": "implemented",
+      "size": "standard",
+      "row": 2,
+      "column": 2,
+      "span": 1,
+      "evidence": [
+        "apps/api/src/index.ts",
+        "apps/api/src/routes/generate.ts",
+        "apps/web/src/lib/webmcp/api.ts"
+      ]
+    },
+    {
+      "id": "document",
+      "zone": "workspace",
+      "title": "Every result lands in one indexed document",
+      "body": [
+        "Int16 grids \u00b7 controlled palette",
+        "patch undo \u00b7 shared frames"
+      ],
+      "note": "Saved locally in IndexedDB",
+      "status": "implemented",
+      "size": "wide",
+      "row": 3,
+      "span": 2,
+      "evidence": [
+        "packages/core/src/store.ts",
+        "packages/core/src/types.ts",
+        "apps/web/src/lib/editor/storage.ts"
+      ]
+    },
+    {
+      "id": "inspect",
+      "zone": "outcomes",
+      "title": "Inspect before calling it done",
+      "body": [
+        "canvas reads \u00b7 frame diffs",
+        "readability \u00b7 tile seams"
+      ],
+      "note": "Failures return coordinates to repair",
+      "status": "implemented",
+      "size": "wide",
+      "row": 2,
+      "span": 2,
+      "evidence": [
+        "apps/web/src/lib/webmcp/tools/perception.ts",
+        "apps/web/src/lib/webmcp/tools/frames.ts",
+        "apps/web/src/lib/webmcp/tools/validation.ts"
+      ]
+    },
+    {
+      "id": "export",
+      "zone": "outcomes",
+      "title": "Ship editable game assets",
+      "body": [
+        "PNG \u00b7 GIF \u00b7 engine bundle",
+        "palette \u00b7 restorable project"
+      ],
+      "status": "implemented",
+      "size": "wide",
+      "row": 3,
+      "span": 2,
+      "evidence": [
+        "apps/web/src/lib/webmcp/tools/export.ts",
+        "apps/web/src/lib/export/engines.ts",
+        "apps/web/src/lib/webmcp/artifacts.ts"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "human",
+      "to": "runner",
+      "label": "gestures",
+      "tone": "blue",
+      "route": "horizontal",
+      "label_position": "middle"
+    },
+    {
+      "from": "agent",
+      "to": "runner",
+      "label": "WebMCP",
+      "tone": "violet",
+      "route": "orthogonal",
+      "label_position": "start"
+    },
+    {
+      "from": "runner",
+      "to": "browser",
+      "tone": "violet",
+      "route": "orthogonal"
+    },
+    {
+      "from": "runner",
+      "to": "model",
+      "tone": "amber",
+      "route": "orthogonal"
+    },
+    {
+      "from": "browser",
+      "to": "document",
+      "tone": "violet",
+      "route": "orthogonal"
+    },
+    {
+      "from": "model",
+      "to": "document",
+      "tone": "amber",
+      "route": "orthogonal"
+    },
+    {
+      "from": "document",
+      "to": "inspect",
+      "tone": "green",
+      "route": "orthogonal"
+    },
+    {
+      "from": "inspect",
+      "to": "export",
+      "tone": "green",
+      "route": "vertical"
+    },
+    {
+      "from": "inspect",
+      "to": "runner",
+      "tone": "rose",
+      "route": "feedback"
+    }
+  ]
+}
