@@ -178,3 +178,7 @@ bun run build
 
 Conventions, performance rules and the invariants live in
 [`AGENTS.md`](./AGENTS.md).
+
+## License
+
+Zenith Studio is available under the [MIT License](./LICENSE).
