@@ -139,10 +139,6 @@ bun run lint
 bun run build
 ```
 
-## Hackathon scope
-
-Before the challenge, this repository contained a reusable landing-page and app-shell template. The indexed pixel model, canvas editor, WebMCP integration, agent console, generation and pixelisation pipeline, animation and direction workflows, project system, exports, showcase, and Cloud Run deployment were built for the WebMCP Challenge.
-
 ## Current boundaries
 
 - Persistence is local to the browser through IndexedDB; there are no shared cloud projects or user accounts.
