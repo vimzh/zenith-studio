@@ -2,14 +2,6 @@
 
 **Zenith Studio** — a browser-native pixel-art studio where a human and an AI agent edit the same canvas, live, through [WebMCP](https://developer.chrome.com/docs/ai/webmcp).
 
-## Orientation
-
-- Read [`docs/idea.md`](docs/idea.md) before implementing a medium or large feature, so decisions reflect the product's purpose. Skip it for small, direct requests.
-- [`docs/phases/`](docs/phases/README.md) is the build plan — fourteen ordered phases, each with scope, exit criteria and an explicit out-of-scope list. Check which phase owns the work before adding to an earlier one.
-- [`docs/tools.md`](docs/tools.md) is the tool catalog, human and agent. Adding or renaming a tool means updating that file and the owning phase.
-- [`docs/requirements.md`](docs/requirements.md) holds the hackathon rules and third-party licensing constraints.
-- [`docs/gaps.md`](docs/gaps.md) tracks what is **actually verified** versus what a phase claims. **Update it whenever work lands or a criterion is proven** — a criterion is ticked only when verified, never when the code that should satisfy it merely exists.
-
 ## Architecture
 
 - **`packages/core`** — the pixel document model. Pure TypeScript, no DOM, no framework. Indexed grids, invariants, mutations, undo/redo, Oklab, serialisation.
@@ -156,7 +148,7 @@ Token cost is a performance concern, not a separate topic.
 
 ## Design
 
-Minimal, dense, sharp-edged. Panels 2px radius, controls 3–6px, 1px hairline borders, no shadows or gradients. `--spacing` is `0.22rem` and is the global density knob. Geist and Geist Mono; **Geist Mono is load-bearing** — the indexed grid only reads correctly in a monospace face. Chrome stays near-neutral and low-chroma so the artwork is the only saturated thing on screen. Full rationale in [`docs/idea.md`](docs/idea.md) §6.
+Minimal, dense, sharp-edged. Panels 2px radius, controls 3–6px, 1px hairline borders, no shadows or gradients. `--spacing` is `0.22rem` and is the global density knob. Geist and Geist Mono; **Geist Mono is load-bearing** — the indexed grid only reads correctly in a monospace face. Chrome stays near-neutral and low-chroma so the artwork is the only saturated thing on screen.
 
 Application screens use shadcn components whenever an equivalent exists. Do not render raw browser-native selects, inputs, textareas, or buttons in application code; native elements belong inside the shared shadcn and SmoothUI primitives only.
 
@@ -164,4 +156,4 @@ Application screens use shadcn components whenever an equivalent exists. Do not 
 
 - Run `bun run setup` when initializing a fresh copy.
 - `bun run lint`, `bun run typecheck` and `bun test` must all pass before work is considered done.
-- Ship the irreducible set, not the comfortable one. A deferred feature is **absent, not a disabled button** — see [`docs/phases/README.md`](docs/phases/README.md) on scope discipline.
+- Ship the irreducible set, not the comfortable one. A deferred feature is **absent, not a disabled button**.

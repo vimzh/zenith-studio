@@ -2,7 +2,7 @@
 
 Hono on Bun. Deploys to GCP Cloud Run.
 
-Its long-term job is the model calls that cannot run in the browser — generation, rotation, animation, inpainting. Today it serves the [phase 01](../../docs/phases/01-core-data-model.md) document model over HTTP, using the same `@zenith/core` package the browser store is built from.
+Its long-term job is the model calls that cannot run in the browser — generation, rotation, animation, inpainting. Today it serves the `@zenith/core` document model over HTTP, using the same package the browser store is built from.
 
 The editor stays fully usable with this service down. Nothing here is on the path of a deterministic edit.
 

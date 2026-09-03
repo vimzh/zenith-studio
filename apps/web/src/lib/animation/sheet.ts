@@ -10,8 +10,7 @@ import type { RasterImage } from "@/lib/pixelize";
  * because nothing in N independent calls can share a camera. Measured on a
  * five-frame sword swing: the body changed size between frames, the feet moved
  * up and down the canvas, and one pose ran off the edge. Each frame passed every
- * mechanical check and the cycle was unusable, which is exactly the failure
- * `docs/idea.md` §3 predicts for "four independent renders".
+ * mechanical check and the cycle was unusable.
  *
  * A sheet fixes that structurally rather than by adding adjectives. The source
  * sprite is placed in the first cell of a grid at a known scale and the model

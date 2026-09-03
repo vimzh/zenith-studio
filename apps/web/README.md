@@ -2,4 +2,4 @@
 
 The Next.js client for Zenith Studio: landing page, browser-persistent asset library, pixel editor, WebMCP tool registration, and local pixelisation pipeline.
 
-Run and submission instructions live in the [repository README](../../README.md). The complete WebMCP catalog is documented in [`docs/tools.md`](../../docs/tools.md).
+Run and submission instructions live in the [repository README](../../README.md).

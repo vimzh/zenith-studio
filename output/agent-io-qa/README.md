@@ -17,6 +17,5 @@ evidence, **not** the successful final round-trip backup. The corresponding brow
 project is labeled “Agent I/O restore QA (pre-fix)”. Original user assets were not
 overwritten. The final QA projects remain available for inspection.
 
-See [the verification record](../../docs/verification/agent-io-2026-09-03.md)
-for checks and limitations. These simple geometric fixtures test transport and
-timing; they are not examples of generated-art quality.
+These simple geometric fixtures test transport and timing; they are not examples
+of generated-art quality.

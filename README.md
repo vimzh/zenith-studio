@@ -129,9 +129,8 @@ diffing appears only once an asset has a second frame.
 External agents can drive the main flow without the built-in chat: image input,
 indexed editing, animation, project organization, save checks and complete file
 output. Long model calls have pollable jobs with request-ID deduplication;
-exports have readable byte chunks instead of requiring download clicks. See the
-[agent workflow](docs/agent-workflow.md) for the protocol and its browser-session
-limits. This is live-tab WebMCP, not a standalone remote MCP server.
+exports have readable byte chunks instead of requiring download clicks. This is
+live-tab WebMCP, not a standalone remote MCP server.
 
 | Group | Tools |
 | --- | --- |
@@ -178,8 +177,7 @@ bun run build
 ```
 
 Conventions, performance rules and the invariants live in
-[`AGENTS.md`](./AGENTS.md). The build plan and what is actually verified versus
-merely written are in [`docs/`](./docs/gaps.md).
+[`AGENTS.md`](./AGENTS.md).
 
 ## Licence and attributions
 

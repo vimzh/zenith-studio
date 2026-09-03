@@ -1,6 +1,6 @@
 # `@zenith/core`
 
-The pixel document model — [phase 01](../../docs/phases/01-core-data-model.md) of the build plan.
+The pixel document model shared by the browser and API.
 
 Runtime-agnostic TypeScript with no dependencies. `apps/web` and `apps/api` both import it, so the browser store and the server speak the same model through the same code.
 

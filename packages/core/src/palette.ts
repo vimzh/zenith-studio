@@ -100,7 +100,7 @@ export function lightnessRamp(palette: Palette): readonly PaletteIndex[] {
  *
  * Hardware and fantasy-console palettes are factual data and ship with the app.
  * Community palettes are not bundled — Lospec palettes are fetched on request
- * with `name` and `author` attribution shown (see `docs/requirements.md` §2).
+ * with `name` and `author` attribution shown.
  */
 export const BUILTIN_PALETTES: Readonly<Record<string, Palette>> = Object.freeze({
   "gb-dmg": createPalette({

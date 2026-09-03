@@ -9,7 +9,7 @@ import { MAX_PALETTE_SIZE } from "@zenith/core";
  *
  * Hardware palettes are factual data about the machines and ship built in.
  * Named artist palettes are not — those are fetched from Lospec on request with
- * attribution, never bundled. See docs/requirements.md §2.
+ * attribution, never bundled.
  */
 export interface CanvasPreset {
   readonly id: string;

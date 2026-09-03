@@ -1,8 +1,7 @@
 /**
  * `@zenith/core` — the pixel document model.
  *
- * Phase 01 of the build plan (`docs/phases/01-core-data-model.md`): an
- * invariant-enforcing indexed-grid store with undo/redo, plus the Oklab
+ * An invariant-enforcing indexed-grid store with undo/redo, plus the Oklab
  * conversion and quantiser that palette matching needs now and the pixelisation
  * pipeline needs in phase 08.
  *

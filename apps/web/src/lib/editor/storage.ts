@@ -5,8 +5,8 @@ import type { AssetType } from "./session";
  * IndexedDB persistence for the asset library.
  *
  * Deliberately not server SQLite: Cloud Run's filesystem is ephemeral and a
- * login wall costs us judges who need to reach a working URL — see
- * `docs/idea.md` §12. Everything here is best-effort. Storage can be missing
+ * login wall costs us judges who need to reach a working URL. Everything here
+ * is best-effort. Storage can be missing
  * (SSR), blocked (private browsing), or full (quota), and none of those may lose
  * the user's work silently: the library falls back to memory and says so.
  */

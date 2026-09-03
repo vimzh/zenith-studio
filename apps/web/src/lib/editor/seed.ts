@@ -7,8 +7,8 @@ import { importLibrary } from "./transfer";
  * Example assets, generated at startup.
  *
  * A cold visitor — a hackathon judge following a link — must see real pixel art
- * immediately, not an empty canvas (docs/requirements.md §6). Persistence lands
- * in phase 05; until then these are regenerated on every load.
+ * immediately, not an empty canvas. Persistence lands in phase 05; until then
+ * these are regenerated on every load.
  *
  * Both tiles are built to wrap: every pattern is computed modulo the tile size,
  * so `check_seamless_tiling` passes on them out of the box and the failure case
