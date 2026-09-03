@@ -36,6 +36,9 @@ Deployed to Google Cloud Run:
 - Web: https://zenith-web-mif2krwk2q-el.a.run.app
 - API: https://zenith-api-mif2krwk2q-el.a.run.app
 
+Pushes to `main` deploy both services through the Cloud Build trigger defined in
+`cloudbuild.yaml`.
+
 Run it locally with the instructions below.
 
 ## Running it
