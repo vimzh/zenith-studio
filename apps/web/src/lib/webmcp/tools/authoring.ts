@@ -69,15 +69,15 @@ export const generateTilesetTool: ToolDefinition = {
       edge_index: {
         type: "integer",
         minimum: 0,
-        maximum: 15,
+        maximum: 254,
         description: "Palette index to draw tile edges in. Omit for no edge treatment.",
       },
     },
   },
   example: {},
   execute: (args) => {
-    const { id } = requireActiveAsset();
-    const edge = readOptionalInteger(args, "edge_index", 0, 15);
+    const { id, store } = requireActiveAsset();
+    const edge = readOptionalInteger(args, "edge_index", 0, store.palette.colors.length - 1);
     return generateTileset(id, edge);
   },
 };
@@ -85,15 +85,17 @@ export const generateTilesetTool: ToolDefinition = {
 export const setPaletteTool: ToolDefinition = {
   name: "set_palette",
   description:
-    "Remap the open asset by nearest Oklab colour, preserving structure even with fewer colours. Pass a named palette from the schema or 2–16 explicit hex colors.",
+    "Remap the open asset by nearest Oklab colour, preserving structure. Pass a named palette or 2–255 explicit hex colors.",
   inputSchema: {
     type: "object",
     properties: {
       palette: { type: "string", enum: [...PALETTE_NAMES], description: "A named palette." },
       colors: {
         type: "array",
+        minItems: 2,
+        maxItems: 255,
         items: { type: "string" },
-        description: "Explicit hex colours, e.g. ['#0f380f', '#9bbc0f']. Max 16.",
+        description: "Explicit hex colours, e.g. ['#0f380f', '#9bbc0f']. Max 255.",
       },
     },
   },
@@ -120,8 +122,8 @@ export const setPaletteTool: ToolDefinition = {
       }
       return value;
     });
-    if (colors.length < 2 || colors.length > 16) {
-      throw new ToolError(`A palette needs 2 to 16 colours, received ${String(colors.length)}.`);
+    if (colors.length < 2 || colors.length > 255) {
+      throw new ToolError(`A palette needs 2 to 255 colours, received ${String(colors.length)}.`);
     }
     return recolorAsset(id, colors, "custom palette");
   },
@@ -175,7 +177,7 @@ export const importImageTool: ToolDefinition = {
       image: { type: "string", description: "Base64-encoded PNG. No data: URL prefix." },
       name: { type: "string", description: "Name for the new asset." },
       target_width: { type: "integer", minimum: 8, maximum: 128, description: "Output width in pixels. Defaults to the detected native size." },
-      max_colors: { type: "integer", minimum: 2, maximum: 16, description: "Palette size cap. Defaults to 16." },
+      max_colors: { type: "integer", minimum: 2, maximum: 255, description: "Palette size cap. Defaults to 16." },
       type: { type: "string", enum: [...ASSET_TYPES], description: "Asset type. Defaults to tile." },
     },
     required: ["image", "name"],
@@ -185,7 +187,7 @@ export const importImageTool: ToolDefinition = {
     const raster = await decodeBase64Png(readString(args, "image"));
     const { id, summary } = importImageAsAsset(raster, readString(args, "name"), {
       targetWidth: readOptionalInteger(args, "target_width", 8, 128),
-      maxColors: readOptionalInteger(args, "max_colors", 2, 16),
+      maxColors: readOptionalInteger(args, "max_colors", 2, 255),
       type: readEnum<AssetType>(args, "type", ASSET_TYPES, "tile"),
     });
     session.open(id);

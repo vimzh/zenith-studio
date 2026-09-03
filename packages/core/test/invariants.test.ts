@@ -44,9 +44,9 @@ describe("invariant 1 — every pixel is a valid palette index or transparent", 
     expect(store.encode()).toBe(encodeGrid(createGrid(8, 8)));
   });
 
-  test("rejects an index past the 16-colour cap", () => {
+  test("rejects an index past the 255-colour cap", () => {
     const store = makeStore();
-    expectRejection("invalid_index", () => store.setPixels([{ x: 0, y: 0, index: 16 }]));
+    expectRejection("invalid_index", () => store.setPixels([{ x: 0, y: 0, index: 255 }]));
   });
 
   test("rejects a negative index that is not the transparent sentinel", () => {
@@ -204,12 +204,12 @@ describe("invariant 5 — all frames of an asset share dimensions and palette", 
     expect(store.palette.colors).toHaveLength(4);
   });
 
-  test("rejects a palette over the 16-colour cap", () => {
+  test("rejects a palette over the 255-colour cap", () => {
     expectRejection("palette_overflow", () =>
       createDocument({
         width: 2,
         height: 2,
-        palette: Array.from({ length: 17 }, (_, i) => `#${i.toString(16).repeat(6)}`),
+        palette: Array.from({ length: 256 }, (_, i) => `#${i.toString(16).padStart(6, "0")}`),
       }),
     );
   });

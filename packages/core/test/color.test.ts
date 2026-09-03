@@ -63,8 +63,8 @@ describe("palette matching", () => {
   test("normalises and caps palette input", () => {
     expect(createPalette({ colors: ["#ABC"] }).colors[0]?.hex).toBe("#aabbcc");
     expect(() => createPalette({ colors: [] })).toThrow(/at least one colour/);
-    expect(() => createPalette({ colors: Array.from({ length: 17 }, () => "#000000") })).toThrow(
-      /cap is 16/,
+    expect(() => createPalette({ colors: Array.from({ length: 256 }, () => "#000000") })).toThrow(
+      /cap is 255/,
     );
   });
 });
@@ -181,8 +181,8 @@ describe("Oklab k-means quantiser", () => {
     expect(result.colors).toHaveLength(2);
   });
 
-  test("refuses to exceed the 16-colour cap", () => {
-    expect(() => quantize(colorCubeImage(), { maxColors: 32 })).toThrow(/cap is 16/);
+  test("refuses to exceed the 255-colour cap", () => {
+    expect(() => quantize(colorCubeImage(), { maxColors: 256 })).toThrow(/cap is 255/);
   });
 
   test("refuses a buffer that is not RGBA", () => {

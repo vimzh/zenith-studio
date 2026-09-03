@@ -113,9 +113,9 @@ export function toAse(colors: readonly string[], name = "Zenith"): Uint8Array {
 }
 
 /** Indices of a 1px-tall strip, for the PNG encoder. Universally importable. */
-export function toStripIndices(colors: readonly string[]): Int8Array {
+export function toStripIndices(colors: readonly string[]): Int16Array {
   assertPalette(colors);
-  const cells = new Int8Array(colors.length);
+  const cells = new Int16Array(colors.length);
   for (let i = 0; i < colors.length; i += 1) {
     cells[i] = i;
   }

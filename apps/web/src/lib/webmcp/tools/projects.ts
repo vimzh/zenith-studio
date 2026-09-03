@@ -175,8 +175,8 @@ export const setStyleProfile: ToolDefinition = {
         type: "array",
         items: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" },
         minItems: 1,
-        maxItems: 16,
-        description: "Exact project palette as 1–16 six-digit hex colours.",
+        maxItems: 255,
+        description: "Exact project palette as 1–255 six-digit hex colours.",
       },
       character_size: { type: "integer", minimum: 4, maximum: 256, description: "Canvas size for characters, in pixels." },
       tile_size: { type: "integer", minimum: 4, maximum: 256 },
@@ -208,8 +208,8 @@ export const setStyleProfile: ToolDefinition = {
     }
     if (args["colors"] !== undefined) {
       const colors = readArray(args, "colors");
-      if (colors.length > 16 || colors.some((color) => typeof color !== "string")) {
-        throw new ToolError("'colors' must contain 1–16 hex colour strings.");
+      if (colors.length > 255 || colors.some((color) => typeof color !== "string")) {
+        throw new ToolError("'colors' must contain 1–255 hex colour strings.");
       }
       try {
         patch.palette = createPalette({ colors: colors as readonly string[] });

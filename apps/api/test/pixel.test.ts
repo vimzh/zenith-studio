@@ -26,7 +26,7 @@ describe('health', () => {
       ok: true,
       service: 'zenith-api',
       documentFormat: 'zenith.document',
-      documentVersion: 1,
+      documentVersion: 2,
     })
   })
 })
@@ -155,12 +155,29 @@ describe('POST /v1/quantize', () => {
     expect(store.encode()).toBe(body.grid)
   })
 
-  test('reduces many colours to the 16-colour cap', async () => {
+  test('reduces many colours to the 16-colour default', async () => {
     const colors = Array.from({ length: 64 }, (_, i) => `#${(i * 4).toString(16).padStart(2, '0').repeat(3)}`)
     const response = await post('/v1/quantize', { pixels: image(colors, 8, 8), width: 8, height: 8 })
     const body = (await response.json()) as { palette: { colors: string[] }; sourceColorCount: number }
     expect(body.sourceColorCount).toBe(64)
     expect(body.palette.colors).toHaveLength(16)
+  })
+
+  test('accepts explicit expanded palettes and returns lossless writable grids', async () => {
+    for (const maxColors of [19, 255]) {
+      const colors = Array.from({ length: maxColors }, (_, i) => `#${i.toString(16).padStart(2, '0').repeat(3)}`)
+      const response = await post('/v1/quantize', {
+        pixels: image(colors, maxColors, 1), width: maxColors, height: 1, maxColors,
+      })
+      expect(response.status).toBe(200)
+      const body = (await response.json()) as { palette: { colors: string[] }; grid: string }
+      expect(body.palette.colors).toHaveLength(maxColors)
+      expect(body.grid.startsWith('@hex\n')).toBe(true)
+      const store = createStore(createDocument({ width: maxColors, height: 1, palette: body.palette.colors }))
+      expect(store.writeRegion(0, 0, body.grid)).toBe(maxColors)
+      expect(new Set(store.readLayer().cells)).toEqual(new Set(Array.from({ length: maxColors }, (_, i) => i)))
+      expect(store.encode()).toBe(body.grid)
+    }
   })
 
   test('rejects a buffer that does not match the stated size', async () => {
@@ -170,7 +187,7 @@ describe('POST /v1/quantize', () => {
   })
 
   test('rejects a palette request over the cap', async () => {
-    const response = await post('/v1/quantize', { pixels: image(['#000000'], 2, 2), width: 2, height: 2, maxColors: 32 })
+    const response = await post('/v1/quantize', { pixels: image(['#000000'], 2, 2), width: 2, height: 2, maxColors: 256 })
     expect(response.status).toBe(400)
     expect(((await response.json()) as { error: { code: string } }).error.code).toBe('palette_overflow')
   })

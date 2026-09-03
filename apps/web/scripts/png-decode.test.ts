@@ -135,7 +135,7 @@ describe("decodePng", () => {
 
     expect([result.grid.width, result.grid.height]).toEqual([16, 16]);
 
-    const transparent = (cells: Int8Array) => [...cells].filter((cell) => cell < 0).length;
+    const transparent = (cells: Int16Array) => [...cells].filter((cell) => cell < 0).length;
     // Fewer transparent cells than the source, because framing is doing its
     // job: it crops the margin and scales the subject to fill the canvas, which
     // is most of the difference between a muddy sprite and a readable one.

@@ -14,7 +14,7 @@ Phase tags reference [`phases/`](./phases/README.md) — the 14-phase build plan
 
 The core protocol. Everything depends on it. Rationale in [`idea.md` §3](./idea.md).
 
-A frame is an **indexed raster**: a 2D array of palette indices, not RGB. With a palette capped at 16, each pixel serialises to exactly one character.
+A frame is an **indexed raster**: a 2D array of palette indices, not RGB. Documents support 255 opaque colours plus transparency; generation defaults to 16 colours.
 
 ### Encoding
 
@@ -24,6 +24,8 @@ A frame is an **indexed raster**: a 2D array of palette indices, not RGB. With a
 | `.`              | Transparent                        |
 
 Rows newline-separated, top to bottom, no intra-row delimiters. Row count equals `height`; every row length equals `width`.
+
+This compact encoding remains unchanged when every index is below 16. If a grid contains a higher index, it starts with `@hex` on its own line, followed by space-separated two-digit hexadecimal tokens (`00`–`fe`) or `.` for transparency. Count tokens, not characters, for row width. Readers accept both formats. Expanded-palette documents serialize as version 2; palettes of 16 or fewer retain version 1, and both versions remain readable.
 
 ### `read_canvas` response
 
@@ -58,7 +60,7 @@ The header is deliberately verbose: it re-establishes page context on every read
 
 Multi-frame reads get expensive fast — hence `read_frames_diff` (§F), which returns only changed pixels, typically 5–15% of a full frame.
 
-**16 colours is the default cap** because it keeps one character per pixel. A 32-colour mode (two chars per cell, [phase 13](./phases/13-export-polish.md)) is an explicit trade: double the tokens for more colour freedom.
+**16 colours is the generation default, not an editing cap.** The table above describes compact grids; `@hex` grids cost more tokens. Use regional/diff reads when practical. The 255-colour limit reserves the final indexed PNG/GIF slot for transparency.
 
 ### Two coordinate spaces
 
@@ -182,6 +184,7 @@ All read-only.
 | `fill_region`     | 03    | region, `index`                                                         | Rectangular flood                                                                                                                                                    |
 | `bucket_fill`     | 03    | `x`, `y`, `index`, `contiguous?`                                        | Flood-fill the connected same-index region                                                                                                                           |
 | `replace_color`   | 03    | `from_index`, `to_index`                                                | Count replaced                                                                                                                                                       |
+| `recolor_region` | 13 | `x`, `y`, `width`, `height`, `colors: [{from_index,to_color}]` | Exact local recolour on the open layer/frame. Reuses or appends hex colours without remapping unrelated pixels; palette and pixels form one undo entry. Read the region first and omit outline/hilt indices. Fails before changing anything if capacity is exhausted. |
 | `clear_region`    | 05    | region                                                                  | Set transparent                                                                                                                                                      |
 | `undo` / `redo`   | 03    | —                                                                       | **Shares the human's undo stack** — the human can undo the agent's work                                                                                              |
 | `shift`           | 10    | `dx`, `dy`, `wrap?`                                                     | `wrap: true` tests tile seams and drives procedural bob/scroll                                                                                                       |
@@ -282,7 +285,7 @@ The image call is the whole wait — measured between 20 and 157 seconds dependi
 | `reduce_colors`                  | 08    | `target_count`                                                        | Oklab k-means, optional Floyd–Steinberg dithering                                                                                                                                                                                                                          |
 | `remove_background`              | 08    | —                                                                     | Clears only the border-connected region of the most common active-layer border colour; no-op when transparency dominates, preserving enclosed same-colour pixels                                                                                                           |
 | `extract_palette`                | 08    | `reference_id`, `count`                                               | Palette pulled from an uploaded image                                                                                                                                                                                                                                      |
-| `pixelize`                       | 08    | `target_width` (8–128), `max_colors?` (2–16) | Creates and opens a single-frame copy of the selected frame composite, preserving aspect ratio and using the extracted palette. Keeps the source type/project/folder; original frames and history are unchanged. |
+| `pixelize`                       | 08    | `target_width` (8–128), `max_colors?` (2–255; default 16) | Creates and opens a single-frame copy of the selected frame composite, preserving aspect ratio and using the extracted palette. Keeps the source type/project/folder; original frames and history are unchanged. |
 | `import_image`                   | 08    | `image` (base64 PNG), `name`, `target_width?`, `max_colors?`, `type?` | **Registered.** Runs the pixelisation pipeline and opens the result as an editable indexed asset. Named `import_image`, not the planned `import_reference`: it does not stage anything, it produces art you can immediately draw on.                                       |
 | `build_character_from_reference` | 10    | Exactly one of `image` (base64 PNG) or `source_asset_id`; `name`, `direction_set?`, `base_direction?`, `target_width?` | **Registered. Slow and paid.** Extracts the primary subject as clean full-body raster art on transparency, frames it, and produces one inspectable indexed base sprite. Existing asset input uses its selected-frame composite without modifying it. Call `generate_direction_set` after inspecting or repairing the base. |
 | `inpaint_region`                 | 12    | `x`, `y`, `width`, `height`, `prompt`, `allow_removal?`               | **Registered. Slow and paid; square single-layer frames.** Full source plus mask; only selected pixels change. Palette overflow, stale targets and destructive erasure are refused. Explicit intended removal can bypass the erasure guard. One undo restores applied pixels and palette; a no-op creates no undo entry. |
@@ -337,7 +340,7 @@ Skeletons are the _reusable_ animation asset: author a walk cycle once, apply it
 
 | Tool                | Phase | Input                                              | Returns                                                                                                                                                                                                                |
 | ------------------- | ----- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `set_palette`       | 13    | `palette` (named) or `colors: [hex]` (2–16)        | **Registered.** Remaps existing pixels to their nearest entry in Oklab, so it is safe on finished art and works when the target palette is smaller. Named palettes are the core hardware sets plus the editor presets. |
+| `set_palette`       | 13    | `palette` (named) or `colors: [hex]` (2–255)        | **Registered.** Remaps existing pixels to their nearest entry in Oklab, including when the target palette is smaller. This can change colours throughout the artwork; use `recolor_region` for exact local edits. Named palettes are the core hardware sets plus the editor presets. |
 | `set_palette_color` | 03    | `index`, `hex`                                     | Recolours every pixel using that index at once — instant global restyle                                                                                                                                                |
 | `shift_palette_hue` | 06    | `degrees`, `saturation_delta?`, `lightness_delta?` | Whole-palette shift — the fast way to a "night" or "lava" variant                                                                                                                                                      |
 | `generate_ramp`     | 06    | `base_hex`, `steps`, `into_indices`                | Perceptually even shading ramp in Oklab                                                                                                                                                                                |
@@ -480,7 +483,7 @@ Two screens. **Library** — a grid of asset cards. **Editor** — tool rail, ca
 | Panel            | Phase | Purpose                                                                                                                                                                        |
 | ---------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Canvas           | 02    | Checkerboard transparency, 1px grid toggle, 8×8 guide toggle                                                                                                                   |
-| Palette          | 02    | 16 swatches, click to select, right-click to edit hex, preset dropdown, usage counts                                                                                           |
+| Palette          | 02    | Document swatches (up to 255), click to select, right-click to edit hex, preset dropdown, usage counts |
 | Tile preview     | 02    | Canvas repeated 3×3, live — seams visible while drawing                                                                                                                        |
 | Agent Console    | 03    | Live tool-call transcript. Makes collaboration legible **and** is the demo fallback if WebMCP is unavailable in a judge's browser ([`requirements.md` §4](./requirements.md)). |
 | Library grid     | 04    | Asset cards rendering the real asset at integer zoom                                                                                                                           |

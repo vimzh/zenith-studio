@@ -6,7 +6,7 @@ Runtime-agnostic TypeScript with no dependencies. `apps/web` and `apps/api` both
 
 ## The format
 
-A frame is an **indexed raster**: a 2D array of palette indices, not RGB. With the palette capped at 16, every pixel serialises to exactly one character — `0`–`F` for palette indices, `.` for transparent — which is what makes artwork something a language model can read and write losslessly.
+A frame is an **indexed raster**: a 2D array of palette indices, not RGB. Palettes support 255 colours; generation still defaults to 16. Grids using indices 0–15 retain the compact text format — `0`–`F` for palette indices, `.` for transparent.
 
 ```
 1111222111122211
@@ -14,6 +14,16 @@ A frame is an **indexed raster**: a 2D array of palette indices, not RGB. With t
 1223333122233331
 1122331111223311
 ```
+
+When any index exceeds 15, grids use an `@hex` header and space-separated two-digit hex tokens. `.` still means transparent. The header distinguishes one-column extended grids from compact rows.
+
+```
+@hex
+00 0f 10
+80 fe .
+```
+
+Grids use `Int16Array` in memory to preserve both `-1` and indices through 254. JSON documents with at most 16 colours continue to serialize as version 1; larger palettes use version 2. Both versions remain readable.
 
 ## Invariants
 

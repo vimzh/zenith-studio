@@ -23,7 +23,7 @@ bun run typecheck
 | `GET` | `/health` | Liveness, plus the document format and version this build speaks |
 | `GET` | `/v1/palettes` | Built-in hardware palettes. Community palettes are fetched client-side with attribution, never bundled. |
 | `POST` | `/v1/documents/validate` | Checks a serialised document against the five invariants; returns it normalised, with coverage and palette stats |
-| `POST` | `/v1/quantize` | Reduces a base64 RGBA image to a palette of at most 16 colours and returns the indexed text grid |
+| `POST` | `/v1/quantize` | Reduces a base64 RGBA image to an indexed text grid; defaults to 16 colours, supports up to 255 opaque colours plus transparency |
 | `POST` | `/v1/generate` | Generates source artwork with `gpt-image-2`; requires `OPENAI_API_KEY` |
 | `POST` | `/v1/derive` | Creates a high-fidelity variation from a source PNG with `gpt-image-2`; requires `OPENAI_API_KEY` |
 

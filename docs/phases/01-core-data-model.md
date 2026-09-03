@@ -7,7 +7,7 @@
 ## In scope
 
 - **Indexed grid** — 2D array of palette indices; `.` sentinel for transparent. Encode/decode to the text format in [`../tools.md` Part 1](../tools.md).
-- **Palette** — up to 16 entries, hex + Oklab cached for nearest-colour matching.
+- **Palette** — up to 255 opaque entries plus transparency; generation defaults to 16. Hex + Oklab cached for nearest-colour matching. Cells use `Int16Array` to preserve indices through 254 and the transparent sentinel.
 - **Document** — dimensions, palette ref, one or more frames, metadata.
 - **Invariant enforcement at the store boundary**, not per-caller:
   1. Every pixel is a valid index or transparent
@@ -18,7 +18,7 @@
 - **Mutations** — `setPixels`, `writeRegion`, `fillRegion`, `bucketFill`, `replaceColor`, `clearRegion`, `shift`, `mirror`
 - **Undo/redo** — single shared stack, one entry per logical operation, coalescing for drag strokes
 - **Oklab conversion + k-means quantiser** — needed by palette matching now, by the pixelisation pipeline in [phase 06](./06-generation-pixelisation.md)
-- **Serialisation** to/from a plain JSON document format
+- **Serialisation** to/from a plain JSON document format: compact version 1 for palettes up to 16, version 2 for expanded palettes; both are readable. Grids containing high indices use explicit `@hex` token rows.
 
 ## Out of scope
 

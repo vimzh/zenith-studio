@@ -25,7 +25,7 @@ function frameIndex(args: Parameters<ToolDefinition["execute"]>[0], key: string,
 export const listFrames: ToolDefinition = {
   name: "list_frames",
   description:
-    "List the frames of the currently open asset: index, hold duration in milliseconds, how many pixels are opaque, and which frame is selected for editing. Every frame shares the asset's dimensions and palette. Start here before any other frame tool.",
+    "List open-asset frame indices, durations (ms), opaque counts and selected frame. Start here before other frame tools; dimensions and palette are shared.",
   readOnly: true,
   inputSchema: { type: "object", properties: {} },
   example: {},
@@ -49,7 +49,7 @@ export const listFrames: ToolDefinition = {
 export const addFrame: ToolDefinition = {
   name: "add_frame",
   description:
-    "Add a frame to the currently open asset and select it. Without copy_from the frame is fully transparent; with it, the frame is a pixel-for-pixel copy you can then modify — which is usually what you want for an animation, since a cycle is small changes to a repeated pose. Returns the new frame's index.",
+    "Add and select an open-asset frame; returns its index. Blank unless copy_from copies pixels and duration. Omit at to append.",
   inputSchema: {
     type: "object",
     properties: {
@@ -82,7 +82,7 @@ export const addFrame: ToolDefinition = {
 export const selectFrame: ToolDefinition = {
   name: "select_frame",
   description:
-    "Select which frame of the currently open asset every editing tool writes to. write_region, set_pixels, fill_region, bucket_fill and replace_color all target the selected frame unless told otherwise. The human sees the selection change on their timeline.",
+    "Select the open-asset frame targeted by editing tools and displayed on the human's timeline. Use list_frames for indices.",
   inputSchema: {
     type: "object",
     properties: { frame_index: FRAME_INDEX },
@@ -104,7 +104,7 @@ export const selectFrame: ToolDefinition = {
 export const deleteFrame: ToolDefinition = {
   name: "delete_frame",
   description:
-    "Delete a frame from the currently open asset. Refused when it is the only frame, since an asset always has a canvas. Undoable in one step, like every other edit.",
+    "Delete one open-asset frame, undoable in one step. Refuses to delete the only remaining frame.",
   inputSchema: {
     type: "object",
     properties: { frame_index: FRAME_INDEX },
@@ -126,7 +126,7 @@ export const deleteFrame: ToolDefinition = {
 export const reorderFrames: ToolDefinition = {
   name: "reorder_frames",
   description:
-    "Reorder the frames of the currently open asset. Provide every existing index exactly once, in the order you want them: [2, 0, 1] moves the last frame to the front. A list that is not a permutation is rejected rather than silently dropping or duplicating artwork.",
+    "Reorder open-asset frames. Pass every current index exactly once, e.g. [2,0,1]; invalid permutations are rejected.",
   inputSchema: {
     type: "object",
     properties: {
@@ -161,7 +161,7 @@ export const reorderFrames: ToolDefinition = {
 export const setFrameDuration: ToolDefinition = {
   name: "set_frame_duration",
   description:
-    "Set how long a frame is held, in milliseconds. Typical pixel-art cycles run 80-150ms per frame; a held pose at the end of a cycle is often longer. Affects playback and exported GIF timing.",
+    "Set an open-asset frame's hold in milliseconds. Affects playback and GIF timing; use list_frames for indices.",
   inputSchema: {
     type: "object",
     properties: {
@@ -187,7 +187,7 @@ export const setFrameDuration: ToolDefinition = {
 export const readFrame: ToolDefinition = {
   name: "read_frame",
   description:
-    "Read one frame of the currently open asset as an indexed character grid, in the same format read_canvas returns: '0'-'9' and 'A'-'F' for palette indices, '.' for transparent, origin (0,0) at the top-left. A full frame read is expensive — a 64x64 frame is roughly 1300 tokens — so prefer read_frames_diff when you already know a nearby frame, and read_animation_summary when you only need to understand the motion.",
+    "Read an open frame: compact hex (0–F) or @hex then spaced tokens (00–fe); '.' transparent. (0,0) top-left, +x right, +y down. Costly; prefer read_frames_diff/read_animation_summary.",
   readOnly: true,
   inputSchema: {
     type: "object",
@@ -209,7 +209,7 @@ export const readFrame: ToolDefinition = {
 export const getSilhouette: ToolDefinition = {
   name: "get_silhouette",
   description:
-    "Read a frame's opacity mask as a 1-bit grid: '1' where a pixel is opaque, '0' where transparent. Origin (0,0) is the top-left. Strips colour entirely, which makes it the cheap way to judge pose, readability and whether a shape holds together — the questions colour noise obscures. Defaults to the selected frame.",
+    "Read an open-asset opacity grid: '1' opaque, '0' transparent; (0,0) top-left, +x right, +y down. Defaults to the selected frame; useful for pose/readability checks.",
   readOnly: true,
   inputSchema: {
     type: "object",

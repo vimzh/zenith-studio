@@ -81,7 +81,7 @@ Four criteria, **equally weighted** per the organiser's 1 September announcement
 ### 3.1 WebMCP Leverage
 > *Thoroughness and skill in using WebMCP; a genuine, non-trivial implementation.*
 
-- A **read** path, not just a write path: `read_canvas` returns artwork as an indexed-character grid so the agent genuinely *perceives* what it edits and can iterate.
+- A **read** path, not just a write path: `read_canvas` returns artwork as an indexed grid (compact hex or explicit `@hex` tokens) so the agent genuinely *perceives* what it edits and can iterate. `recolor_region` adds exact local shades as one shared undo entry without remapping unrelated artwork.
 - **Self-verification tools** (`check_seamless_tiling`, `check_animation_coherence`) that let the agent validate and correct its own output.
 - Tools operate on **implicit page state** — open asset, direction, animation, frame, selection. Structurally impossible for a remote MCP server.
 - **Composed workflows from primitives** — agents combine perception, exact raster edits, frame operations, validation, and export rather than calling one opaque black box.

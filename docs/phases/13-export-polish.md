@@ -34,7 +34,8 @@
 - `find_color_regions`, `sort_palette`
 
 **Format extension**
-- 32-colour mode with 2-character encoding — an explicit trade (double the tokens for more colour freedom), gated per-project
+- Expanded palettes up to 255 opaque colours plus transparency, with explicit `@hex` token rows and backwards-readable version 1/version 2 documents. Generation retains its 16-colour default.
+- `recolor_region` adds exact local shades without global remapping, as one shared undo entry.
 
 **Quality**
 - `check_readability` — contrast and silhouette legibility at 1×
@@ -74,7 +75,7 @@ Layers panel · selection tools · shape tools · dither brush · mirror-draw ·
 - [ ] **Every row of the deferred-feature register above is shipped or explicitly re-deferred with a reason** — the register is the definition of done for this phase
 - [ ] 200 assets on the infinite canvas hold 60fps pan/zoom
 - [ ] Full keyboard navigation with no mouse
-- [ ] 32-colour mode round-trips losslessly through the 2-char encoding
+- [x] Expanded palettes round-trip losslessly through `@hex` encoding, persistence, project backup, PNG and GIF (automated tests include indices 128 and 254).
 - [ ] `bun run lint`, `typecheck`, `build` clean
 - [ ] Every checklist item in [`../requirements.md` §6](../requirements.md) passes
 

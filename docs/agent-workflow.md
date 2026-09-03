@@ -24,7 +24,9 @@ mismatch is rejected rather than editing unseen artwork.
    target widths include 64 and 128. Existing source artwork is preserved.
    Convert JPEG/WebP to PNG in the client before sending an image.
 3. **Inspect and edit:** `read_canvas`, `get_palette`, `read_region`,
-   `describe_asset`; then indexed drawing/fill/transform tools. `undo`/`redo`
+   `describe_asset`; then indexed drawing/fill/transform tools. Use `recolor_region`
+   for exact local hex changes: it appends missing shades without globally
+   remapping the artwork. Omit outline/hilt indices from the mapping. `undo`/`redo`
    use the human's history. `inpaint_region` is source-conditioned paid editing.
 4. **Animate and turn:** deterministic `animate_procedural`, frame operations,
    `estimate_skeleton` / `animate_with_skeleton`, or paid `animate_with_text`.
@@ -106,7 +108,11 @@ IndexedDB is browser-local, not cloud storage. `get_storage_status` is a status
 read, not a backup. `flush_storage` waits for local writes and fails if storage
 is unavailable or the document changes during the save check.
 
-`export_project` produces the current `zenith.project` version 1 format.
+`export_project` produces the current `zenith.project` version 1 format. Its
+pixel documents may be version 1 (up to 16 colours) or version 2 (expanded
+palettes up to 255 opaque colours). Grid strings remain compact below index 16;
+higher indices use an `@hex` header and space-separated hex tokens, not one
+character per pixel. Both formats are accepted on import.
 `import_project` validates every document, folder relationship, placement and
 style reference before adding a new project with fresh IDs and returning the
 old-to-new mappings. Existing assets are never overwritten. This is an

@@ -1,9 +1,8 @@
 /**
- * Palettes — up to 16 entries, each caching its Oklab coordinates so nearest-colour
+ * Palettes — up to 255 entries, each caching its Oklab coordinates so nearest-colour
  * matching never re-converts.
  *
- * The cap is not a style choice. It is what keeps one cell to one character, and
- * therefore what makes the grid round-trippable through a language model.
+ * One remaining byte value is reserved for transparency in indexed exports.
  */
 
 import { fail } from "./errors";
@@ -32,7 +31,7 @@ export function createPalette(input: PaletteInput): Palette {
   if (input.colors.length > MAX_PALETTE_SIZE) {
     fail(
       "palette_overflow",
-      `Palette has ${String(input.colors.length)} colours but the cap is ${String(MAX_PALETTE_SIZE)}. Quantise the source down to 16 or fewer first.`,
+      `Palette has ${String(input.colors.length)} colours but the cap is ${String(MAX_PALETTE_SIZE)}. Quantise the source down to ${String(MAX_PALETTE_SIZE)} or fewer first.`,
     );
   }
   const colors: PaletteColor[] = input.colors.map((hex) => {

@@ -8,8 +8,8 @@ This is Zenith Studio, running inside Codex’s browser. Through WebMCP, Codex c
 ## 1. Create a Character
 
 Use Zenith Studio’s WebMCP tools to create a project called Moss Hollow.
-Generate a 64×64 pixel-art adventurer: a small knight with a moss-green helmet, bright red scarf, brown boots, and a short steel sword.
-Full body, facing right, readable human proportions, clear separation between arms and legs, limited palette, transparent background. Keep the entire character and sword inside the canvas.
+pixels 128x128 a small knight with a moss-green helmet, bright red scarf, brown boots, and a short steel sword.
+Full body, facing right, readable human proportions, clear separation between arms and legs.
 
 Name the asset Moss Knight and classify it as a character.
 
@@ -24,11 +24,8 @@ Name the asset Moss Knight and classify it as a character.
 **Prompt to Codex:**
 
 ```text
-Read the open character and its palette. Add a small, brighter highlight to the sword blade using existing palette colors.
+Use Zenith Studio’s WebMCP tools to recolor the open knight’s sword blade purple, with dark violet shading and a pale lavender highlight. Preserve its shape, outline, hilt, and the rest of the artwork.
 
-Change only the blade pixels. Preserve the character, background, and sword outline.
-
-Read the edited region afterward and report what changed.
 ```
 
 **Voiceover:**
@@ -47,10 +44,8 @@ Read the edited region afterward and report what changed.
 
 ```text
 Use animate_procedural to add a subtle four-frame idle bob with a two-pixel amplitude.
-
 Set every frame in the resulting animation to 250 milliseconds—four frames per second.
 
-Inspect the frame list and animation summary, and report any duplicate frames or clipping warnings.
 ```
 
 **Voiceover:**

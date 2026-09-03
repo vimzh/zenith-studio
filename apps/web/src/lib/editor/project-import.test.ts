@@ -68,3 +68,17 @@ test("empty projects import with their complete style contract", () => {
   expect(imported.assetIds).toEqual({});
   expect(imported.folderIds).toEqual({});
 });
+
+test("project backup restores 255-colour indices and every frame hold", () => {
+  const { projectId, assetId, store } = fixture();
+  const palette = Array.from({ length: 255 }, (_, index) => `#${index.toString(16).padStart(6, "0")}`);
+  store.setPalette(palette);
+  store.setPixels([{ x: 2, y: 3, index: 128 }, { x: 3, y: 3, index: 254 }]);
+  const before = store.snapshot();
+  const bundle = JSON.parse(JSON.stringify(exportProjectBundle(projectId)));
+  const result = importProjectBundle(bundle);
+  const restored = session.get(result.assetIds[assetId]!)!;
+  expect(restored.snapshot()).toEqual({ ...before, id: result.assetIds[assetId]! });
+  expect(restored.snapshot().frames.map(frame => frame.durationMs)).toEqual([250, 350]);
+  expect(restored.readLayer({ frame: 1, layer: 0 }).cells[3 * 32 + 3]).toBe(254);
+});

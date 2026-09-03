@@ -143,10 +143,14 @@ describe("set_palette", () => {
     expect(message).toContain("colors[1]");
   });
 
-  test("refuses a palette that cannot be indexed in one hex character", async () => {
+  test("accepts 19 and 255 colours but refuses palettes exceeding the opaque index capacity", async () => {
     openTile();
-    const seventeen = Array.from({ length: 17 }, (_, index) => `#0000${index.toString(16).padStart(2, "0")}`);
-    expect(await callExpectingError("set_palette", { colors: seventeen })).toContain("2 to 16");
+    const colors = Array.from({ length: 256 }, (_, index) => `#0000${index.toString(16).padStart(2, "0")}`);
+    await call("set_palette", { colors: colors.slice(0, 19) });
+    expect(session.active!.palette.colors).toHaveLength(19);
+    await call("set_palette", { colors: colors.slice(0, 255) });
+    expect(session.active!.palette.colors).toHaveLength(255);
+    expect(await callExpectingError("set_palette", { colors })).toContain("2 to 255");
   });
 });
 

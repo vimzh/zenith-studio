@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { clearBackground, fitSubject, frameSubject, subjectBounds } from "./subject";
+import { clearBackground, fitSubject, frameSubject, frameToCanvas, subjectBounds } from "./subject";
+import { pixelize } from "./index";
+import { animateProcedural } from "@/lib/animation/procedural";
 import type { RasterImage } from "./types";
 
 /**
@@ -36,6 +38,27 @@ function sprite(): RasterImage {
     x >= 30 && x < 60 && y >= 20 && y < 80 ? [200, 40, 40, 255] : [63, 104, 251, 255]
   );
 }
+
+test("128px generated characters retain room for a two-pixel idle bob", () => {
+  const framed = frameToCanvas(sprite(), 128, 128, { padding: 4 });
+  const result = pixelize(framed!.image, { targetWidth: 128, targetHeight: 128, maxColors: 16 });
+  const count = (cells: Iterable<number>) => [...cells].filter(c => c >= 0).length;
+  const frames = animateProcedural(result.grid, "bob", { frames: 4, amplitude: 2 });
+  expect(count(result.grid.cells)).toBeGreaterThan(0);
+  for (const frame of frames) expect(count(frame.cells)).toBe(count(result.grid.cells));
+  expect(frames[2]!.cells).not.toEqual(frames[0]!.cells);
+});
+
+test("padding also applies to tightly framed sprites and rejects invalid margins", () => {
+  const tight = image(100, 100, (x, y) => x === 0 && y === 0 ? [0, 0, 0, 0] : [200, 40, 40, 255]);
+  expect(frameToCanvas(tight, 128, 128)).toBeNull();
+  const framed = frameToCanvas(tight, 128, 128, { padding: 4 })!;
+  expect(framed).not.toBeNull();
+  expect(subjectBounds(framed.image)).toEqual({ x: 4, y: 4, width: 120, height: 120 });
+  for (const padding of [-1, 0.5, 64, NaN]) {
+    expect(() => frameToCanvas(tight, 128, 128, { padding })).toThrow("Sprite padding");
+  }
+});
 
 describe("clearBackground", () => {
   test("makes a flat opaque background transparent", () => {

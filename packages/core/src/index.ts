@@ -11,6 +11,7 @@
  */
 
 export {
+  DEFAULT_PALETTE_SIZE,
   MAX_PALETTE_SIZE,
   TRANSPARENT,
   type Cell,

@@ -114,9 +114,9 @@ export function encodeIndexedPng(
   if (palette.length === 0) {
     throw new Error("An indexed PNG needs at least one palette colour.");
   }
-  if (palette.length > 256) {
+  if (palette.length > 255) {
     throw new Error(
-      `An indexed PNG supports at most 256 colours, received ${String(palette.length)}.`
+      `An indexed PNG supports at most 255 opaque colours plus transparency, received ${String(palette.length)}.`
     );
   }
 

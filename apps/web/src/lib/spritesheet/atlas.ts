@@ -88,7 +88,7 @@ export function packSpritesheet(
   const width = columns * strideX - (padding > 0 ? padding : 0);
   const height = rows * strideY - (padding > 0 ? padding : 0);
 
-  const cells = new Int8Array(width * height).fill(TRANSPARENT);
+  const cells = new Int16Array(width * height).fill(TRANSPARENT);
   const atlasFrames: AtlasFrame[] = [];
 
   frames.forEach((frame, index) => {

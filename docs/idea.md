@@ -56,7 +56,7 @@ read_canvas →
   ......1111......
 ```
 
-The palette cap isn't stylistic — it's what makes the encoding one character per pixel and therefore round-trippable. **The constraint is the product.**
+Small palettes keep the encoding one character per pixel. Exact local recolouring may need additional shades: documents now support 255 opaque colours plus transparency, with an explicit `@hex` token format for higher indices. Indexed, integer pixels remain the constraint; a full 16-colour palette must not force unrelated artwork to change.
 
 This pays off hardest in **animation**, where it's most counter-intuitive. Ask an image model for a 4-frame walk cycle and you get four unrelated drawings. With indexed grids, an agent can read frame 1, read frame 3, and author frame 2 by reasoning about *which specific pixels move* — or produce a 2-frame idle bob deterministically by copying frame 1 shifted down one pixel. Temporal coherence stops being a hope and becomes arithmetic.
 
@@ -113,7 +113,7 @@ That difference is the entire submission. It's also why our tool catalog looks n
 Asset
 ├── id, name, type
 ├── width, height
-├── palette          ≤16 colours
+├── palette          ≤255 opaque colours (generation defaults to 16)
 ├── frames[]         one unless animated
 └── directions{}     characters only
 ```
@@ -188,7 +188,7 @@ Presets bind both, modelled on real hardware:
 | `modern-64` | 64×64 | 16 | Detailed sprite work |
 | `hd-128` | 128×128 | 32 (2-char encoding) | Phase 5+; breaks the 1-char invariant |
 
-**16 colours is the default cap** because it keeps one character per pixel. A 32-colour mode using two characters per cell is a later phase and explicitly a trade: double the tokens, more colour freedom.
+**16 colours is the generation default**, keeping ordinary grids compact. Editing supports 255 opaque colours plus transparency. Higher indices use space-separated two-digit hex tokens under an `@hex` header; expanded palettes serialize as document version 2, while legacy version 1 remains readable. `recolor_region` adds exact local shades as one undoable edit without changing other pixels.
 
 ### Palettes are sourced, not just invented
 

@@ -82,3 +82,15 @@ test("invalid palette controls fail without changing artwork or history", () => 
   expect(session.recolor("missing", ["#000000"])).toBe(false);
   expect(session.setPaletteColor("missing", 0, "#000000")).toBe(false);
 });
+
+test("recolour preserves high indices across hidden layers and all frames", () => {
+  const colors = Array.from({ length: 255 }, (_, index) => `#${index.toString(16).padStart(6, "0")}`);
+  const { session, id, store } = fixture([colors[128]!, colors[254]!]);
+  const before = store.snapshot();
+  session.recolor(id, colors);
+  for (const [frame, entry] of before.frames.entries()) for (const [layer, original] of entry.layers.entries()) {
+    expect(Array.from(store.readLayer({ frame, layer }).cells)).toEqual(Array.from(original.grid.cells, cell => cell === -1 ? -1 : cell === 0 ? 128 : 254));
+  }
+  store.undo();
+  expect(store.snapshot()).toEqual(before);
+});

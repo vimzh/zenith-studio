@@ -179,11 +179,11 @@ test("effects travel to the planner and the sheet, appear on the pose lines, and
   expect(store.frameCount).toBe(1);
 });
 
-test("a full palette makes room for an effect colour by folding its closest near-duplicate pair, undoably", async () => {
+test("effects extend a 16-colour palette without folding any existing colours, undoably", async () => {
   const full = ["#000000", "#848484", "#808080", "#ff0000", "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff", "#800000", "#008000", "#000080", "#808000", "#008080", "#800080", "#ffffff"];
   session.create({ name: "mage", type: "character", width: 32, height: 32, palette: full });
   const store = session.active!;
-  // The source uses the lighter grey once and its twin three times, so the lighter one is the one emptied.
+  // Near-duplicate greys must remain exact now that effect colours can append.
   store.setPixels([{ x: 0, y: 0, index: 1 }, { x: 1, y: 0, index: 2 }, { x: 2, y: 0, index: 2 }, { x: 3, y: 0, index: 2 }]);
   plan.mockResolvedValue({ source: "", frames: [{ pose: "cast", contact: "grounded", ms: 200, effect: "purple burst" }, grounded("settle")], restMs: 600 });
   resolve.mockResolvedValue(solid(32, 2, ["#000000", "#ffffff", "#8a2be2"]));
@@ -191,13 +191,11 @@ test("a full palette makes room for an effect colour by folding its closest near
   const message = await animateWithText.execute({ description: "cast", frames: 2, effects: "a purple burst" });
 
   const colours = store.palette.colors.map((colour) => colour.hex);
-  expect(colours).toHaveLength(16);
-  expect(colours[1]).toBe("#8a2be2");
-  expect(colours).not.toContain("#848484");
-  expect(store.readComposite(0).cells[0]).toBe(2);
+  expect(colours).toEqual([...full, "#8a2be2"]);
+  expect(store.readComposite(0).cells[0]).toBe(1);
   expect(store.readComposite(0).cells[1]).toBe(2);
-  expect(store.readComposite(1).cells[0]).toBe(1);
-  expect(message).toContain("Folded #848484 into #808080 (near-identical) to make room for the effect colours.");
+  expect(store.readComposite(1).cells[0]).toBe(16);
+  expect(message).not.toContain("Folded");
   expect(message).toContain("Added #8a2be2 to the palette");
   expect(store.history().at(-1)).toBe("animate: cast");
   store.undo();
@@ -206,14 +204,16 @@ test("a full palette makes room for an effect colour by folding its closest near
   expect(store.frameCount).toBe(1);
 });
 
-test("a full palette of distinct colours reports the effect colours it could not seat", async () => {
-  const full = ["#000000", "#ff0000", "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff", "#800000", "#008000", "#000080", "#808000", "#008080", "#800080", "#ffffff", "#ff8000", "#0080ff"];
+test("a full 255-colour palette reports effect colours it could not seat without folding", async () => {
+  const full = Array.from({ length: 255 }, (_, index) => `#${index.toString(16).padStart(2, "0").repeat(3)}`);
   session.create({ name: "mage", type: "character", width: 32, height: 32, palette: full });
   const store = session.active!;
   resolve.mockResolvedValue(solid(32, 2, ["#000000", "#ffffff", "#8a2be2"]));
   const message = await animateWithText.execute({ description: "cast", frames: 2, effects: "a purple burst" });
   expect(store.palette.colors.map((colour) => colour.hex)).toEqual(full);
   expect(message).toContain("No palette room for #8a2be2; they were matched to the nearest existing colours.");
+  expect(message).not.toContain("Folded");
+  expect(resolve.mock.calls.every((call) => call[1]?.maxColors === 255)).toBe(true);
 });
 
 test("without effects a colour the palette lacks is conformed, not added", async () => {

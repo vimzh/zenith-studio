@@ -17,13 +17,13 @@ import { createPalette } from "./palette";
 import type { Frame, Layer, PixelDocument } from "./types";
 
 export const DOCUMENT_FORMAT = "zenith.document";
-export const DOCUMENT_VERSION = 1;
+export const DOCUMENT_VERSION = 2;
 
 export interface SerializedLayer {
   readonly id: string;
   readonly name: string;
   readonly visible: boolean;
-  /** Indexed text grid: `0`-`F` per palette index, `.` for transparent. */
+  /** Compact `0`-`F` rows, or `@hex` followed by space-separated hex token rows. */
   readonly grid: string;
 }
 
@@ -41,7 +41,7 @@ export interface SerializedPalette {
 
 export interface SerializedDocument {
   readonly format: typeof DOCUMENT_FORMAT;
-  readonly version: typeof DOCUMENT_VERSION;
+  readonly version: 1 | typeof DOCUMENT_VERSION;
   readonly id: string;
   readonly name: string;
   readonly width: number;
@@ -58,7 +58,7 @@ export interface SerializedDocument {
 export function serializeDocument(document: PixelDocument): SerializedDocument {
   return {
     format: DOCUMENT_FORMAT,
-    version: DOCUMENT_VERSION,
+    version: document.palette.colors.length <= 16 ? 1 : DOCUMENT_VERSION,
     id: document.id,
     name: document.name,
     width: document.width,
@@ -138,10 +138,10 @@ export function deserializeDocument(raw: unknown): PixelDocument {
       `Unknown format ${describe(raw["format"])}. Expected '${DOCUMENT_FORMAT}'.`,
     );
   }
-  if (raw["version"] !== DOCUMENT_VERSION) {
+  if (raw["version"] !== 1 && raw["version"] !== DOCUMENT_VERSION) {
     fail(
       "invalid_document",
-      `Unsupported document version ${String(raw["version"])}. This build reads version ${String(DOCUMENT_VERSION)}.`,
+      `Unsupported document version ${String(raw["version"])}. This build reads versions 1 and ${String(DOCUMENT_VERSION)}.`,
     );
   }
 
@@ -158,6 +158,9 @@ export function deserializeDocument(raw: unknown): PixelDocument {
     }
     return color;
   });
+  if (raw["version"] === 1 && paletteColors.length > 16) {
+    fail("invalid_document", "Document version 1 supports at most 16 palette colours. Use version 2 for expanded palettes.");
+  }
   const palette = createPalette({
     id: readString(rawPalette, "id", "document.palette"),
     name: readString(rawPalette, "name", "document.palette"),

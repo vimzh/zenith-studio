@@ -37,7 +37,7 @@ export const getDirections: ToolDefinition = {
 
 export const selectDirection: ToolDefinition = {
   scope: "character", name: "select_direction", description:
-    "Open the asset for one facing direction of the current character, making it the target of every editing and perception tool. Directions are separate assets sharing a name and palette; get_directions lists which exist, which are mirror-derived, and which are missing. The human's view follows, so they see the direction you are working on.",
+    "Open a facing of the current character for the human and editing tools. Facings are separate assets; get_directions lists existing, mirrored and missing views.",
   inputSchema: { type: "object", properties: { direction: { type: "string", enum: [...DIRECTIONS] } }, required: ["direction"] }, example: { direction: "west" },
   execute: (args) => { const { id, name } = requireActiveAsset(); const direction = readEnum<Direction>(args, "direction", DIRECTIONS); const asset = findDirection(baseName(name), direction, id); if (asset === undefined) throw new ToolError(`No ${direction} direction exists yet.`); session.open(asset.id); assetNavigation.request(asset.id); return `Opened ${asset.id} '${asset.name}'.`; },
 };

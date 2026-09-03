@@ -10,7 +10,7 @@
 
 import { fail, requireInteger } from "./errors";
 import { containsPoint, isCell, normalizeRegion, offsetOf, wholeGrid } from "./grid";
-import { TRANSPARENT, type Cell, type Grid, type MirrorAxis, type Region } from "./types";
+import { MAX_PALETTE_SIZE, TRANSPARENT, type Cell, type Grid, type MirrorAxis, type Region } from "./types";
 
 /** A pending single-cell change, before the store attributes it to a frame and layer. */
 export interface CellChange {
@@ -34,7 +34,7 @@ function assertCell(value: Cell, label: string): Cell {
   if (!isCell(value)) {
     fail(
       "invalid_index",
-      `${label} is ${String(value)}, which is not a palette index 0-15 or -1 (transparent).`,
+      `${label} is ${String(value)}, which is not a palette index 0-${String(MAX_PALETTE_SIZE - 1)} or -1 (transparent).`,
     );
   }
   return value;

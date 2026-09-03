@@ -137,7 +137,7 @@ export const animateWithText: ToolDefinition = {
   scope: "editor",
   network: true,
   description:
-    "Draw an animation from a description — a jab, a kick, a sword swing, a jump, a run cycle — onto the open asset, optionally with effects such as an air-cut arc, a purple magic trail behind a blade, sparkles or dust. The selected frame is the rest pose the motion starts from and returns to, and the new frames are appended after the existing ones with the holds the planner timed (60-400ms each). HOW IT WORKS: one cheap vision call reads the source sprite and plans the poses like an animator (anticipation, key extreme, follow-through, recovery, per-frame timing and effect placement); every frame is then drawn as ONE sprite sheet beside the source, so all frames share its scale, camera, outline weight and ground line; grounded frames are snapped back onto the source's ground line; effect colours the palette lacks are given its free slots; then a vision judge checks each frame for identity, scale, facing, pose and clipping and one repair sheet redraws the frames it rejects (verify: false skips the judge and the repair). Expect a coherent cycle of the same character; review contact and anatomy by eye. SLOW AND PAID: one image per sheet, about two minutes, all sheets of a cycle bought concurrently, plus a repair sheet when the judge rejects a frame; a sheet holds 3-5 frames beside a 128px sprite and up to 15 beside a 32px one. Prefer animate_procedural for bob, sway, pulse, flicker, blink or scroll and animate_with_skeleton for a plain walk or run — both are instant and free. For a locomotion cycle where the standing source pose does not belong in the loop, remove that frame with delete_frame afterwards.",
+    "Append drawn poses to the open asset from its selected rest frame, with planned 60–400ms holds. Slow, paid: about two minutes per sheet plus one repair if verification fails. Sheets share the source's scale and camera; effects may change the palette. Review anatomy/contact by eye. Prefer free animate_procedural for bob/sway or animate_with_skeleton for walk/run. Remove the source with delete_frame if it does not belong in a locomotion loop.",
   inputSchema: {
     type: "object",
     properties: {
@@ -293,7 +293,7 @@ export const animateWithText: ToolDefinition = {
 
     // Effects are the only reason to let the quantiser keep colours the
     // palette lacks; without them every colour is conformed to what exists.
-    const maxColors = effects === undefined ? palette.length : 16;
+    const maxColors = effects === undefined ? palette.length : Math.max(16, palette.length);
     await draw(plan.frames.map((pose, index) => ({ index, line: poseLine(pose), pose })), maxColors);
 
     // The palette is decided once, from the first pass, so every frame — and
@@ -305,7 +305,7 @@ export const animateWithText: ToolDefinition = {
     const drawnNow = slots.filter((slot): slot is DrawnFrame => slot !== undefined);
     if (effects !== undefined && drawnNow.length > 0) {
       const existing = Array.from({ length: store.frameCount }, (_, frame) => store.readComposite(frame));
-      const seating = seatEffectColours(palette, rankedColours(drawnNow), paletteUsage(existing, palette.length));
+      const seating = seatEffectColours(palette, rankedColours(drawnNow), paletteUsage(existing, palette.length), 0, 255);
       colours = seating.colors;
       added = seating.added;
       folds = seating.folds;

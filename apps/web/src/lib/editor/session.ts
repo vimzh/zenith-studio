@@ -453,7 +453,7 @@ export class EditorSession {
     const frames = snapshot.frames.map((frame) => ({
       ...frame,
       layers: frame.layers.map((layer) => {
-        const cells = new Int8Array(layer.grid.cells.length);
+        const cells = new Int16Array(layer.grid.cells.length);
         for (let index = 0; index < cells.length; index += 1) {
           const source = layer.grid.cells[index] as number;
           cells[index] = source === TRANSPARENT ? TRANSPARENT : (lookup[source] as number);

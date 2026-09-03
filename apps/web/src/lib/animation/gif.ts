@@ -162,6 +162,9 @@ export function encodeGif(
   if (frames.length === 0) {
     throw new Error("An animated GIF needs at least one frame.");
   }
+  if (palette.length < 1 || palette.length > 255) {
+    throw new Error("An animated GIF needs 1–255 opaque palette colours plus transparency.");
+  }
 
   const first = frames[0] as Grid;
   for (const frame of frames) {

@@ -15,6 +15,7 @@ import { fail, requirePositiveInteger } from "./errors";
 import { cloneGrid, createGrid, isCell } from "./grid";
 import { createPalette, isCellInPalette } from "./palette";
 import {
+  MAX_PALETTE_SIZE,
   TRANSPARENT,
   type Cell,
   type DocumentMetadata,
@@ -162,6 +163,9 @@ export function validateDocument(document: PixelDocument): void {
 
   if (document.palette.colors.length === 0) {
     fail("invalid_document", "Document palette is empty. A document needs at least one colour.");
+  }
+  if (document.palette.colors.length > MAX_PALETTE_SIZE) {
+    fail("palette_overflow", `Document palette exceeds the ${String(MAX_PALETTE_SIZE)}-colour cap.`);
   }
   if (document.frames.length === 0) {
     fail("invalid_document", "Document has no frames. Every document has at least one frame.");

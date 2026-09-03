@@ -111,7 +111,7 @@ export function findPreset(id: string): CanvasPreset | undefined {
   return CANVAS_PRESETS.find((preset) => preset.id === id);
 }
 
-/** Every preset must respect the 16-colour cap the text encoding depends on. */
+/** Every preset must respect the document's palette capacity. */
 export function presetsAreValid(): boolean {
   return CANVAS_PRESETS.every(
     (preset) => preset.colors.length > 0 && preset.colors.length <= MAX_PALETTE_SIZE

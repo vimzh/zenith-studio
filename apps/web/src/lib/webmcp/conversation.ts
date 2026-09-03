@@ -58,10 +58,11 @@ export function buildSystemPrompt(): string {
     `Open asset: '${summary?.name ?? store.name}' (${summary?.type ?? "asset"}), ${String(store.width)}x${String(store.height)} pixels, ${String(store.frameCount)} frame(s), frame ${String(store.activeFrame)} selected.`,
     `Palette (${String(store.palette.colors.length)} colours): ${palette}  .=transparent`,
     "",
-    "Artwork is an indexed character grid: one character per pixel, '0'-'9' and 'A'-'F' for palette indices, '.' for transparent. Coordinates are asset-local: (0,0) is the top-left pixel, x increases right, y increases down.",
+    "Artwork is an indexed grid: compact rows use one hex character (0–F) per pixel; larger indices use an @hex header followed by space-separated hex tokens (00–fe), with '.' transparent in either format. Coordinates are asset-local: (0,0) is the top-left pixel, x increases right, y increases down.",
     "",
     "Working rules:",
     "- Call read_canvas before editing something you have not seen. Do not guess what is there.",
+    "- For local colour changes that must preserve shapes, prefer the free deterministic recolor_region tool. Read read_region and get_palette, then provide explicit from_index to to_color hex mappings for the selected rectangle. It adds exact shades without quantising; unmapped outlines and other pixels stay unchanged. Do not use paid inpaint_region for a colour-only change.",
     "- Asked to create a new whole subject or replace the existing artwork — 'make a bush', 'draw a health potion', 'replace this with a stone wall' — call draw_from_prompt. Do not use it for orientation changes or local edits to an existing subject. Never hand-draw a whole subject pixel by pixel: it burns your entire turn budget and the result is a shapeless blob. Hand-drawing is for changes you can name in a few words.",
     "- To change an existing character's facing or camera view, use rotate_character, or derive_direction_by_mirror for a valid left/right mirror pair; use generate_direction_set for several directions. Do not substitute draw_from_prompt or inpaint_region for rotation. If character tools are unavailable because the asset has the wrong type, ask the human to confirm changing it to character; call set_asset_type only when the human explicitly confirms the classification. Never infer or silently change type from the art prompt.",
     "- For those, prefer the smallest tool that does the job: fill_region or bucket_fill for a solid area, write_region for a block (every row must be exactly the same width), set_pixels for a handful of pixels.",
@@ -70,7 +71,7 @@ export function buildSystemPrompt(): string {
     "- Call read_canvas after every art edit before reporting the result. Do not claim visual success from a tool's success message alone; state what you verified and any remaining uncertainty. Keep inpaint_region bounded to the requested local repair; a recolour request is not permission to redraw the whole subject.",
     "- When the human explicitly asks to generate variations, be creatively ambitious in concept and conservative about identity: preserve silhouette, perspective, scale, pixel cadence, lighting logic, and game readability while varying material, biome, rarity, age, damage, culture, ornament, or magic. Invent concise, visually distinct concepts and pass them to generate_variation_set; avoid near-duplicates.",
     "- Use draw_from_prompt only for a new whole subject or an explicit whole-canvas replacement, generate_variation_set for a family, derive_variant for one directed variation, and inpaint_region for a requested local repair. These and rotation generation are slow paid model calls — tens of seconds per image: never call them to brainstorm, never call one twice for the same request, and never call them unless the human explicitly asked to create or change the art. Say what you are about to generate before you call one, so the wait is not silent.",
-    "- Only palette indices listed above exist. Anything else is rejected.",
+    "- Only existing palette indices can be drawn. recolor_region can append exact colours up to 255; call get_palette after a palette-changing edit to refresh the indices.",
     "- Be brief. The human is watching the canvas, not reading an essay.",
   ].join("\n");
 }

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { projects, session } from "@/lib/editor";
 import * as contextTools from "./tools/context";
 import * as editingTools from "./tools/editing";
+import * as recolorTools from "./tools/recolor";
 import * as framesTools from "./tools/frames";
 import * as animationTools from "./tools/animation";
 import * as projectTools from "./tools/projects";
@@ -481,7 +482,7 @@ describe("editing", () => {
       y: 0,
       grid: "0G\n00",
     });
-    expect(message).toContain("not a valid cell character");
+    expect(message).toContain("not a valid cell token");
     expect(message).toContain("row 0, column 1");
   });
 
@@ -499,7 +500,7 @@ describe("editing", () => {
     const message = await callExpectingError("set_pixels", {
       pixels: [{ x: 0, y: 0, index: 9 }],
     });
-    expect(message).toContain("not a palette index 0-3");
+    expect(message).toContain("'index' is 9, above the maximum of 3");
   });
 
   /**
@@ -967,6 +968,7 @@ describe("route and session agreement", () => {
 const TOOL_MODULES: Record<string, Record<string, unknown>> = {
   context: contextTools,
   editing: editingTools,
+  recolor: recolorTools,
   frames: framesTools,
   animation: animationTools,
   projects: projectTools,

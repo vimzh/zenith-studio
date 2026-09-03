@@ -118,7 +118,7 @@ export function exportPalette(store: DocumentStore, name: string, format: Palett
       saveBytes(toAse(colors, name), `${name}.ase`, "application/octet-stream", sink);
       break;
     case "png-strip": {
-      const strip: Grid = { width: colors.length, height: 1, cells: Int8Array.from(colors.map((_, i) => i)) };
+      const strip: Grid = { width: colors.length, height: 1, cells: Int16Array.from(colors.map((_, i) => i)) };
       saveBytes(encodeIndexedPng(strip, colors, { scale: 8 }), `${name}-palette.png`, "image/png", sink);
       break;
     }

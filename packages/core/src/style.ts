@@ -220,7 +220,7 @@ export function conformToStyle(
 
   const width = resized ? (wanted as number) : grid.width;
   const height = resized ? (wanted as number) : grid.height;
-  const cells = new Int8Array(width * height).fill(TRANSPARENT);
+  const cells = new Int16Array(width * height).fill(TRANSPARENT);
 
   // Resize crops or pads from the top-left; it never scales. Scaling would
   // resample the art, which is the one thing this pipeline never does — a

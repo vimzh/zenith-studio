@@ -30,7 +30,7 @@ export const listAssets: ToolDefinition = {
   scope: "always",
   name: "list_assets",
   description:
-    "List every pixel-art asset in the library, with its id, name, type, pixel dimensions, frame count, and whether it is the one currently open in the editor. Call this first when you do not know what exists. Optionally filter by type, or by a case-insensitive substring of the name.",
+    "List library asset IDs, names, types, dimensions, frame counts and open status. Start here to find assets; optionally filter by type or case-insensitive name substring.",
   readOnly: true,
   inputSchema: {
     type: "object",
@@ -188,7 +188,7 @@ export const setAssetType: ToolDefinition = {
   scope: "editor",
   name: "set_asset_type",
   description:
-    "Change the open asset's type only when the human explicitly confirms its classification. This changes metadata and available tools, not pixels, palette, frames, or undo history. Character type enables direction tools such as rotate_character. Do not infer a type change from an art prompt; ask when the current type prevents the requested operation.",
+    "Change the open asset's classification only with explicit human confirmation, never inferred from an art prompt. Changes metadata/tools, preserving pixels, palette, frames and history.",
   inputSchema: {
     type: "object",
     properties: {

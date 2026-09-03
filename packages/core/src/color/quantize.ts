@@ -10,11 +10,11 @@
  */
 
 import { fail, requirePositiveInteger } from "../errors";
-import { MAX_PALETTE_SIZE, TRANSPARENT, type Oklab } from "../types";
+import { DEFAULT_PALETTE_SIZE, MAX_PALETTE_SIZE, TRANSPARENT, type Oklab } from "../types";
 import { formatHex, oklabDistanceSquared, oklabToRgb, rgbToOklab } from "./oklab";
 
 export interface QuantizeOptions {
-  /** Target palette size. Capped at 16 so cells stay one character. */
+  /** Target palette size, 1–255. Defaults to 16 for compact generated art. */
   readonly maxColors?: number;
   /** Alpha below this becomes {@link TRANSPARENT}; at or above becomes opaque — invariant 2. */
   readonly alphaThreshold?: number;
@@ -28,7 +28,7 @@ export interface QuantizeResult {
   /** Palette colours as `#rrggbb`, ordered dark to light. */
   readonly colors: readonly string[];
   /** One cell per input pixel: a palette index, or {@link TRANSPARENT}. */
-  readonly indices: Int8Array;
+  readonly indices: Int16Array;
   /** Mean Oklab distance from each opaque pixel to its assigned palette colour. */
   readonly meanError: number;
   /** Distinct opaque colours in the input, before reduction. */
@@ -131,12 +131,12 @@ export function quantize(pixels: Uint8ClampedArray, options: QuantizeOptions = {
       `Expected a non-empty RGBA buffer whose length is a multiple of 4, received ${String(pixels.length)} bytes.`,
     );
   }
-  const maxColors = options.maxColors ?? MAX_PALETTE_SIZE;
+  const maxColors = options.maxColors ?? DEFAULT_PALETTE_SIZE;
   requirePositiveInteger(maxColors, "maxColors");
   if (maxColors > MAX_PALETTE_SIZE) {
     fail(
       "palette_overflow",
-      `maxColors is ${String(maxColors)} but the cap is ${String(MAX_PALETTE_SIZE)}. One character per pixel is only possible at 16 colours or fewer.`,
+      `maxColors is ${String(maxColors)} but the cap is ${String(MAX_PALETTE_SIZE)}. Reserve one indexed byte value for transparency.`,
     );
   }
   const alphaThreshold = options.alphaThreshold ?? 128;
@@ -144,7 +144,7 @@ export function quantize(pixels: Uint8ClampedArray, options: QuantizeOptions = {
   const tolerance = options.tolerance ?? 1e-4;
 
   const { buckets, opaque } = collectBuckets(pixels, alphaThreshold);
-  const indices = new Int8Array(opaque.length).fill(TRANSPARENT);
+  const indices = new Int16Array(opaque.length).fill(TRANSPARENT);
   if (buckets.length === 0) {
     return { colors: [], indices, meanError: 0, sourceColorCount: 0 };
   }

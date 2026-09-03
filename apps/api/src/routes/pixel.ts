@@ -9,7 +9,7 @@
 
 import {
   BUILTIN_PALETTES,
-  MAX_PALETTE_SIZE,
+  DEFAULT_PALETTE_SIZE,
   PixelError,
   createPalette,
   deserializeDocument,
@@ -65,7 +65,7 @@ pixel.post('/v1/documents/validate', async (c) => {
 })
 
 /**
- * Reduces an RGBA image to an indexed grid on a palette of at most 16 colours.
+ * Reduces RGBA to an indexed grid: 16 colours by default, up to 255 on request.
  *
  * The response is the indexed text format, so the caller can hand it straight to
  * `writeRegion` without a second conversion step.
@@ -75,7 +75,7 @@ pixel.post('/v1/quantize', async (c) => {
 
   const width = readPositiveInteger(body['width'], 'width')
   const height = readPositiveInteger(body['height'], 'height')
-  const maxColors = body['maxColors'] === undefined ? MAX_PALETTE_SIZE : readPositiveInteger(body['maxColors'], 'maxColors')
+  const maxColors = body['maxColors'] === undefined ? DEFAULT_PALETTE_SIZE : readPositiveInteger(body['maxColors'], 'maxColors')
   const seed = body['seed'] === undefined ? undefined : readPositiveInteger(body['seed'], 'seed')
 
   const encoded = body['pixels']

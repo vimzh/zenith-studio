@@ -164,14 +164,15 @@ export function fitSubject(
   image: RasterImage,
   width: number,
   height: number,
-  bounds: SubjectBounds
+  bounds: SubjectBounds,
+  padding = 0,
 ): RasterImage {
   const data = new Uint8ClampedArray(width * height * 4);
-  const scale = Math.min(width / bounds.width, height / bounds.height);
+  const scale = Math.min((width - 2 * padding) / bounds.width, (height - 2 * padding) / bounds.height);
   const drawWidth = Math.max(1, Math.round(bounds.width * scale));
   const drawHeight = Math.max(1, Math.round(bounds.height * scale));
   const originX = Math.floor((width - drawWidth) / 2);
-  const originY = height - drawHeight;
+  const originY = height - padding - drawHeight;
 
   for (let y = 0; y < drawHeight; y += 1) {
     const sourceY = bounds.y + Math.min(bounds.height - 1, Math.floor((y * bounds.height) / drawHeight));
@@ -244,7 +245,8 @@ export function frameSubject(
  * image and wrong for generation: the pipeline there must land on exactly the
  * preset's dimensions, and a 22x32 intermediate pixelises to 32x46 and is
  * rejected. So the subject is fitted *into* a frame of the canvas's aspect,
- * keeping its own proportions and sitting on the bottom edge.
+ * keeping its own proportions. Generated sprites reserve padding for local
+ * motion; reference/animation callers keep their existing ground line by default.
  *
  * The working frame is sized to about one output cell per `cellSize` input
  * pixels, chosen so the subject is neither up- nor downsampled much before the
@@ -257,14 +259,18 @@ export function frameToCanvas(
   image: RasterImage,
   canvasWidth: number,
   canvasHeight: number,
-  options: { tolerance?: number; maxCell?: number } = {}
+  options: { tolerance?: number; maxCell?: number; padding?: number } = {}
 ): { image: RasterImage; coverage: number; note: string } | null {
+  const padding = options.padding ?? 0;
+  if (!Number.isInteger(padding) || padding < 0 || 2 * padding >= Math.min(canvasWidth, canvasHeight)) {
+    throw new Error("Sprite padding must be a non-negative integer smaller than half the canvas size.");
+  }
   const cleared = clearBackground(image, options.tolerance);
   const bounds = subjectBounds(cleared);
   if (bounds === null) return null;
 
   const coverage = (bounds.width * bounds.height) / (image.width * image.height);
-  if (coverage > 0.92) return null;
+  if (coverage > 0.92 && padding === 0) return null;
 
   const maxCell = options.maxCell ?? 32;
   const cell = Math.max(
@@ -273,10 +279,11 @@ export function frameToCanvas(
   );
 
   return {
-    image: fitSubject(cleared, canvasWidth * cell, canvasHeight * cell, bounds),
+    image: fitSubject(cleared, canvasWidth * cell, canvasHeight * cell, bounds, padding * cell),
     coverage,
     note:
       `Subject filled ${(coverage * 100).toFixed(0)}% of the generated frame; ` +
-      `cropped to ${String(bounds.width)}x${String(bounds.height)} and scaled to fill the canvas.`,
+      `cropped to ${String(bounds.width)}x${String(bounds.height)} and ` +
+      (padding === 0 ? "scaled to fill the canvas." : `fitted with ${String(padding)}px canvas padding.`),
   };
 }

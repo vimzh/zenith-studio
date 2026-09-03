@@ -123,6 +123,7 @@ import {
   generateTexture,
 } from "./worlds";
 import { inpaintRegion } from "./inpaint";
+import { recolorRegion } from "./recolor";
 import { animateWithSkeletonTool } from "./skeleton";
 
 /**
@@ -223,6 +224,7 @@ export const TOOL_GROUPS: readonly GroupedTools[] = [
       fillRegion,
       bucketFill,
       replaceColor,
+      recolorRegion,
       clearRegion,
       shiftTool,
       mirrorTool,

@@ -179,7 +179,7 @@ export const inpaintRegion: ToolDefinition = {
   network: true,
   name: "inpaint_region",
   description:
-    "Edit only a selected rectangle of the currently open asset's square, single-layer frame using the original image as context. Coordinates are asset-local: (0,0) is the top-left pixel, x increases right, and y increases down. The model sees the full source but may edit only the transparent mask rectangle; its result is pixelised and palette-matched before only that grid region is merged. Pixels outside the rectangle remain byte-identical, and one undo restores an applied edit. An unchanged result creates no undo entry. Edits that erase more than a quarter of the selected subject are refused unless allow_removal is explicitly enabled for intended erasure. This makes one slow, paid image-model call.",
+    "Edit a rectangle of the open square, single-layer frame via one slow, paid model call. Asset-local (0,0) top-left; +x right, +y down. Outside pixels stay identical; one undo restores the edit. No change creates no undo. Erasing over 25% of the selected subject is refused unless allow_removal is explicitly enabled.",
   inputSchema: {
     type: "object",
     properties: {
@@ -266,7 +266,7 @@ export const inpaintRegion: ToolDefinition = {
       result = await pixelizeAsync(raster, {
         targetWidth: store.width,
         targetHeight: store.height,
-        maxColors: 16,
+        maxColors: Math.max(16, palette.length),
       });
     } catch (error) {
       throw toToolError(error);

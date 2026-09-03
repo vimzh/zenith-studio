@@ -8,7 +8,7 @@
 
 import { fail } from "./errors";
 import { encodeCell } from "./grid";
-import type { Cell, Grid } from "./types";
+import { MAX_PALETTE_SIZE, type Cell, type Grid } from "./types";
 
 export interface SeamMismatch {
   /** Position along the seam: the row for a left/right seam, the column for top/bottom. */
@@ -73,8 +73,8 @@ export interface SeamlessTilingReport {
 }
 
 function pairKey(a: Cell, b: Cell): number {
-  // Cells are -1..15, so a 32-wide bucket packs a pair into one integer.
-  return (a + 1) * 32 + (b + 1);
+  // Include transparency so every ordered pair has its own integer key.
+  return (a + 1) * (MAX_PALETTE_SIZE + 1) + (b + 1);
 }
 
 /**

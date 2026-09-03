@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { MAX_PALETTE_SIZE } from "@zenith/core";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import OpenAI, { toFile } from "openai";
 import type { ErrorBody } from "../lib/http";
@@ -34,8 +35,8 @@ const QUALITIES = ["low", "medium", "high"] as const;
  * can hold.
  */
 const DEFAULT_QUALITY = "medium" as const;
-/** One character per pixel caps the palette at 16; a longer list is a client mistake. */
-const MAX_PALETTE = 16;
+/** Match the document and indexed export capacity; generation still defaults to a small palette. */
+const MAX_PALETTE = MAX_PALETTE_SIZE;
 /** Includes client-composed style text; leaves room for server drawing rules. */
 const MAX_IMAGE_TEXT_LENGTH = 16_000;
 

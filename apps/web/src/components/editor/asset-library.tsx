@@ -7,9 +7,11 @@ import { ChevronLeft, Copy, Download, Pencil, Plus, Trash2, Upload } from "lucid
 import { projectsContent } from "@/data/projects";
 import {
   ensureSeeded,
+  hydrateProjects,
   downloadLibrary,
   deleteAsset,
   importLibrary,
+  projects,
   session,
   undoDeleteAsset,
   useSessionSelector,
@@ -111,7 +113,12 @@ export function AssetLibrary({
     const requested = GENERATABLE_TYPES.includes(initialType as AssetType)
       ? { prompt, type: initialType }
       : { prompt };
-    void runTool(GENERATE_ASSET, requested, "console").then((outcome) => {
+    void hydrateProjects().then(() => {
+      // A prompt submitted from the public landing page creates a loose asset.
+      // Clear persisted project context before the tool captures its destination.
+      projects.openProject(null);
+      return runTool(GENERATE_ASSET, requested, "console");
+    }).then((outcome) => {
       const id = session.activeId;
       if (outcome.ok && id !== null) {
         router.replace(`/asset/${id}`);

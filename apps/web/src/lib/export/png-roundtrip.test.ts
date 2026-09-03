@@ -183,6 +183,18 @@ function expectedRows(grid: Grid, transparentIndex: number, scale = 1): number[]
 const PALETTE = ["#0f380f", "#306230", "#8bac0f", "#9bbc0f"];
 
 describe("indexed PNG round-trip", () => {
+  for (const count of [19, 255]) test(`${String(count)} colours round-trip with transparency at the UI's 8x scale`, () => {
+    const palette = Array.from({ length: count }, (_, index) => `#${index.toString(16).padStart(6, "0")}`);
+    const grid = createGrid(32, 32, TRANSPARENT);
+    for (let i = 0; i < grid.cells.length; i += 1) grid.cells[i] = i % (count + 1) - 1;
+    const png = encodeIndexedPng(grid, palette, { scale: 8 });
+    const decoded = decodePng(png);
+    expect(decoded.rows).toEqual(expectedRows(grid, count, 8));
+    expect(decoded.transparentIndex).toBe(count);
+    expect(decoded.allCrcsValid && decoded.adlerValid).toBe(true);
+    expect(readChunks(png).find((chunk) => chunk.type === "PLTE")?.data.length).toBe((count + 1) * 3);
+  });
+
   test("every chunk CRC is valid", () => {
     // A wrong CRC makes the file unopenable while looking fine in a hex dump.
     const decoded = decodePng(encodeIndexedPng(gridFromRows(["0123", "3210"]), PALETTE));

@@ -22,7 +22,7 @@ describe("indexed grid text codec", () => {
     for (let sample = 0; sample < 1000; sample += 1) {
       const width = randomInt(random, 1, 64);
       const height = randomInt(random, 1, 64);
-      const paletteSize = randomInt(random, 1, 16);
+      const paletteSize = randomInt(random, 1, sample % 2 === 0 ? 16 : 255);
       const grid = createGrid(width, height);
       for (let i = 0; i < grid.cells.length; i += 1) {
         grid.cells[i] = random() < 0.25 ? TRANSPARENT : randomInt(random, 0, paletteSize - 1);

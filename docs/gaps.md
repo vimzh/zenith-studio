@@ -10,6 +10,14 @@ Live tracking of what is **actually** done versus what a phase claims. Updated a
 
 Last updated: 2026-09-03.
 
+## 2026-09-03 — WebMCP discovery budget includes the deployed origin
+
+- [x] Reproduced direct WebMCP discovery disabling itself after the Moss Hollow character gained animation frames. The same 93-tool catalog serialized to 63,378 bytes on localhost but 67,284 bytes on Cloud Run: discovery repeats origin/page URL per tool, which the localhost-only budget test missed.
+- [x] Shortened redundant description prose without removing tools, arguments, scope, or handlers. The deployed animated-character catalog is now 62,496 bytes. The 62 KiB regression budget covers localhost and the actual Cloud Run origin across all asset types and static/animated views; four deployed-origin cases failed before the fix and all pass after it.
+- [x] `bun test`: 1,038 passed; `bun run lint`, `bun run typecheck`, and `bun run build` passed. Deployed web-only revision `zenith-web-00003-q5t` and verified native browser discovery accepts all 93 animated-character tools on the demo origin after reconnect/reload.
+- [x] Replayed the original export through direct WebMCP: `export_animation` at 4× without timing overrides, `export_project`, and two `read_export` chunks per file through `eof=true`. Saved `moss-knight-idle.gif` (61,625 bytes) and `moss-hollow.zenith.json` (69,897 bytes) in the workspace. An independent GIF block read confirmed 512×512, four frames, and four 250 ms holds; the backup contains the original 128×128 character and all four frames. `flush_storage` confirmed local transactions. No tool-console fallback was used for these exports.
+
+
 ## 2026-09-03 — Composed image prompts no longer hit the 1,000-character cap
 
 - [x] Generation and derive/edit requests accept 16,000 characters including client-appended style text, with matching browser/API guards and received-length errors. No truncation.
@@ -784,6 +792,11 @@ A 160×160 anti-aliased knight with 46 distinct colours (deliberately not pixel 
 
 `generate_asset` from the landing prompt produced a recognisable 32×32 knight, open and editable.
 
+Landing-page generation now waits for the saved project tree, clears its active
+project, and then calls `generate_asset`. The result is therefore a loose asset:
+it appears under **Not in a project** and in **All assets**, never inside whichever
+project happened to be open earlier in the browser session.
+
 **Bug found and fixed: every generated asset was a tile.** The landing prompt sent only `prompt`, and `generate_asset` defaults to `tile` — so a generated *character* got autotiling instead of directions and a skeleton, and every character-scoped tool (`estimate_skeleton`, `get_directions`, `derive_direction_by_mirror`, `generate_direction_set`) was invisible on the asset they exist for. The character workflow was unreachable from characters. The type now travels with the prompt and is chosen in the UI rather than guessed from wording. Re-verified: the same prompt now yields DIRECTIONS and SKELETON and no AUTOTILE.
 
 **Bug found and fixed: creating an asset silently killed the agent surface.** `session.create()` unconditionally reassigns `activeId`. Right when the human asked for a new asset, wrong when one is a by-product — deriving a tileset from a tile does not mean you stopped working on the tile. `activeId` followed the new sheet, the route stayed put, and `readScopeContext` correctly read the disagreement as "no asset open": the console dropped from 66 tools to 14 and the composer said there was nothing to edit, with nothing thrown anywhere. This is the [`AGENTS.md`](../AGENTS.md) route/session hazard reached through *creation* rather than `close()`, a path not previously written down. `preservingActiveAsset()` wraps the three by-product generators; `generators.test.ts` pins it and fails without the fix.
@@ -998,3 +1011,63 @@ The skeleton was accurate on nothing and functional for nothing. Checked against
 - [ ] Reusable pose storage and `transfer_animation` across assets: poses transfer in the engine; no saved library or end-to-end application is surfaced.
 - [ ] Arms held against the torso in a side view are the torso's edge strip, so a swing shears that strip. Inherent to a flat rig without segmentation; it is why the cycles are labelled blocking quality.
 - [ ] Quadruped estimation reads the head end, body line and feet off the silhouette but has only a synthetic dog to check against; no stock quadruped cycles.
+
+## Moss Hollow demo repair and rehearsal — 2026-09-03
+
+The original sword edit was blocked by a full 16-colour palette: the existing
+shades were used outside the blade too, so replacing them globally would change
+the knight. Generation still defaults to 16 colours, but documents now allow
+255 opaque colours plus transparency. `recolor_region` appends exact local
+shades and changes the chosen indices in one shared undo entry. Indexed grids
+use `Int16Array`; expanded palettes use document v2 and explicit `@hex` rows,
+while existing v1 documents remain readable. This supersedes the earlier
+16-colour/compact-only limits recorded above.
+
+### Verified locally
+
+- [x] Exact purple/dark-violet/lavender recolour of a full-palette 128px fixture;
+  every unaffected RGBA pixel, other frames and hidden layers preserved; one
+  undo/redo restores both palette and pixels. Invalid/capacity-exhausted edits
+  leave artwork unchanged. The final 255 limit is indexed PNG/GIF capacity,
+  not an arbitrary 16-colour editing restriction.
+- [x] High indices, including 128 and 254, survive text encoding, hydration,
+  project backups, animation, PNG and GIF. Export round trips compare pixels
+  and authored timing. The API retains a 16-colour quantization default while
+  accepting explicit expanded palettes.
+- [x] Generated sprites retain transparent padding. Four-frame, two-pixel bob
+  tests preserve opaque pixels even for tightly framed source images.
+- [x] Tool-discovery budget passes for all asset types/frame contexts. Removing
+  `recolor_region` from registration makes the exported-tool guard fail naming
+  that tool; restoring it makes the same guard pass.
+- [x] Actual external WebMCP rehearsal against the local production build:
+  `create_project` → 128px style → real `generate_asset` job (64.9 seconds) →
+  editable `Moss Knight` character. Visually inspected: right-facing, green
+  helmet, red scarf, brown boots, steel sword, separated limbs and full body.
+- [x] `animate_procedural` bob, four frames, amplitude 2; all frames 250 ms.
+  Each frame retains 6,537 opaque pixels. Manual UI Undo/Redo restores one/four
+  frames, and manual Play switches to Pause.
+- [x] `export_animation` GIF at 4× with no FPS override, `export_project`, and
+  complete chunked `read_export` retrieval. Saved under
+  `output/moss-hollow-rehearsal/` without replacing the user's existing files.
+  Independent Pillow decoding confirms 512×512, four 250 ms frames, and every
+  RGBA pixel equal to the backup. `import_project` preserves every frame;
+  `flush_storage` and a page reload preserve the restored artwork.
+- [x] `bun test`: 1,060 pass, 0 fail. Root lint, typecheck and build pass.
+  Read-only code review found no blocking defects in recolour/framing; a
+  separate propagation audit's stale-documentation finding was addressed.
+
+### Not yet verified / not performed
+
+- [x] **Live browser recolour and its manual undo/redo.** On the deployed
+  `asset_046`, the 16-colour palette grew to 19 and exactly 145 inspected blade
+  pixels changed; every unmapped/outside pixel remained identical. UI Undo and
+  Redo restored the complete before/after canvas strings exactly. A fresh
+  production generation (`asset_047`) repeated the check on 187 blade pixels.
+- [ ] Optional matching chest was not generated.
+- [x] Deployed to Cloud Run and verified on the public URL: API revision
+  `zenith-api-00004-jhz` and web revision `zenith-web-00004-jq6`, both serving
+  100% traffic. Health reports document v2; deployed CORS admits only the web
+  origin. A fresh paid generation completed in 59.2 seconds. Its four 250 ms
+  bob frames retain 5,914 opaque pixels, manual Play reached Pause, and its
+  4× GIF (512×512) matches every backup pixel. Complete live artifacts are in
+  `output/moss-hollow-live/`.

@@ -194,11 +194,13 @@ describe("POST /v1/generate", () => {
     ).toContain("#rrggbb");
   });
 
-  test("rejects a palette over the 16-colour cap", async () => {
-    const palette = Array.from({ length: 17 }, () => "#112233");
+  test("accepts expanded palettes and rejects colours beyond indexed export capacity", async () => {
+    const accepted = await post({ prompt: "a knight with a purple sword", palette: Array.from({ length: 19 }, (_, i) => `#${i.toString(16).padStart(6, "0")}`) });
+    expect((await errorOf(accepted)).code).toBe("generation_unconfigured");
+    const palette = Array.from({ length: 256 }, () => "#112233");
     expect(
       (await errorOf(await post({ prompt: "a tile", palette }))).message,
-    ).toContain("cap is 16");
+    ).toContain("cap is 255");
   });
 
   test("accepts a well-formed body, failing only on the missing key", async () => {

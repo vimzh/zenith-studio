@@ -65,4 +65,7 @@ test("orientation and local edits are not treated as whole-canvas redraw request
   expect(prompt).toContain("explicitly confirms");
   expect(prompt).toContain("read_canvas after");
   expect(prompt).toContain("Do not claim visual success");
+  expect(prompt).toContain("free deterministic recolor_region");
+  expect(prompt).toContain("unmapped outlines");
+  expect(prompt).toContain("@hex");
 });

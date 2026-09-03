@@ -174,6 +174,26 @@ function indicesOf(grid: Grid, transparentIndex: number): number[] {
 const PALETTE = ["#000000", "#ff0000", "#00ff00", "#0000ff"];
 
 describe("GIF round-trip", () => {
+  for (const count of [19, 255]) test(`${String(count)} colours preserve every pixel and all frame durations at 4x`, () => {
+    const palette = Array.from({ length: count }, (_, index) => `#${index.toString(16).padStart(6, "0")}`);
+    const frames = [0, 1, 2].map((offset) => {
+      const grid = createGrid(32, 32, TRANSPARENT);
+      for (let i = 0; i < grid.cells.length; i += 1) grid.cells[i] = (i + offset) % (count + 1) - 1;
+      return grid;
+    });
+    const decoded = decodeGif(encodeGif(frames, palette, { scale: 4, delayMs: [80, 250, 350] }));
+    expect(decoded.delays).toEqual([80, 250, 350]);
+    expect(decoded.transparentIndex).toBe(count);
+    expect(decoded.frames).toHaveLength(frames.length);
+    for (const [frame, grid] of frames.entries()) {
+      const expected = Array.from({ length: 128 * 128 }, (_, offset) => {
+        const cell = grid.cells[Math.floor(offset / 128 / 4) * 32 + Math.floor((offset % 128) / 4)]!;
+        return cell === TRANSPARENT ? count : cell;
+      });
+      expect(decoded.frames[frame]).toEqual(expected);
+    }
+  });
+
   test("defaults to 4 fps and preserves explicit uniform or mixed frame timings", () => {
     const frames = [createGrid(2, 2, 0), createGrid(2, 2, 1)];
     expect(decodeGif(encodeGif(frames, PALETTE)).delays).toEqual([250, 250]);

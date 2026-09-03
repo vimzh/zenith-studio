@@ -48,7 +48,7 @@ export const animateWithSkeletonTool: ToolDefinition = {
   name: "animate_with_skeleton",
   scope: "character",
   description:
-    "Pose the open character with its skeleton, locally and instantly: no prompt, model call, network or new colours. The skeleton is estimated from the active frame's silhouette (read it with estimate_skeleton); joints you pass override it, normalised 0-1 across the content bounds, origin top-left, x right, y down, '-l' screen-left. With a template, each bone turns by the stock cycle's angles so the character keeps its own proportions, appended as one undoable cycle; templates face east, pass facing 'west' for a left-facing sprite. Without a template the joints are the pose, inserted as one frame after the active one. Blocking quality; tidy overlaps with pixel tools.",
+    "Pose the open character locally, free. Read estimate_skeleton first; joints override the estimated rig in content-bounds coordinates 0–1, top-left, +x right, +y down; '-l' is screen-left. A template appends an undoable cycle; facing defaults east. Without a template, insert one pose after the selected frame. No new colours. Blocking quality: inspect overlaps.",
   inputSchema: {
     type: "object",
     properties: {

@@ -1,4 +1,4 @@
-import { cropGrid, encodeGrid, paletteHexes, type Region } from "@zenith/core";
+import { TRANSPARENT, cropGrid, encodeGrid, paletteHexes, type Region } from "@zenith/core";
 import { session } from "./session";
 
 /**
@@ -18,23 +18,12 @@ import { session } from "./session";
 export interface SelectionContext {
   readonly assetId: string;
   readonly region: Region;
-  /** One character per pixel: `0`-`F` for a palette index, `.` for transparent. */
+  /** Compact hex rows, or @hex rows of space-separated tokens for larger indices. */
   readonly encoded: string;
   /** Index to hex, in order. */
   readonly palette: readonly string[];
   /** A sentence naming the region and its palette, ready to prepend to a prompt. */
   readonly summary: string;
-}
-
-/** Distinct palette indices used in a region, in ascending order. */
-function indicesUsed(encoded: string): number[] {
-  const seen = new Set<number>();
-  for (const character of encoded) {
-    if (character !== "\n" && character !== ".") {
-      seen.add(Number.parseInt(character, 16));
-    }
-  }
-  return [...seen].sort((a, b) => a - b);
 }
 
 /**
@@ -57,9 +46,10 @@ export function selectionContext(
     return null;
   }
 
-  const encoded = encodeGrid(cropGrid(store.readComposite(), region));
+  const grid = cropGrid(store.readComposite(), region);
+  const encoded = encodeGrid(grid);
   const palette = paletteHexes(store.palette);
-  const used = indicesUsed(encoded);
+  const used = [...new Set(grid.cells)].filter((index) => index !== TRANSPARENT).sort((a, b) => a - b);
 
   const legend = used.length === 0
     ? "entirely transparent"

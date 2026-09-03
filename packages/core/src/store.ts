@@ -7,7 +7,7 @@
  * agent's work because there is only one stack to undo from.
  *
  * State lives in `#`-private fields and is handed out only as copies. Nothing
- * outside this class can reach a live `Int8Array`.
+ * outside this class can reach a live `Int16Array`.
  */
 
 import { fail, requirePositiveInteger } from "./errors";

@@ -1,18 +1,18 @@
 /**
  * The indexed grid and its text encoding — the protocol everything else depends on.
  *
- * One character per cell: `0`–`9` and `A`–`F` for palette indices 0–15, `.` for
- * transparent. Rows are newline-separated, top to bottom, with no intra-row
- * delimiter. `decodeGrid(encodeGrid(g))` is cell-identical to `g`.
+ * Compact grids use `0`–`F` for indices 0–15 and `.` for transparent. Grids with
+ * larger indices start with `@hex`, followed by space-separated hex token rows.
+ * `decodeGrid(encodeGrid(g))` is cell-identical to `g` in either format.
  */
 
 import { PixelError, fail, requireInteger, requirePositiveInteger } from "./errors";
 import { MAX_PALETTE_SIZE, TRANSPARENT, type Cell, type Grid, type Region } from "./types";
 
-const HEX_CHARS = "0123456789ABCDEF";
 const TRANSPARENT_CHAR = ".";
+const EXTENDED_HEADER = "@hex";
 
-/** True when `value` is a legal cell: an integer palette index 0–15, or transparent. */
+/** True when `value` is a legal cell: an integer palette index 0–254, or transparent. */
 export function isCell(value: number): boolean {
   return (
     Number.isInteger(value) &&
@@ -29,13 +29,13 @@ export function createGrid(width: number, height: number, fill: Cell = TRANSPARE
       `Fill value ${String(fill)} is not a palette index 0-${MAX_PALETTE_SIZE - 1} or ${TRANSPARENT} (transparent).`,
     );
   }
-  const cells = new Int8Array(width * height);
+  const cells = new Int16Array(width * height);
   if (fill !== 0) cells.fill(fill);
   return { width, height, cells };
 }
 
 export function cloneGrid(grid: Grid): Grid {
-  return { width: grid.width, height: grid.height, cells: Int8Array.from(grid.cells) };
+  return { width: grid.width, height: grid.height, cells: Int16Array.from(grid.cells) };
 }
 
 export function gridsEqual(a: Grid, b: Grid): boolean {
@@ -120,43 +120,47 @@ export function wholeGrid(grid: Grid): Region {
   return { x: 0, y: 0, width: grid.width, height: grid.height };
 }
 
-/** Encodes a cell as its single protocol character. */
+/** Encodes a cell as a one- or two-digit hex token, or `.` for transparency. */
 export function encodeCell(value: Cell): string {
   if (value === TRANSPARENT) return TRANSPARENT_CHAR;
-  const char = HEX_CHARS[value];
-  if (char === undefined) {
+  if (!isCell(value)) {
     fail(
       "invalid_index",
       `Cannot encode cell value ${String(value)}: expected 0-${MAX_PALETTE_SIZE - 1} or ${TRANSPARENT} (transparent).`,
     );
   }
-  return char;
+  return value.toString(16).toUpperCase();
 }
 
-/** Decodes one protocol character. Lowercase hex is accepted on input. */
+/** Decodes one complete protocol token; either hex case is accepted. */
 export function decodeCell(char: string): Cell {
   if (char === TRANSPARENT_CHAR) return TRANSPARENT;
-  const index = HEX_CHARS.indexOf(char.toUpperCase());
-  if (index === -1) {
+  const index = Number.parseInt(char, 16);
+  if (!/^[0-9a-f]{1,2}$/i.test(char) || index >= MAX_PALETTE_SIZE) {
     fail(
       "invalid_encoding",
-      `'${char}' is not a valid cell character. Use 0-9 and A-F for palette indices 0-15, or '.' for transparent.`,
+      `'${char}' is not a valid cell token. Use hex 0-FE for palette indices 0-254, or '.' for transparent.`,
     );
   }
   return index;
 }
 
 export function encodeGrid(grid: Grid): string {
+  const extended = grid.cells.some((cell) => cell > 15);
   const rows: string[] = new Array<string>(grid.height);
   for (let y = 0; y < grid.height; y += 1) {
     let row = "";
     const base = y * grid.width;
     for (let x = 0; x < grid.width; x += 1) {
-      row += encodeCell(grid.cells[base + x] as Cell);
+      const cell = grid.cells[base + x] as Cell;
+      const token = encodeCell(cell);
+      row += extended
+        ? `${x === 0 ? "" : " "}${cell === TRANSPARENT ? token : token.toLowerCase().padStart(2, "0")}`
+        : token;
     }
     rows[y] = row;
   }
-  return rows.join("\n");
+  return `${extended ? `${EXTENDED_HEADER}\n` : ""}${rows.join("\n")}`;
 }
 
 export function encodeRows(grid: Grid): readonly string[] {
@@ -180,20 +184,22 @@ export function decodeGrid(text: string): Grid {
 }
 
 export function gridFromRows(rows: readonly string[]): Grid {
-  const height = rows.length;
-  const first = rows[0];
+  const extended = rows[0] === EXTENDED_HEADER;
+  const data = extended ? rows.slice(1) : rows;
+  const height = data.length;
+  const first = data[0];
   if (first === undefined || first.length === 0) {
     fail("invalid_encoding", "Grid text is empty. Provide at least one row of cell characters.");
   }
-  const width = first.length;
+  const width = extended ? first.split(" ").length : first.length;
 
-  const cells = new Int8Array(width * height);
+  const cells = new Int16Array(width * height);
   for (let y = 0; y < height; y += 1) {
-    const row = rows[y] as string;
+    const row = extended ? (data[y] as string).split(" ") : data[y] as string;
     if (row.length !== width) {
       fail(
         "dimension_mismatch",
-        `Row ${String(y)} has ${String(row.length)} characters but row 0 has ${String(width)}. Every row must be the same width.`,
+        `Row ${String(y)} has ${String(row.length)} cells but row 0 has ${String(width)}. Every row must be the same width.`,
       );
     }
     for (let x = 0; x < width; x += 1) {
@@ -223,7 +229,7 @@ export function scaleGrid(grid: Grid, factor: number): Grid {
   requirePositiveInteger(factor, "factor");
   const width = grid.width * factor;
   const height = grid.height * factor;
-  const cells = new Int8Array(width * height);
+  const cells = new Int16Array(width * height);
   for (let y = 0; y < height; y += 1) {
     const sourceRow = ((y / factor) | 0) * grid.width;
     const targetRow = y * width;
@@ -237,7 +243,7 @@ export function scaleGrid(grid: Grid, factor: number): Grid {
 /** Extracts a sub-grid. Used by `read_region` in phase 05. */
 export function cropGrid(grid: Grid, region: Region): Grid {
   const bounds = normalizeRegion(grid, region);
-  const cells = new Int8Array(bounds.width * bounds.height);
+  const cells = new Int16Array(bounds.width * bounds.height);
   for (let y = 0; y < bounds.height; y += 1) {
     const from = (bounds.y + y) * grid.width + bounds.x;
     cells.set(grid.cells.subarray(from, from + bounds.width), y * bounds.width);

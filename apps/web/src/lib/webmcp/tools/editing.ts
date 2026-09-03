@@ -1,4 +1,4 @@
-import { TRANSPARENT } from "@zenith/core";
+import { TRANSPARENT, decodeGrid } from "@zenith/core";
 import { readArray, readBoolean, readInteger, readRecordAt, readString } from "../args";
 import { ToolError, type ToolDefinition } from "../types";
 import { asOneEdit, requireActiveAsset } from "./active";
@@ -19,13 +19,13 @@ const INDEX_NOTE =
   "Palette index; call get_palette for valid indices. Use -1 for transparent.";
 
 function indexProperty(description: string): Record<string, unknown> {
-  return { type: "integer", minimum: -1, maximum: 15, description: `${description} ${INDEX_NOTE}` };
+  return { type: "integer", minimum: -1, maximum: 254, description: `${description} ${INDEX_NOTE}` };
 }
 
 export const writeRegion: ToolDefinition = {
   name: "write_region",
   description:
-    "Stamp an indexed block on the open asset: 0–9/A–F = indices 0–15, '.' = transparent; equal-length newline-separated rows. (x,y) places its top-left; canvas (0,0) is top-left, +x right, +y down. Overflow rejected with valid offsets. Use read_canvas to read/edit/write.",
+    "Stamp compact hex rows (0–F) or @hex then spaced hex tokens (00–fe); '.' transparent. (x,y) sets top-left; (0,0) top-left, +x right, +y down. Equal cell counts per row; overflow rejected. Read with read_canvas.",
   inputSchema: {
     type: "object",
     properties: {
@@ -33,7 +33,7 @@ export const writeRegion: ToolDefinition = {
       y: { type: "integer", minimum: 0, description: "Row of the block's top-left corner, 0-indexed from the top." },
       grid: {
         type: "string",
-        description: "Newline-separated rows of cell characters. Every row must be the same length.",
+        description: "Compact hex rows or @hex then spaced hex tokens (00–fe); '.' transparent. Equal cells per row.",
       },
     },
     required: ["x", "y", "grid"],
@@ -43,11 +43,10 @@ export const writeRegion: ToolDefinition = {
     const { store } = requireActiveAsset();
     const x = readInteger(args, "x", 0, store.width - 1);
     const y = readInteger(args, "y", 0, store.height - 1);
-    const grid = readString(args, "grid");
+    const grid = decodeGrid(readString(args, "grid"));
 
     const changed = asOneEdit(store, "write_region", () => store.writeRegion(x, y, grid));
-    const rows = grid.split("\n");
-    return `Wrote a ${String(rows[0]?.length ?? 0)}x${String(rows.length)} block at (${String(x)}, ${String(y)}); ${String(changed)} pixel(s) changed.`;
+    return `Wrote a ${String(grid.width)}x${String(grid.height)} block at (${String(x)}, ${String(y)}); ${String(changed)} pixel(s) changed.`;
   },
 };
 
@@ -84,7 +83,7 @@ export const setPixels: ToolDefinition = {
       return {
         x: readInteger(entry, "x", 0, store.width - 1),
         y: readInteger(entry, "y", 0, store.height - 1),
-        index: readInteger(entry, "index", TRANSPARENT, 15),
+        index: readInteger(entry, "index", TRANSPARENT, store.palette.colors.length - 1),
       };
     });
 
@@ -117,7 +116,7 @@ export const fillRegion: ToolDefinition = {
       width: readInteger(args, "width", 1),
       height: readInteger(args, "height", 1),
     };
-    const index = readInteger(args, "index", TRANSPARENT, 15);
+    const index = readInteger(args, "index", TRANSPARENT, store.palette.colors.length - 1);
 
     const changed = asOneEdit(store, "fill_region", () => store.fillRegion(region, index));
     const name = index === TRANSPARENT ? "transparent" : `index ${String(index)}`;
@@ -147,7 +146,7 @@ export const bucketFill: ToolDefinition = {
     const { store } = requireActiveAsset();
     const x = readInteger(args, "x", 0, store.width - 1);
     const y = readInteger(args, "y", 0, store.height - 1);
-    const index = readInteger(args, "index", TRANSPARENT, 15);
+    const index = readInteger(args, "index", TRANSPARENT, store.palette.colors.length - 1);
     const contiguous = readBoolean(args, "contiguous", true);
 
     const before = store.colorAt(x, y);
@@ -175,8 +174,8 @@ export const replaceColor: ToolDefinition = {
   example: { from_index: 1, to_index: 2 },
   execute: (args) => {
     const { store } = requireActiveAsset();
-    const from = readInteger(args, "from_index", TRANSPARENT, 15);
-    const to = readInteger(args, "to_index", TRANSPARENT, 15);
+    const from = readInteger(args, "from_index", TRANSPARENT, store.palette.colors.length - 1);
+    const to = readInteger(args, "to_index", TRANSPARENT, store.palette.colors.length - 1);
     if (from === to) {
       throw new ToolError(`from_index and to_index are both ${String(from)}; that would change nothing.`);
     }

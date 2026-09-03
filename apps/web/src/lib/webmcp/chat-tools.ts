@@ -48,6 +48,7 @@ export const CHAT_TOOL_NAMES: readonly string[] = [
   "fill_region",
   "bucket_fill",
   "replace_color",
+  "recolor_region",
   // Frames.
   "list_frames",
   "add_frame",

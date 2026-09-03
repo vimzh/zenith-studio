@@ -120,10 +120,10 @@ describe("indexed PNG", () => {
     expect(() => encodeIndexedPng(grid(), PALETTE, { scale: 0 })).toThrow(/positive integer/);
   });
 
-  test("rejects an empty palette and one over 256", () => {
+  test("rejects an empty palette and one over 255 opaque colours", () => {
     expect(() => encodeIndexedPng(grid(), [])).toThrow(/at least one palette colour/);
-    const huge = Array.from({ length: 257 }, () => "#000000");
-    expect(() => encodeIndexedPng(grid(), huge)).toThrow(/at most 256/);
+    const huge = Array.from({ length: 256 }, () => "#000000");
+    expect(() => encodeIndexedPng(grid(), huge)).toThrow(/at most 255/);
   });
 });
 

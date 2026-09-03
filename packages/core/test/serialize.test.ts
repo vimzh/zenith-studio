@@ -19,7 +19,7 @@ describe("document serialisation", () => {
     for (let sample = 0; sample < 200; sample += 1) {
       const width = randomInt(random, 1, 32);
       const height = randomInt(random, 1, 32);
-      const colors = randomPaletteColors(random, randomInt(random, 1, 16));
+      const colors = randomPaletteColors(random, randomInt(random, 1, sample % 2 === 0 ? 16 : 255));
       const frameCount = randomInt(random, 1, 4);
 
       const document = createDocument({
@@ -55,7 +55,7 @@ describe("document serialisation", () => {
       expect(restored.frames).toHaveLength(frameCount);
       for (let frame = 0; frame < frameCount; frame += 1) {
         expect(restored.frames[frame]?.layers[0]?.grid.cells).toEqual(
-          original.frames[frame]?.layers[0]?.grid.cells as Int8Array,
+          original.frames[frame]?.layers[0]?.grid.cells as Int16Array,
         );
       }
     }

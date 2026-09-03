@@ -173,8 +173,8 @@ describe("colours an edit needs but the palette does not have", () => {
   // What a bush actually refers to: the dark outline and the greens.
   const used = new Set([0, 1, 12, 13, 14]);
 
-  test("spends unused slots on the red rather than matching it to a brown", () => {
-    const merge = mergePalette(BUSH, ["#c0392b", "#7d1f2b"], used);
+  test("an explicit 16-colour budget spends unused slots on the red", () => {
+    const merge = mergePalette(BUSH, ["#c0392b", "#7d1f2b"], used, 16);
 
     expect(merge.added).toEqual(["#c0392b", "#7d1f2b"]);
     expect(merge.unmatched).toEqual([]);
@@ -195,9 +195,9 @@ describe("colours an edit needs but the palette does not have", () => {
     expect(mergePalette(BUSH, ["#8cc465"], used).added).toEqual([]);
   });
 
-  test("reports what it could not fit instead of silently remapping", () => {
+  test("reports colours that exceed an explicit 16-colour budget", () => {
     const full = new Set(BUSH.map((_, index) => index));
-    const merge = mergePalette(BUSH, ["#c0392b"], full);
+    const merge = mergePalette(BUSH, ["#c0392b"], full, 16);
 
     expect(merge.added).toEqual([]);
     expect(merge.unmatched).toEqual(["#c0392b"]);
@@ -207,10 +207,16 @@ describe("colours an edit needs but the palette does not have", () => {
   test("never overwrites a reclaimed colour that the edit still uses", () => {
     const protectedSlots = new Set(BUSH.map((_, index) => index).filter(index => index !== 5));
     for (const incoming of [[BUSH[5]!, "#b43ef8"], ["#b43ef8", BUSH[5]!]]) {
-      const merge = mergePalette(BUSH, incoming, protectedSlots);
+      const merge = mergePalette(BUSH, incoming, protectedSlots, 16);
       expect(merge.colors[5]).toBe(BUSH[5]);
       expect(merge.unmatched).toContain("#b43ef8");
     }
+  });
+
+  test("the default budget grows a full 16-colour palette without changing existing entries", () => {
+    const merge = mergePalette(BUSH, ["#c0392b", "#7d1f2b", "#b43ef8"], new Set(BUSH.map((_, index) => index)));
+    expect(merge.colors).toEqual([...BUSH, "#c0392b", "#7d1f2b", "#b43ef8"]);
+    expect(merge.unmatched).toEqual([]);
   });
 
   test("the instruction stops forbidding new colours once there is room", () => {

@@ -46,7 +46,7 @@ This is a real-time graphics tool. A repaint touches thousands of cells and has 
 
 ### Data
 
-- `Int8Array` for cells, never `number[]`. Use `cloneGrid`, never `structuredClone`, on grid data.
+- `Int16Array` for cells, never `number[]`: indices 0–254 plus the transparent sentinel. Use `cloneGrid`, never `structuredClone`, on grid data. Generation defaults to 16 colours; editing supports 255 opaque colours plus transparency.
 - IndexedDB: store grids as packed indices, debounce writes, and write in an idle callback so autosave never stalls input.
 - Move heavy analysis off the main thread. The pixelisation grid search (phase 06) is a Web Worker for this reason — it is pure TypeScript over a byte array, so it ports with no DOM dependency.
 

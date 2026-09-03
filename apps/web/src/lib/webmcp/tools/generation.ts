@@ -5,6 +5,7 @@ import {
   expectedSize,
   hexToOklab,
   MAX_PALETTE_SIZE,
+  DEFAULT_PALETTE_SIZE,
   nearestIndex,
   oklabDistance,
   styleBrief,
@@ -203,14 +204,14 @@ async function generateArtwork(params: {
    * and eat any mortar line running to the edge, and the coverage check would
    * accept the holed result because it is still tightly bounded.
    */
-  const framed = kind === "sprite" ? frameToCanvas(raster, width, width) : null;
+  const framed = kind === "sprite" ? frameToCanvas(raster, width, width, { padding: Math.max(2, Math.round(width / 32)) }) : null;
   const source = framed?.image ?? raster;
 
   let result;
   try {
     result = await pixelizeAsync(source, {
       targetWidth: width,
-      maxColors: lockedColors?.length ?? MAX_PALETTE_SIZE,
+      maxColors: lockedColors?.length ?? DEFAULT_PALETTE_SIZE,
     });
   } catch (error) {
     throw toToolError(error);
@@ -803,7 +804,7 @@ async function finishDerivation({ source, name }: DerivationRequest, generated: 
   try {
     result = await pixelizeAsync(raster, {
       targetWidth: source.store.width,
-      maxColors: 16,
+      maxColors: Math.max(DEFAULT_PALETTE_SIZE, source.store.palette.colors.length),
     });
   } catch (error) {
     throw toToolError(error);
@@ -895,8 +896,8 @@ export interface PaletteMerge {
 /**
  * Makes room in an asset's palette for colours the incoming art actually needs.
  *
- * The reason the cherries came out orange. Sixteen colours is the document's
- * hard cap, but it caps *live* colours, not slots: a bush generated into the
+ * The reason the cherries came out orange. The palette cap applies to live
+ * colours, not slots: a bush generated into the
  * general 16-colour preset used seven of them and left nine holding blues and
  * greys nothing on the canvas referred to. Conforming the edit to "the palette"
  * mapped red onto a brown while those nine slots sat unused.
@@ -987,7 +988,7 @@ export function conformToPalette(
   const palette = createPalette({ colors: [...target] });
   const lookup = extracted.map((hex) => nearestIndex(palette, hex));
 
-  const cells = new Int8Array(grid.cells.length);
+  const cells = new Int16Array(grid.cells.length);
   for (let i = 0; i < grid.cells.length; i += 1) {
     const cell = grid.cells[i] as number;
     cells[i] = cell === TRANSPARENT ? TRANSPARENT : (lookup[cell] ?? 0);
@@ -1015,7 +1016,7 @@ export const pixelizeCanvas: ToolDefinition = {
       max_colors: {
         type: "integer",
         minimum: 2,
-        maximum: 16,
+        maximum: 255,
         description: "Palette size cap.",
       },
     },
@@ -1029,7 +1030,7 @@ export const pixelizeCanvas: ToolDefinition = {
     const destination = { ...projects.placementOf(id) };
     const targetWidth = readInteger(args, "target_width", 8, 128);
     const maxColors =
-      readOptionalInteger(args, "max_colors", 2, 16) ??
+      readOptionalInteger(args, "max_colors", 2, 255) ??
       store.palette.colors.length;
 
     // Render the current grid as a 1:1 raster so the pipeline can resample it.
@@ -1079,7 +1080,7 @@ export const reduceColors: ToolDefinition = {
     "Reduce the open asset to its most-used colours, remapping removed colours by perceptual Oklab distance.",
   inputSchema: {
     type: "object",
-    properties: { target_count: { type: "integer", minimum: 2, maximum: 16 } },
+    properties: { target_count: { type: "integer", minimum: 2, maximum: 255 } },
     required: ["target_count"],
   },
   example: { target_count: 8 },
@@ -1089,7 +1090,7 @@ export const reduceColors: ToolDefinition = {
       args,
       "target_count",
       2,
-      Math.min(16, store.palette.colors.length),
+      store.palette.colors.length,
     );
     const usage = store.stats().usage;
     const colors = store.palette.colors
@@ -1159,7 +1160,7 @@ export const extractPalette: ToolDefinition = {
     type: "object",
     properties: {
       asset_id: { type: "string" },
-      count: { type: "integer", minimum: 1, maximum: 16 },
+      count: { type: "integer", minimum: 1, maximum: 255 },
     },
   },
   example: { count: 8 },
@@ -1169,7 +1170,7 @@ export const extractPalette: ToolDefinition = {
     const store = session.get(id);
     if (store === undefined) throw new ToolError(`No asset '${id}'.`);
     const count =
-      readOptionalInteger(args, "count", 1, 16) ?? store.palette.colors.length;
+      readOptionalInteger(args, "count", 1, 255) ?? store.palette.colors.length;
     const usage = store.stats().usage;
     return store.palette.colors
       .map((color, index) => ({ hex: color.hex, count: usage.get(index) ?? 0 }))
@@ -1195,7 +1196,7 @@ export const checkGridAlignment: ToolDefinition = {
 
 /** Expands an indexed grid back to RGBA, so the pipeline can resample it. */
 function rasterFromGrid(
-  grid: { width: number; height: number; cells: Int8Array },
+  grid: { width: number; height: number; cells: Int16Array },
   palette: readonly string[],
 ): Uint8ClampedArray {
   const data = new Uint8ClampedArray(grid.width * grid.height * 4);

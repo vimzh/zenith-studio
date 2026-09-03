@@ -43,7 +43,7 @@ function header(): string {
 export const readCanvas: ToolDefinition = {
   name: "read_canvas",
   description:
-    "Read the open artwork: 0–9/A–F = palette indices 0–15; '.' = transparent. (0,0) is top-left; rows down, columns right. Header: asset, frame, size, palette. Read before editing and after to verify.",
+    "Read open artwork: compact hex rows (0–F) or @hex then spaced hex tokens (00–fe); '.' transparent. (0,0) top-left, rows down, columns right. Includes asset/frame/size/palette. Read before and after edits.",
   readOnly: true,
   inputSchema: { type: "object", properties: {} },
   example: {},
@@ -124,7 +124,7 @@ export const findColorRegionsTool: ToolDefinition = {
   name: "find_color_regions",
   description: "Find every 4-connected region using one palette index and return its asset-local bounding box and pixel count.",
   readOnly: true,
-  inputSchema: { type: "object", properties: { index: { type: "integer", minimum: -1, maximum: 15 } }, required: ["index"] },
+  inputSchema: { type: "object", properties: { index: { type: "integer", minimum: -1, maximum: 254 } }, required: ["index"] },
   example: { index: 1 },
   execute: (args) => {
     const { store } = requireActiveAsset();

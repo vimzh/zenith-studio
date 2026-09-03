@@ -3,10 +3,13 @@
 /** Sentinel cell value for a transparent pixel. Serialises as `.`. */
 export const TRANSPARENT = -1;
 
-/** Palette cap. One character per pixel is only possible while this is 16. */
-export const MAX_PALETTE_SIZE = 16;
+/** Indexed PNG/GIF leave one byte value available for transparency. */
+export const MAX_PALETTE_SIZE = 255;
 
-/** A palette index (0–15) or {@link TRANSPARENT}. */
+/** Keep generation's default compact palette independent of the storage cap. */
+export const DEFAULT_PALETTE_SIZE = 16;
+
+/** A palette index (0–254) or {@link TRANSPARENT}. */
 export type Cell = number;
 
 /** A palette index, 0-based. */
@@ -27,14 +30,14 @@ export interface Oklab {
 /**
  * A 2D array of {@link Cell} values in row-major order.
  *
- * `cells` is a plain `Int8Array` for speed. Grids handed out by
+ * `cells` is an `Int16Array` to hold both -1 and indices through 254. Grids handed out by
  * {@link DocumentStore} are always copies, so mutating one cannot reach store
  * state — see `store.ts`.
  */
 export interface Grid {
   readonly width: number;
   readonly height: number;
-  readonly cells: Int8Array;
+  readonly cells: Int16Array;
 }
 
 /** An axis-aligned rectangle in asset-local pixel coordinates (origin top-left). */
