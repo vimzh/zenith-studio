@@ -50,8 +50,8 @@ Every item is required. A miss fails Stage One screening before judging begins.
 
 - [ ] Tools registered via **`document.modelContext.registerTool()`**. Chrome 150 deprecated `navigator.modelContext`; feature-detect both, prefer `document`.
 - [ ] Verified in **Chrome 149+** with `chrome://flags/#enable-webmcp-testing`, **and** in the **ChatGPT in-app browser**.
-- [ ] Deployed: **`apps/web` on Vercel** (sponsor, native Next.js), **`apps/api` on GCP Cloud Run**. Deployment platform is explicitly free choice in the rules. See [`idea.md` §12](./idea.md).
-- [ ] Backend reachable from the deployed frontend — CORS locked to the Vercel origin, `min-instances: 1` so a cold start never lands in a judge's session.
+- [x] Deployed: **`apps/web` and `apps/api` on GCP Cloud Run** in `asia-south1`. Deployment platform is explicitly free choice in the rules. See [`idea.md` §12](./idea.md).
+- [x] Backend reachable from the deployed frontend — CORS locked to the Cloud Run web origin, `min-instances: 1` so a cold start never lands in a judge's session.
 - [ ] **App remains usable with the backend down** — only generation degrades.
 
 ### Originality
@@ -159,7 +159,7 @@ Also excluded: employees/representatives of Devpost, OpenAI, or promotion entiti
 **Deployment**
 - [ ] Live URL loads cold in incognito
 - [ ] Backend health-checked from the deployed frontend, not just locally
-- [ ] Cloud Run `min-instances: 1` set for the judging period
+- [x] Cloud Run `min-instances: 1` set for the judging period
 - [ ] No login required to reach the editor
 - [ ] Works in Chrome 149+ with `chrome://flags/#enable-webmcp-testing`
 - [ ] Works in the ChatGPT in-app browser

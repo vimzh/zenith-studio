@@ -31,7 +31,12 @@ are not repaired after the fact. They are unrepresentable.
 
 ## Status
 
-Not yet deployed. Run it locally with the instructions below.
+Deployed to Google Cloud Run:
+
+- Web: https://zenith-web-mif2krwk2q-el.a.run.app
+- API: https://zenith-api-mif2krwk2q-el.a.run.app
+
+Run it locally with the instructions below.
 
 ## Running it
 

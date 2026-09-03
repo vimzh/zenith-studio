@@ -1,0 +1,9 @@
+.git/
+**/node_modules/
+**/.next/
+**/.env
+output/
+*.dmg
+*.pdf
+*.pptx
+*.DS_Store

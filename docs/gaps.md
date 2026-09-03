@@ -736,13 +736,13 @@ Palette editing now offers a visual colour picker alongside the existing exact h
 
 ## Cross-cutting
 
-- [ ] **`apps/api` is still the starter's hello-world.** One route, empty `schema.ts`, nothing wired to the frontend. Correct until [phase 06](./phases/06-generation-pixelisation.md), but worth stating so nobody assumes a backend exists.
+- [x] **`apps/api` is wired and deployed.** Pixel validation/quantisation and model-backed generation routes are covered by the API tests and are live at the deployed Cloud Run URL.
 - [ ] **Auth is dead code.** `next-auth` and Google OAuth are configured and unused. Our whole no-login argument says judges should not hit a signup wall, so this should be removed or deliberately kept for the demo credentials on the landing page.
 - [ ] **Landing page palette still competes with the artwork.** The starter's warm `bone parchment / clay` set contradicts the design language ([`idea.md` §6](./idea.md)), which calls for near-neutral low-chroma chrome so the art is the only saturated thing on screen.
 - [ ] **Demo credentials (`demo` / `test123`) are shown on the landing page but nothing consumes them.** No auth flow is wired to them.
 - [ ] **`next-themes` logs a console error on every load.** *"Encountered a script tag while rendering React component"* — the library injects a blocking script to set the theme before paint, and React 19 warns about it. Functionally harmless, but [`requirements.md` §6](./requirements.md) requires no console errors on load, so it is a submission item. The fix is to replace `next-themes` with an inline `<head>` script, which is the standard pattern; not done because the user was away and theming works.
 - [x] **`/v1/generate` rate limiting.** Per-client *and* global windows, metered before the key check so a refused request costs nothing; 429 with `Retry-After`. Defaults 10/hr per client and 60/hr global for generate, 60/400 for chat. The global cap is the one that actually bounds the bill — per-IP does nothing against a spread of addresses. Verified by 11 tests including the memory bound under a stream of unique IPs. **Still unauthenticated**, which is deliberate (no login wall for judges), so the caps are the only thing between a public URL and the bill.
-- [ ] **Deployment is unverified.** Nothing has been deployed to Vercel or Cloud Run. CORS, `min-instances: 1`, and the cold-start path in [`idea.md` §12](./idea.md) are all designed but untested.
+- [x] **Deployment verified (3 September 2026).** `apps/web` and `apps/api` are live on Cloud Run in `asia-south1`; the API health endpoint, frontend response, deployed API URL in the client bundle, CORS allowlist, and `min-instances: 1` were smoke-tested. The API uses Secret Manager for `OPENAI_API_KEY`.
 
 ---
 

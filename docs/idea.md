@@ -290,11 +290,11 @@ Both halves of the thesis in one story: **precise pixel-level collaboration**, a
 
 ## 12. Architecture
 
-Built on the existing monorepo: **`apps/web`** (Next.js 16 / React 19) → Vercel, **`apps/api`** (Hono) → Google Cloud Run.
+Built on the existing monorepo: **`apps/web`** (Next.js 16 / React 19) and **`apps/api`** (Hono) → Google Cloud Run.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│  apps/web — Vercel                                                   │
+│  apps/web — Google Cloud Run                                         │
 │                                                                      │
 │  ┌──────────┬────────────────────────────────┬──────────────────┐    │
 │  │ Explorer │      Infinite canvas           │  Agent pane      │    │
@@ -354,7 +354,7 @@ Built on the existing monorepo: **`apps/web`** (Next.js 16 / React 19) → Verce
 **The costs of splitting, stated plainly:**
 
 - **Two deployments is two things that can break**, and the hackathon deliverable is one live URL. Mitigation: the app must stay fully usable with the backend down — every deterministic tool, the entire editor, and the whole pixelisation pipeline work offline. Only generation degrades, and it degrades with a readable error.
-- **CORS and origin config** between `*.vercel.app` and `*.run.app`. Lock the allowed origin; don't ship `*`.
+- **CORS and origin config** between the two `*.run.app` services. Lock the allowed origin; don't ship `*`.
 - **Cold starts.** Set `min-instances: 1` for the judging period. A 4-second cold start in a 3-minute demo video is expensive.
 - **GCP is not a hackathon sponsor** (Google Chrome is, separately). Sponsor credits from Vercel, Cloudflare, Render and Netlify don't apply to Cloud Run. A cost consideration, not a rules problem — deployment platform is explicitly free choice.
 
