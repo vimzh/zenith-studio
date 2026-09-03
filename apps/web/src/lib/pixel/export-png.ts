@@ -1,4 +1,5 @@
 import { TRANSPARENT, type Grid } from "@zenith/core";
+import { downloadBlob } from "@/lib/download";
 import { requireIntegerScale } from "./scale";
 
 /**
@@ -87,10 +88,5 @@ export async function downloadPng(
   scale = 1
 ): Promise<void> {
   const blob = await gridToPngBlob(grid, palette, scale);
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename.endsWith(".png") ? filename : `${filename}.png`;
-  link.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, filename.endsWith(".png") ? filename : `${filename}.png`);
 }

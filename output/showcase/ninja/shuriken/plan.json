@@ -1,0 +1,35 @@
+{
+  "subject": "lean ninja in a black shinobi outfit with a red sash and mask, katana in the right hand",
+  "motion": "throwing three shuriken in a fan",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "three spinning shuriken with thin silver motion trails",
+  "frames": 4,
+  "plan": {
+    "source": "Ninja stands three-quarter facing right, wide stance with right foot forward; right hand holds a low, forward katana; left hand grips the scabbard at the hip; torso slightly crouched, head looking right.",
+    "frames": [
+      {
+        "pose": "Anticipation: torso leans back onto rear left leg; head dips. Right hand draws katana slightly in toward hip, tip still low-right. Left hand releases scabbard, pulls back by left ear clutching three shuriken. Right foot light, left foot planted wide.",
+        "contact": "grounded",
+        "ms": 90
+      },
+      {
+        "pose": "Key: torso snaps forward over right leg, hips turn right; head aims right. Left arm whips across and forward, releasing three shuriken in a fan. Right arm extends, katana low as counterbalance. Right foot planted, left heel pivots.",
+        "contact": "grounded",
+        "ms": 200,
+        "effect": "Three spinning shuriken just past left hand—high at head, mid at chest, low at thigh—fanning right; thin silver trails arcing from left shoulder to each; short arc trail along left forearm path."
+      },
+      {
+        "pose": "Follow-through: torso carried forward then down; head tracks right. Left arm continues across and down, open palm near right hip. Right arm brings katana forward to guard mid. Right foot firm, left toe pivoting.",
+        "contact": "grounded",
+        "ms": 120,
+        "effect": "Shuriken farther right along the three arcs; trails thinner and shorter behind each."
+      },
+      {
+        "pose": "Settle: torso rises toward neutral, weight recenters. Left hand returns to grip scabbard at hip. Right hand lowers katana toward its original low-forward line. Both feet reset—right forward, left back; head steady right.",
+        "contact": "grounded",
+        "ms": 140
+      }
+    ]
+  },
+  "planSeconds": 24.276611624999997
+}

@@ -19,7 +19,7 @@ export function AgentChat({ selection }: { selection: Region | null }) {
   const endRef = useRef<HTMLDivElement | null>(null);
 
   const running = conversationStatus === "running";
-  const disabled = context.assetId === null;
+  const disabled = context.assetId === null || status !== "ready";
 
   // Says which of the three reasons the surface is quiet. Reporting a route
   // disagreement as "no asset is open" is the one message that is definitely

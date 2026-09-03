@@ -1,0 +1,58 @@
+[
+  {
+    "pass": 1,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": false,
+        "problems": [
+          "Planned dust scuff at right heel is missing."
+        ]
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": false,
+        "problems": [
+          "Settling dust puff is placed left of the character, not behind hips/right toe."
+        ]
+      }
+    ]
+  },
+  {
+    "pass": 2,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": false,
+        "problems": [
+          "Planned dust scuff at right heel missing."
+        ]
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  }
+]

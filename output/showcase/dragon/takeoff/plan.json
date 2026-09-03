@@ -1,0 +1,43 @@
+{
+  "subject": "small chubby green dragon whelp with an orange belly, little bat wings and a long tail, standing on all fours",
+  "motion": "flapping its wings to take off and hover",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "small dust swirls under the wings",
+  "frames": 5,
+  "plan": {
+    "source": "Dragon whelp stands three-quarter facing right, head up, wings relaxed half-open, long tail curled behind, all four paws planted.",
+    "frames": [
+      {
+        "pose": "Anticipation: torso sinks back, head dips; front paws spread and brace, hind paws firm; wings lift high behind; tail lowers for balance.",
+        "contact": "grounded",
+        "ms": 100,
+        "effect": "Small dust swirls gather on ground under each wing base."
+      },
+      {
+        "pose": "Push: chest rises; front paws lift; hind paws on toes driving; wings slam halfway down; head up; tail flicks up.",
+        "contact": "grounded",
+        "ms": 110,
+        "effect": "Air-cut arcs along both wingtips; dust swirls puff outward under wings."
+      },
+      {
+        "pose": "Key: both paws tucked as body lifts; wings at full downstroke wide; head proud; tail trailing down-right curve.",
+        "contact": "airborne",
+        "ms": 150,
+        "effect": "Dust swirls linger under wings on ground; short trails behind wingtips."
+      },
+      {
+        "pose": "Hover settle: wings sweep up past mid; body slightly lower; forelegs extend, hind legs relaxed; head steady; tail curls.",
+        "contact": "airborne",
+        "ms": 100,
+        "effect": "Faint dust swirls fade under wings."
+      },
+      {
+        "pose": "Recovery: descend to touch; hind paws land first, fronts reaching; wings midway up starting to fold; head levels; tail drops.",
+        "contact": "grounded",
+        "ms": 120,
+        "effect": "Small dust puffs under wings on touchdown."
+      }
+    ]
+  },
+  "planSeconds": 21.813874
+}

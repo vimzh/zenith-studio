@@ -9,6 +9,14 @@ function makeStore(frameCount = 1): DocumentStore {
 }
 
 describe("addFrame", () => {
+  test("new frames default to 4 fps while copied custom timing is preserved", () => {
+    const store = makeStore();
+    expect(store.snapshot().frames[0]?.durationMs).toBe(250);
+    store.setFrameDuration(0, 80);
+    store.addFrame();
+    store.addFrame({ copyFrom: 0 });
+    expect(store.snapshot().frames.map((frame) => frame.durationMs)).toEqual([80, 250, 80]);
+  });
   test("appends a blank frame and selects it", () => {
     const store = makeStore();
     store.fillRegion({ x: 0, y: 0, width: 4, height: 4 }, 1);
@@ -162,13 +170,13 @@ describe("reorderFrames", () => {
 describe("setFrameDuration", () => {
   test("sets and undoes a duration", () => {
     const store = makeStore();
-    expect(store.snapshot().frames[0]?.durationMs).toBe(100);
-
-    store.setFrameDuration(0, 250);
     expect(store.snapshot().frames[0]?.durationMs).toBe(250);
 
-    store.undo();
+    store.setFrameDuration(0, 100);
     expect(store.snapshot().frames[0]?.durationMs).toBe(100);
+
+    store.undo();
+    expect(store.snapshot().frames[0]?.durationMs).toBe(250);
   });
 
   test("keeps the frame's pixels", () => {
@@ -188,7 +196,7 @@ describe("setFrameDuration", () => {
 
   test("setting the same duration records no history", () => {
     const store = makeStore();
-    store.setFrameDuration(0, 100);
+    store.setFrameDuration(0, 250);
     expect(store.history()).toEqual([]);
   });
 });

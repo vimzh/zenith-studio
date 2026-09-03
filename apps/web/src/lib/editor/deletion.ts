@@ -18,13 +18,14 @@ import { session } from "./session";
  * restore the asset and still lose the thing the human was looking for.
  */
 
-let lastPlacement: { readonly id: string; readonly placement: AssetPlacement } | null = null;
+let lastPlacement: { readonly id: string; readonly placement: AssetPlacement; readonly referenceIndex: number } | null = null;
 
 export function deleteAsset(id: string): boolean {
   const placement = projects.placementOf(id);
+  const referenceIndex = placement.projectId === null ? -1 : projects.getProject(placement.projectId)?.style.references.indexOf(id) ?? -1;
   if (!session.close(id)) return false;
   projects.unplace(id);
-  lastPlacement = { id, placement };
+  lastPlacement = { id, placement, referenceIndex };
   return true;
 }
 
@@ -39,6 +40,13 @@ export function undoDeleteAsset(): string | null {
     // than leaving the restored asset loose, where it is not visibly anywhere.
     if (projectId !== null) {
       if (!projects.place(restored, projectId, folderId)) projects.place(restored, projectId);
+      const project = projects.getProject(projectId);
+      if (project !== undefined && lastPlacement.referenceIndex >= 0 && !project.style.references.includes(restored)) {
+        // Restore the exemplar without overwriting other style edits made meanwhile.
+        const references = [...project.style.references];
+        references.splice(Math.min(lastPlacement.referenceIndex, references.length), 0, restored);
+        projects.setStyle(projectId, { references });
+      }
     }
   }
   lastPlacement = null;

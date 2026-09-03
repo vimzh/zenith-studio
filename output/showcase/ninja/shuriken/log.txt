@@ -1,0 +1,16 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: three spinning shuriken with thin silver motion trails
+planned 4 poses in 24.3s; source read as: Ninja stands three-quarter facing right, wide stance with right foot forward; right hand holds a low, forward katana; left hand grips the scabbard at the hip; torso slightly crouched, head looking right.
+  1. [grounded, 90ms] Anticipation: torso leans back onto rear left leg; head dips. Right hand draws katana slightly in toward hip, tip still low-right. Left hand releases scabbard, pulls back by left ear clutching three shuriken. Right foot light, left foot planted wide.
+  2. [grounded, 200ms] Key: torso snaps forward over right leg, hips turn right; head aims right. Left arm whips across and forward, releasing three shuriken in a fan. Right arm extends, katana low as counterbalance. Right foot planted, left heel pivots. | effect: Three spinning shuriken just past left hand—high at head, mid at chest, low at thigh—fanning right; thin silver trails arcing from left shoulder to each; short arc trail along left forearm path.
+  3. [grounded, 120ms] Follow-through: torso carried forward then down; head tracks right. Left arm continues across and down, open palm near right hip. Right arm brings katana forward to guard mid. Right foot firm, left toe pivoting. | effect: Shuriken farther right along the three arcs; trails thinner and shorter behind each.
+  4. [grounded, 140ms] Settle: torso rises toward neutral, weight recenters. Left hand returns to grip scabbard at hip. Right hand lowers katana toward its original low-forward line. Both feet reset—right forward, left back; head steady right.
+1 sheet(s) generated concurrently in 113.1s
+  baseline 512px, tolerance down 102px / up 41px, shifts 59, 59, 70, 68
+palette: added nothing; unmatched none
+judged in 8.7s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+wrote 4 frames to ../../output/showcase/ninja/shuriken; holds 90, 200, 120, 140ms; bottom rows 127, 127, 127, 127, 127; sheets 1; sheet seconds 113
+exit 0, wall 147s

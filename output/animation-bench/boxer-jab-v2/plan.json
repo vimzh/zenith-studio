@@ -1,0 +1,34 @@
+{
+  "subject": "adult male boxer, bare torso, red boxing gloves held up in guard, red shorts, dark boxing boots",
+  "motion": "a quick straight jab with the lead hand, returning to guard",
+  "facing": "in a three-quarter fighting view facing screen-right",
+  "effects": "a short white air-cut streak behind the lead glove at full extension",
+  "frames": 4,
+  "plan": {
+    "source": "Three‑quarter guard facing screen-right: lead (left) foot forward in stagger, weight centered; knees soft; left glove slightly ahead of chin, right glove tight at cheek; elbows in; head looking right; both hands wear boxing gloves.",
+    "frames": [
+      {
+        "pose": "Anticipation: small dip back; torso leans slightly rearward, weight shifts to rear foot; lead glove retracts near chest, rear glove rises to cheek; elbows tight; head still right; rear foot planted, front heel light.",
+        "contact": "grounded",
+        "ms": 90
+      },
+      {
+        "pose": "Strike key: torso drives and twists right; lead arm fully extended straight at target, fist vertical; rear glove tight at cheek; lead foot planted and knee flexed; rear heel pivots up; head tucked behind lead shoulder.",
+        "contact": "grounded",
+        "ms": 200,
+        "effect": "short white air-cut streak trailing behind the extended lead glove along its forward path."
+      },
+      {
+        "pose": "Recoil: torso passes neutral; lead arm snaps halfway back toward guard, elbow low; rear glove shades jaw; weight re-centers; lead foot planted, rear heel lowering; head lifts but faces right.",
+        "contact": "grounded",
+        "ms": 90
+      },
+      {
+        "pose": "Settle: torso upright with slight forward lean; lead glove returns close to chin, rear glove firm at cheek; shoulders relax toward start; both feet planted with same stagger, knees soft; weight balanced; head faces right to loop.",
+        "contact": "grounded",
+        "ms": 120
+      }
+    ]
+  },
+  "planSeconds": 0.0003275000000000006
+}

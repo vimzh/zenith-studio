@@ -1,0 +1,57 @@
+[
+  {
+    "pass": 1,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": false,
+        "problems": [
+          "Effect arc is too thick and oversized.",
+          "Impact burst is too large."
+        ]
+      },
+      {
+        "frame": 3,
+        "ok": false,
+        "problems": [
+          "Stage shows recovery rather than follow-through."
+        ]
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  },
+  {
+    "pass": 2,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  }
+]

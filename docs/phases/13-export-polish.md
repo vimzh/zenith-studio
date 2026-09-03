@@ -52,6 +52,13 @@ Nothing — this phase absorbs the remainder.
 
 ## Tools introduced
 
+Implemented agent file handoff: `list_exports`, `read_export`, `release_export`.
+Existing PNG/GIF/sheet/engine/palette/project tools return complete, retrievable
+file manifests by default; browser downloads are an explicit delivery option.
+The shared UI encoders supply both paths. Files are session-local, with explicit
+32-file/64-MiB limits and no silent eviction. This proves byte delivery, not
+engine runtime compatibility; the engine-import exit criteria below remain open.
+
 `export_for_engine` · `export_palette` · `check_readability` · `find_color_regions` · `sort_palette` · `rotate_grid` · `crop_to_content` · `resize_canvas` · `draw_line` · `draw_rect` · `draw_ellipse` · `dither_region`
 
 ## UI introduced

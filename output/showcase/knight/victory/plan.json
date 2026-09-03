@@ -1,0 +1,35 @@
+{
+  "subject": "stout armoured knight in blue plate with a red plume, longsword in the right hand, kite shield on the left arm",
+  "motion": "a victory pose: raising the sword high overhead and planting the shield",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "golden sparkles around the raised blade",
+  "frames": 4,
+  "plan": {
+    "source": "Three-quarter right; right hand holds sword low across front pointing down-right; left arm raises kite shield before chest; left foot forward, right back; slight forward lean, head facing right.",
+    "frames": [
+      {
+        "pose": "Anticipation: torso leans slightly back-right, weight to right foot; right arm draws sword lower/back by thigh, tip down-right; left arm lifts shield a bit higher forward, elbow bent; knees flex; head tucks, facing right.",
+        "contact": "grounded",
+        "ms": 120
+      },
+      {
+        "pose": "Key: torso drives up slightly left, weight to left foot; right arm fully extends, sword high overhead on right, near vertical; left arm straight, shield planted tip to ground ahead-left, rim outward; knees firm; head tilts up to blade.",
+        "contact": "grounded",
+        "ms": 200,
+        "effect": "golden sparkles clustering around raised blade tip; pale arc trail along sword’s upswing from low-front to overhead on right side"
+      },
+      {
+        "pose": "Follow-through: torso eases, slight lean left; right arm keeps sword high but elbow soft, blade angled forward; left arm braced on planted shield; weight centered; head forward-right.",
+        "contact": "grounded",
+        "ms": 160,
+        "effect": "golden sparkles around raised blade; a few small dots just below it"
+      },
+      {
+        "pose": "Recovery: torso returns toward neutral; right arm brings sword down to front diagonal toward guard; left arm lifts shield off ground toward chest, elbow bent; weight splits; head level, facing right.",
+        "contact": "grounded",
+        "ms": 120
+      }
+    ]
+  },
+  "planSeconds": 24.916741332999997
+}

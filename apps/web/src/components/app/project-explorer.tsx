@@ -180,7 +180,10 @@ export function ProjectExplorer() {
       outcome.assets > 0 ? `${String(outcome.assets)} asset${outcome.assets === 1 ? "" : "s"}` : null,
       outcome.folders > 0 ? `${String(outcome.folders)} folder${outcome.folders === 1 ? "" : "s"}` : null,
     ].filter((part): part is string => part !== null);
-    setFolderNotice(`${folderName} still holds ${inside.join(" and ")}. Move or delete them first.`);
+    const one = outcome.assets + outcome.folders === 1;
+    setFolderNotice(
+      `${folderName} still holds ${inside.join(" and ")}. Move or delete ${one ? "it" : "them"} first.`
+    );
   }, []);
 
   /**

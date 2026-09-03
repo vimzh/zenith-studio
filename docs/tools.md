@@ -4,6 +4,8 @@
 
 Governing principle: **every capability is exposed twice — once as a UI control, once as a WebMCP tool — and both call the same store mutation.** One store, two front doors. There is no separate "agent path."
 
+For the implemented external-agent main flow, including asynchronous jobs and complete file retrieval, see [`agent-workflow.md`](./agent-workflow.md). These are browser WebMCP tools over the live canvas, not a remote/headless MCP server. The catalog below also retains planned tool families; availability is determined by the registered, view-scoped tools.
+
 Phase tags reference [`phases/`](./phases/README.md) — the 14-phase build plan. A tool tagged **06** ships in [phase 06](./phases/06-generation-pixelisation.md).
 
 ---
@@ -51,6 +53,8 @@ The header is deliberately verbose: it re-establishes page context on every read
 | 16×16  | 256   | ~90      | ~360              |
 | 32×32  | 1,024 | ~330     | ~1,300            |
 | 64×64  | 4,096 | ~1,300   | ~5,200            |
+| 128×128 | 16,384 | ~5,300  | ~21,000           |
+| 256×256 | 65,536 | ~21,000 | ~84,000           |
 
 Multi-frame reads get expensive fast — hence `read_frames_diff` (§F), which returns only changed pixels, typically 5–15% of a full frame.
 
@@ -89,7 +93,8 @@ An agent cannot produce the failure modes in [`idea.md` §2](./idea.md), because
 | `create_asset`    | 05    | `name`, `type` (`character`\|`tile`\|`texture`\|`item`\|`ui`), `preset?` | New asset id; becomes active, and lands in the folder the explorer has selected          |
 | `open_asset`      | 05    | `asset_id`                                                               | Opens it in the editor, visible to the human                                            |
 | `rename_asset`    | 05    | `asset_id`, `name`                                                       | —                                                                                       |
-| `duplicate_asset` | 05    | `asset_id?`, `name`                                                      | New asset id                                                                            |
+| `set_asset_type`  | 05    | `type`                                                                  | Explicitly corrects the open asset's classification without changing pixels or history; chat refreshes scoped tools on its next turn |
+| `duplicate_asset` | 05    | `asset_id?`, `name`                                                      | New asset id, placed beside the original in its folder                                  |
 | `delete_asset`    | 05    | `asset_id`                                                               | Undoable, and removes the asset's placement with it — restoring puts it back in its folder |
 | `describe_asset`  | 05    | `asset_id?`                                                              | Metadata plus a natural-language summary — colour usage, coverage, symmetry, silhouette |
 
@@ -97,16 +102,36 @@ An agent cannot produce the failure modes in [`idea.md` §2](./idea.md), because
 
 ### A.1. Projects and style — **14**
 
+Four of these carry the `library` scope: `delete_project`, `rename_folder`, `delete_folder` and `undo_delete` register only when no asset is open. They are structural work an agent has no use for mid-stroke, and the editor's discovery payload has 110 bytes of headroom against its cap — so scoping them here costs the editor view nothing. `undo_delete` exists so an agent can reverse `delete_asset`, which its description points at; without it the only undo was a button a human had to press.
+
 | Tool                      | Input                                             | Returns                                                     |
 | ------------------------- | ------------------------------------------------- | ----------------------------------------------------------- |
 | `list_projects`           | —                                                 | Projects, asset counts, style summary, and which is open    |
-| `create_project`          | `name`, `notes?`                                  | New project id; becomes active                              |
-| `open_project`            | `project_id`                                      | Opens the project                                           |
+| `create_project`          | `name`, `notes?`                                  | New project id; becomes active and requests its visible project route |
+| `open_project`            | `project_id`                                      | Opens the project and requests its visible project route |
+| `list_project_contents`   | `project_id?`                                     | Complete folders and asset placements, including nested folders |
+| `create_folder`           | `name`, `project_id?`, `parent_id?`                | New folder id; does not move existing assets or change selection |
+| `move_asset`              | `asset_id`, `project_id` (nullable), `folder_id?`  | Updated placement without changing artwork/history; reports removal of an old-project style reference |
+| `rename_project`          | `name`, `project_id?`                             | Updated name with stable project id and contents |
+| `import_project`          | `bundle` (complete `zenith.project` v1 object)     | Additive import with fresh project/asset/folder ids, mapped references, and explicit project navigation; fully validated before mutation |
+| `get_storage_status`      | —                                                 | Browser-local IndexedDB state and failure reason; read-only |
+| `flush_storage`           | —                                                 | Waits for local asset transactions and current project tree; fails on unavailable storage or concurrent edits, creates no backup |
 | `get_style_profile`       | —                                                 | Exact palette, sizes, art direction, and reference assets   |
-| `set_style_profile`       | style fields, `colors?`                           | Updated profile plus the exact ids of newly violating assets |
+| `set_style_profile`       | style fields, `colors?`, `reference_asset_ids?`    | Updated profile plus violating asset ids; replace references with current project IDs, or `[]` to clear |
 | `add_style_reference`     | `asset_id?`                                       | Adds a project asset as a generation reference              |
 | `check_style_consistency` | —                                                 | Size and colour violations with asset-local coordinates     |
 | `conform_to_style`        | `all?`                                            | Deterministic palette remap and crop/pad resize              |
+
+Project import validates the complete bundle before a synchronous additive in-memory commit; it does not promise observer-level or cross-store disk atomicity. Existing assets and their undo history are untouched. Call `flush_storage` separately to confirm local writes, and export a backup for portability.
+
+### A.2. Long-running agent operations — **03**
+
+| Tool | Input | Returns |
+| --- | --- | --- |
+| `start_tool_job` | `tool`, `arguments`, `request_id` | Immediate JSON job ID/status for a registered paid tool available in the current view. Same request ID and equivalent JSON arguments never execute twice in this page session. |
+| `get_tool_job` | `job_id` | Running/succeeded/failed status, result/error, timestamps, and current visible/active/requested asset context. |
+
+One wrapped job runs at a time; direct paid calls are not tracked by the wrapper. Keep the page open: no cancellation, automatic retries, cross-reload idempotency, or persistent job service. The 50-job session cap fails explicitly rather than evicting old request IDs.
 
 ### B. Viewport — **04**
 
@@ -177,6 +202,11 @@ All read-only.
 
 Model: asset → animations → ordered frames. All frames share dimensions and palette.
 
+New frames default to **250ms (4fps)**. Existing or copied frame durations are
+preserved. GIF export without an explicit `fps` uses saved per-frame timing;
+spritesheet and engine metadata retain those durations as well. The timeline
+displays the saved rate, or “Mixed” when frame holds differ.
+
 **Structure — 09**
 
 | Tool                 | Input                                                                | Returns                                                                     |
@@ -207,25 +237,27 @@ Model: asset → animations → ordered frames. All frames share dimensions and 
 | ----------------------- | ----- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `animate_procedural`    | 10    | `preset` (`bob`\|`blink`\|`flicker`\|`pulse`\|`scroll`\|`sway`), `frames?`, `amplitude?` | **Deterministic, instant, free, perfectly looping.** Bob = copy frame, shift 1px down. |
 | `interpolate_frames`    | 10    | `from_index`, `to_index`, `steps`                                                        | In-betweens by pixel-position reasoning, not image blending                            |
-| `animate_with_text`     | 10    | `description`, `frames`, `base_frame?`                                                   | Generative; conditioned on base frame + project style                                  |
-| `animate_with_skeleton` | 12    | `template`, `frames?`                                                                    | **Registered.** Deterministic local flat-sprite rig; no prompt, network, model call, or new colours. Appends one undoable cycle. |
+| `animate_with_text`     | 08    | `description` (≤10,000 characters), `frames?` (2–12, default 4), `effects?` (≤400 characters), `verify?` (default true) | **One sprite sheet, not N renders, checked by a vision judge.** A cheap vision call at low reasoning (25s, measured against 69s at default with the same plan) reads the source sprite and plans the poses like an animator (anticipation, extreme, follow-through, recovery; per-frame hold 60–400ms; ground contact; where each requested effect sits), then every frame is drawn as one sheet beside the source cell through `/v1/derive` `mode: animate`, so all frames share its scale, camera and ground line; a cycle too long for one sheet buys its sheets concurrently as one batch. Cells are cut, grounded frames snapped back to the source's ground line, and each is pixelised into the asset's palette — with free palette slots given to foreign effect colours and a full palette folding its closest near-duplicate pair to make room. A vision judge (10s at low reasoning) then checks identity, scale, facing, stage, clipping and effects per frame and one repair sheet redraws what it rejects; the second pass rules only on the repaired frames. One paid image per sheet at high quality (medium halves the sheet time but was measured to follow effect placement loosely and cost a repair) — 3–5 frames beside a 128px sprite, up to 15 beside a 32px one. Appends with the planner's holds and names repeated poses, empty cells, edge contact and any frame still rejected. Visual review is still required. |
+| `animate_with_skeleton` | 12    | `template?`, `frames?`, `facing?`, `joints?`, `character_type?`                          | **Registered.** Local bone rig: the skeleton is read off the silhouette, each bone is turned by the template's joint angles so the character keeps its own limb lengths, grounded cycles plant the lowest foot, and a held staff follows the hand as one piece. No prompt, network, model call, or new colours. Appends one undoable cycle; `facing: "west"` mirrors the east-authored cycle. |
 | `transfer_animation`    | 14    | `source_animation_id`, `target_asset_id`                                                 | Applies a pose sequence to another character                                           |
 
 **Export — 10**
 
 | Tool               | Input                                             | Returns                                |
 | ------------------ | ------------------------------------------------- | -------------------------------------- |
-| `export_animation` | `format` (`gif`\|`apng`\|`spritesheet`), `scale?` | File +, for spritesheets, a JSON atlas |
+| `export_animation` | `format` (`gif`\|`spritesheet`), `fps?`, `scale?`, `delivery?` | Complete GIF or spritesheet + JSON artifact manifest for `read_export`. GIF preserves per-frame timing unless fps is supplied; scale/fps are rejected for spritesheets. Optional browser delivery never confirms disk save. |
 
 ### H. Rotation and directions — **11**
 
+Every tool here is scoped to `character`. A tile has no facing, and two of these are paid model calls — `rotate_character` on a cobblestone was a call that could only waste money.
+
 | Tool                         | Input                                                                                        | Returns                                                                                              |
 | ---------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `get_directions`             | `asset_id?`                                                                                  | Which exist, which are missing, which were mirror-derived                                            |
+| `get_directions`             | `set?`                                                                                       | Existing and missing directions, grouped by name within the source project                           |
 | `select_direction`           | `direction`                                                                                  | Active editing target                                                                                |
-| `rotate_character`           | `from_view`, `from_direction`, `to_view`, `to_direction`, `strategy?` (`hub`\|`incremental`) | Generates the target direction                                                                       |
+| `rotate_character`           | `from_direction`, `to_direction`, `from_view?`, `to_view?`                                  | Generates and opens the target direction from the captured source; inspect the result visually       |
 | `derive_direction_by_mirror` | `from_direction`, `to_direction`                                                             | **Deterministic, free, pixel-exact.** E↔W, NE↔NW, SE↔SW.                                             |
-| `generate_direction_set`     | `set` (`side2`\|`cardinal4`\|`ordinal8`), `strategy?`                                        | Orchestrates the ring, **preferring mirroring wherever symmetric — 8 directions from 5 generations** |
+| `generate_direction_set`     | `set` (`side2`\|`cardinal4`\|`ordinal8`), `base_direction?`, `view?`                          | Completes missing directions from one base: exact mirrors first, then **every view that needs the model bought concurrently as one paid batch** (an ordinal8 set from south waits once for its three or four turned views, not once each), then the partners of the generated views mirrored. A view that fails is reported by name while the others are kept; run the set again to retry it. |
 
 **Views:** `side`, `low top-down`, `high top-down`. **Directions:** `north`, `east`, `south`, `west`, `north-east`, `north-west`, `south-east`, `south-west`.
 
@@ -234,6 +266,8 @@ Rotation is honestly imperfect — accessories and asymmetric details break firs
 ### I. Generation and import — **08 / 12**
 
 The only tools that call a model. All exit through the pixelisation pipeline and **return indexed grids, never PNGs**.
+
+Image-generation prompts and edit instructions accept **16,000 characters including appended project style text**. The browser and API reject empty or oversized text with a readable error; they never truncate it. `animate_with_text` retains its separate 10,000-character description limit, and the full motion brief travels with the animation sheet.
 
 A project's palette is **not** applied at generation time — see [phase 06](./phases/06-generation-pixelisation.md). The contract still holds it, `check_style_consistency` still reports it and `conform_to_style` still applies it exactly; it simply stops narrowing the model's hand while it draws, because a palette stated as a law makes every asset in a project look like the last one. A generative edit may also widen an asset's palette into slots nothing on the canvas is using, so a red berry on a green bush is red rather than the nearest brown.
 
@@ -246,12 +280,12 @@ The image call is the whole wait — measured between 20 and 157 seconds dependi
 | `derive_variant`                 | 08    | `asset_id?`, `instruction` (_"mossier"_, _"cracked"_)                 | New asset id                                                                                                                                                                                                                                                               |
 | `generate_variation_set`         | 08    | `count` (2–6), `brief?`, `creativity?`, `concepts?`                   | 2–6 separate editable assets, each derived from the unchanged source; agents can supply original concept directions                                                                                                                                                        |
 | `reduce_colors`                  | 08    | `target_count`                                                        | Oklab k-means, optional Floyd–Steinberg dithering                                                                                                                                                                                                                          |
-| `remove_background`              | 08    | `asset_id?`                                                           | Alpha-threshold background isolation                                                                                                                                                                                                                                       |
+| `remove_background`              | 08    | —                                                                     | Clears only the border-connected region of the most common active-layer border colour; no-op when transparency dominates, preserving enclosed same-colour pixels                                                                                                           |
 | `extract_palette`                | 08    | `reference_id`, `count`                                               | Palette pulled from an uploaded image                                                                                                                                                                                                                                      |
-| `pixelize`                       | 08    | `reference_id`, `target_size`, `palette?`                             | **The core conversion**                                                                                                                                                                                                                                                    |
+| `pixelize`                       | 08    | `target_width` (8–128), `max_colors?` (2–16) | Creates and opens a single-frame copy of the selected frame composite, preserving aspect ratio and using the extracted palette. Keeps the source type/project/folder; original frames and history are unchanged. |
 | `import_image`                   | 08    | `image` (base64 PNG), `name`, `target_width?`, `max_colors?`, `type?` | **Registered.** Runs the pixelisation pipeline and opens the result as an editable indexed asset. Named `import_image`, not the planned `import_reference`: it does not stage anything, it produces art you can immediately draw on.                                       |
-| `build_character_from_reference` | 10    | `image` (base64 PNG), `name`, `direction_set?`, `base_direction?`, `target_width?` | **Registered. Slow and paid.** Extracts the primary subject as clean full-body raster art on transparency, frames it, and produces one inspectable indexed base sprite. Call `generate_direction_set` after inspecting or repairing the base. |
-| `inpaint_region`                 | 12    | `x`, `y`, `width`, `height`, `prompt`                                 | **Registered. Slow and paid.** Sends the full indexed source plus a same-size transparent edit mask, pixelises and palette-conforms the result, then transactionally merges only the selected cells; outside pixels remain exact and one undo restores the edit.              |
+| `build_character_from_reference` | 10    | Exactly one of `image` (base64 PNG) or `source_asset_id`; `name`, `direction_set?`, `base_direction?`, `target_width?` | **Registered. Slow and paid.** Extracts the primary subject as clean full-body raster art on transparency, frames it, and produces one inspectable indexed base sprite. Existing asset input uses its selected-frame composite without modifying it. Call `generate_direction_set` after inspecting or repairing the base. |
+| `inpaint_region`                 | 12    | `x`, `y`, `width`, `height`, `prompt`, `allow_removal?`               | **Registered. Slow and paid; square single-layer frames.** Full source plus mask; only selected pixels change. Palette overflow, stale targets and destructive erasure are refused. Explicit intended removal can bypass the erasure guard. One undo restores applied pixels and palette; a no-op creates no undo entry. |
 
 **The pixelisation pipeline** (behind `pixelize` and every generative tool):
 
@@ -278,14 +312,14 @@ Every step inspectable, undoable, and overridable. A bad north-facing sprite get
 
 | Tool                      | Input                                       | Returns                                                                                                                                                                                                                                                            |
 | ------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `estimate_skeleton`       | `character_type` (`bipedal`\|`quadrupedal`) | **Registered**, read-only. Keypoints normalised against the content bounds. Limb joints hang off the measured shoulder and hip spread, so they can sit marginally outside 0–1 (about −0.1 to 1.1) on a wide silhouette — the description tells the agent to clamp. |
+| `estimate_skeleton`       | `character_type?` (`bipedal`\|`bipedal-chibi`\|`quadrupedal`) | **Registered**, read-only. Joints normalised 0–1 within the content bounds, each placed on a pixel of the part it names: the width profile gives head peak, neck valley and shoulder peak; the row where one run becomes two is the crotch and each leg is tracked to its foot; an arm is the run beside the torso, or the torso's own edge when held against it. A held staff is stripped first so it is never mistaken for an arm or leg. |
 | `get_skeleton`            | `frame_index?`                              | Keypoint positions                                                                                                                                                                                                                                                 |
 | `set_skeleton_pose`       | `frame_index`, `keypoints: [{name, x, y}]`  | Sets the pose                                                                                                                                                                                                                                                      |
-| `list_pose_templates`     | —                                           | **Registered**, read-only. Stock pose sequences with their pose counts; pass one to `animate_with_skeleton` for local frame generation.                                                                                                                            |
+| `list_pose_templates`     | —                                           | **Removed.** Its only content was the template names, which `animate_with_skeleton`'s schema already enumerates; the catalog has a byte budget and 65-tool lists degrade selection.                                                             
 | `apply_skeleton_template` | `template_id`, `frames?`                    | Inserts a pose sequence                                                                                                                                                                                                                                            |
 | `save_skeleton_template`  | `name`                                      | Saves for reuse across characters                                                                                                                                                                                                                                  |
-| `animate_with_skeleton`   | `template`, `frames?`                       | **Registered.** Builds a local, indexed, undoable cycle without a prompt or model call.                                                                                                                                    |
-| `re_pose`                 | `frame_index`, `keypoints`                  | Regenerates one frame from a new pose                                                                                                                                                                                                                              |
+| `animate_with_skeleton`   | `template?`, `frames?`, `facing?`, `joints?`, `character_type?` | **Registered.** Bone-rig cycle from a stock template, retargeted by joint angle rather than position, or one custom posed frame from `joints`; local, indexed, one undo. |
+| `re_pose`                 | see `animate_with_skeleton`                 | **Folded into `animate_with_skeleton`**: `joints` without a `template` inserts one posed frame; with a template they correct the estimated rig before the cycle. One tool because the discovery catalog has a byte budget.                       
 
 Skeletons are the _reusable_ animation asset: author a walk cycle once, apply it to every character. That reuse is the payoff justifying the build cost, which is why they sit in phase 14 rather than 09.
 
@@ -320,7 +354,7 @@ Distinctive, cheap to build, and the clearest expression of "WebMCP Leverage."
 | --------------------------- | ----- | -------------------------- | ---------------------------------------------------------------------------- |
 | `check_seamless_tiling`     | 03    | `asset_id?`                | Pass/fail per edge pair **with the mismatching coordinates**                 |
 | `check_palette_compliance`  | 06    | `asset_id?`, `max_colors?` | Colours used vs allowed; every out-of-palette pixel located                  |
-| `check_animation_coherence` | 08    | `animation_id?`            | Off-palette frames, silhouette-area jumps, broken loops — with frame indices |
+| `check_animation_coherence` | 08    | `loop?`, `max_area_jump?` (default 0.4) | Off-palette frames, area jumps, duplicate loop endpoint and character canvas-edge contacts — with frame indices. Does not certify anatomy, ground contact, registration or smooth motion. |
 | `check_grid_alignment`      | 06    | `asset_id?`                | Detects imported art not on a clean lattice                                  |
 | `check_readability`         | 13    | `asset_id?`                | Contrast + silhouette legibility at 1×                                       |
 
@@ -330,15 +364,18 @@ Distinctive, cheap to build, and the clearest expression of "WebMCP Leverage."
 
 | Tool                  | Phase | Input                                                                                | Returns                                                                     |
 | --------------------- | ----- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| `export_png`          | 03    | `asset_id?`, `scale?` (integer)                                                      | Data URL + triggers the human's download UI                                 |
-| `export_indexed_png`  | 15    | `asset_id?`                                                                          | True PNG-8 with a `PLTE` chunk — the format that matches our data           |
-| `export_animation`    | 10    | `format` (`gif`\|`apng`\|`spritesheet`), `scale?`                                    | Preview formats + spritesheet                                               |
-| `export_spritesheet`  | 12    | `asset_ids[]` or whole asset, `columns?`, `layout?` (`by-direction`\|`by-animation`) | Packed sheet + JSON atlas                                                   |
-| `export_project`      | 14    | —                                                                                    | Open project's style, hierarchy, placements, and assets as one bundle       |
-| `export_for_engine`   | 15    | `engine` (`godot`\|`unity`\|`phaser`\|`love`\|`gamemaker`\|`tiled`)                  | Engine bundle with import settings pre-configured                           |
-| `export_palette`      | 15    | `format` (`gpl`\|`pal`\|`ase`\|`hex`\|`txt`\|`png-strip`)                            | The same six formats Lospec offers, because that's what the ecosystem reads |
-| `export_indexed_data` | 15    | `asset_id?`                                                                          | Index map + palette as separate JSON — enables runtime palette swapping     |
-| `export_svg`          | 15    | `asset_id?`, `merge_runs?`                                                           | Vector, for display and print — **not** for game engines                    |
+| `export_png` | 03 | `scale?` (1, 2, 4, 8, 16), `delivery?` | Active frame as true indexed PNG-8 with palette/transparency; complete file manifest |
+| `export_animation` | 08 | `format` (`gif`\|`spritesheet`), GIF-only `fps?`, `scale?`, `delivery?` | All frames as GIF or canonical spritesheet PNG + JSON with authored timing |
+| `export_project` | 14 | `delivery?` | Open project's style, hierarchy, placements and documents as a restorable `zenith.project` v1 bundle |
+| `export_for_engine` | 15 | `engine` (`godot`\|`unity`\|`phaser`\|`love`), `delivery?` | Sheet and engine metadata files plus integration instructions |
+| `export_palette` | 15 | `format` (`gpl`\|`pal`\|`ase`\|`hex`\|`txt`\|`png-strip`), `delivery?` | Complete palette file |
+| `list_exports` | 13 | — | Retained files: artifact IDs, names, MIME types and byte lengths |
+| `read_export` | 13 | `artifact_id`, byte `offset?`, `length?` (1–49152) | Base64 chunk, bytes returned, next byte offset, EOF flag |
+| `release_export` | 13 | `artifact_id` | Frees only temporary output bytes, not artwork or files already saved |
+
+All five export tools default to `delivery:"artifact"`. Agents reconstruct files through `read_export` without clicking download UI; no output-size cutoff silently removes their bytes. `delivery:"download"` requests human downloads only; `"both"` retains artifacts and requests downloads. Browser disk save is not observable. Artifacts are page-session local, limited to 32 files / 64 MiB with explicit capacity errors; release saved files to free space. Decode each chunk independently before joining bytes.
+
+Not registered: standalone `export_indexed_png` (covered by `export_png`), standalone `export_spritesheet` (covered by `export_animation`), `export_indexed_data`, `export_svg`, GameMaker and Tiled targets. These names must not be called as if implemented.
 
 ---
 
@@ -452,7 +489,7 @@ Two screens. **Library** — a grid of asset cards. **Editor** — tool rail, ca
 | Timeline         | 07    | Frame strip, onion skin, playback, per-frame duration                                                                                                                          |
 | Direction picker | 09    | Compass rosette: existing, missing, mirror-derived                                                                                                                             |
 | Reference tray   | 10    | Uploaded concept art staged before pixelisation, live before/after                                                                                                             |
-| Skeleton editor  | 12    | Draggable keypoints overlaid on the canvas                                                                                                                                     |
+| Skeleton editor  | 12    | Draggable keypoints overlaid on the canvas, the sprite re-posed live under them; type, facing and template pickers; bake to a frame                                          |
 | Layers           | 13    | —                                                                                                                                                                              |
 
 ### Shortcuts
@@ -518,6 +555,13 @@ useEffect(() => {
 ```
 
 The local registration hook wraps this surface, owns `AbortSignal` cleanup, and normalises returns: a string becomes `{ content: [{ type: 'text', text }] }`; a thrown error becomes `{ content: [...], isError: true }`.
+
+Registration is scoped to the visible route's asset and frame count, not a
+transient `session.activeId` change before navigation settles. The shared browser
+runner checks route/active/store agreement immediately before every non-`always`
+tool executes. A mismatch returns an actionable error without executing; library
+tools remain available to navigate. This avoids unregistering the entire editor
+surface during an ordinary asset switch without allowing edits to unseen assets.
 
 ### Rules for tool handlers
 

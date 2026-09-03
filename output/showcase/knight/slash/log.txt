@@ -1,0 +1,16 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: a white air-cut arc along the blade's path at the moment of the slash
+planned 4 poses in 19.4s; source read as: Knight faces right; weight split, right/front foot forward; right hand holds longsword low across front pointing down-right; left arm bears kite shield forward; head level.
+  1. [grounded, 90ms] Anticipation: torso dips slightly back; right arm draws sword to near right shoulder, blade angled back; shield presses a bit forward; head tucks; weight shifts toward left/rear; right/front foot planted, rear heel light.
+  2. [grounded, 170ms] Key: torso coils back and up; right arm lifts sword high over head, elbow bent behind crest; shield retracts to chest, angled in; chin up facing right; weight on right/front foot, rear on ball.
+  3. [grounded, 90ms] Slash: torso snaps forward; right arm drives blade down through front-right, finishing near knee height; shield yanks back for balance; head follows strike; weight drives to front; rear pivots. | effect: White arc from above helm to in front-right, trailing the blade’s downward path.
+  4. [grounded, 180ms] Follow-through: torso leans slightly forward; sword settles low across front pointing down-right; shield returns forward to guard; head level; weight re-centers; both feet planted, ready to blend to rest.
+1 sheet(s) generated concurrently in 113.7s
+  baseline 512px, tolerance down 102px / up 41px, shifts 14, 14, 31, 31
+palette: added nothing; unmatched none
+judged in 10.7s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+wrote 4 frames to ../../output/showcase/knight/slash; holds 90, 170, 90, 180ms; bottom rows 127, 127, 127, 127, 127; sheets 1; sheet seconds 114
+exit 0, wall 144s

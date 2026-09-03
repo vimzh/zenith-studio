@@ -54,6 +54,17 @@ Direction picker rosette · direction ring layout · mirror-derived badges
 
 ## Risks
 
+### 2026-09-03 implementation verification
+
+The current implementation uses one captured base (hub); incremental strategy,
+ring layout and provenance badges above remain planned, not newly verified.
+Regression tests cover all three sets, exact mirrors, project isolation,
+validated source/target views, inferred named facing, navigation and partial
+failure. Live south → east and south → north generations were visually checked
+on a newly generated 128×128 merchant. See the
+[dated test report](../verification/character-regression-2026-09-03.md) for the
+full live/automated coverage distinction and output evidence.
+
 | Risk | Mitigation |
 | --- | --- |
 | Rotation quality is genuinely imperfect — accessories and asymmetric details break first | Say so in the tool descriptions. Make the failure *visible* (ring layout) and *fixable* (inpaint) rather than hidden. This is an honest limitation of the category, not a defect we can engineer away. |

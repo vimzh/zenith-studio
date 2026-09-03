@@ -15,9 +15,6 @@ import { asOneEdit, requireActiveAsset } from "./active";
  * labelled with the tool name.
  */
 
-const COORDINATE_NOTE =
-  "Coordinates are asset-local pixels: (0,0) is the top-left pixel, x increases right, y increases down.";
-
 const INDEX_NOTE =
   "Palette index; call get_palette for valid indices. Use -1 for transparent.";
 
@@ -28,7 +25,7 @@ function indexProperty(description: string): Record<string, unknown> {
 export const writeRegion: ToolDefinition = {
   name: "write_region",
   description:
-    `Stamp a block of pixels onto the currently open asset, given as an indexed character grid in the same format read_canvas returns: '0'-'9' and 'A'-'F' for palette indices, '.' for transparent, rows separated by newlines and every row the same length. The block's top-left corner lands at (x, y). ${COORDINATE_NOTE} A block that would extend past the canvas edge is rejected with the largest offset that fits, rather than being clipped. This is the most direct way to draw: read_canvas, edit the characters, write them back.`,
+    "Stamp an indexed block on the open asset: 0–9/A–F = indices 0–15, '.' = transparent; equal-length newline-separated rows. (x,y) places its top-left; canvas (0,0) is top-left, +x right, +y down. Overflow rejected with valid offsets. Use read_canvas to read/edit/write.",
   inputSchema: {
     type: "object",
     properties: {
@@ -57,7 +54,7 @@ export const writeRegion: ToolDefinition = {
 export const setPixels: ToolDefinition = {
   name: "set_pixels",
   description:
-    `Set individual pixels of the currently open asset. ${COORDINATE_NOTE} Use this for surgical corrections — a handful of pixels — where write_region would mean restating a whole block. Listing the same pixel twice applies the last value. Returns how many pixels actually changed, which is fewer than requested when some already held that value.`,
+    "Correct individual pixels on the open asset. Asset-local (0,0) is top-left; +x right, +y down. Duplicate coordinates use the last value. Returns the number actually changed. Use write_region for blocks.",
   inputSchema: {
     type: "object",
     properties: {
@@ -99,7 +96,7 @@ export const setPixels: ToolDefinition = {
 export const fillRegion: ToolDefinition = {
   name: "fill_region",
   description:
-    `Fill a rectangle of the currently open asset with one palette index, ignoring what was underneath. ${COORDINATE_NOTE} The rectangle is clipped to the canvas rather than rejected. Pass index -1 to clear a region to transparent.`,
+    "Fill an open-asset rectangle with one palette index; -1 clears transparency. Asset-local (0,0) is top-left; +x right, +y down. Rectangles are clipped to the canvas.",
   inputSchema: {
     type: "object",
     properties: {
@@ -131,7 +128,7 @@ export const fillRegion: ToolDefinition = {
 export const bucketFill: ToolDefinition = {
   name: "bucket_fill",
   description:
-    `Flood-fill the connected run of same-coloured pixels starting at (x, y) in the currently open asset, the way a paint bucket works. Connectivity is 4-way — diagonals do not connect. ${COORDINATE_NOTE} Set contiguous to false to recolour every pixel of that colour anywhere on the canvas instead. Call read_canvas first: which pixels are connected is rarely obvious from memory.`,
+    "Flood-fill the open asset from (x,y), using 4-way same-colour connectivity, not diagonals. Asset-local (0,0) is top-left; +x right, +y down. contiguous:false replaces that colour everywhere. Read_canvas first.",
   inputSchema: {
     type: "object",
     properties: {
@@ -166,7 +163,7 @@ export const bucketFill: ToolDefinition = {
 export const replaceColor: ToolDefinition = {
   name: "replace_color",
   description:
-    "Replace every pixel of one palette index with another across the whole of the currently open asset, leaving the shapes untouched. This is the fast way to restyle: swapping a mid-tone for a darker one re-shades the entire sprite in one call. Use -1 to erase a colour to transparent, or to paint every transparent pixel.",
+    "Replace one palette index everywhere on the open asset, preserving shapes. Use -1 as the target to erase, or as the source to fill all transparent pixels.",
   inputSchema: {
     type: "object",
     properties: {

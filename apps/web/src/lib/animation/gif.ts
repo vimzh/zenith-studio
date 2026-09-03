@@ -1,4 +1,4 @@
-import { TRANSPARENT, type Cell, type Grid } from "@zenith/core";
+import { DEFAULT_FRAME_DURATION_MS, TRANSPARENT, type Cell, type Grid } from "@zenith/core";
 
 /**
  * Animated GIF encoding.
@@ -212,7 +212,7 @@ export function encodeGif(
   for (let frameIndex = 0; frameIndex < frames.length; frameIndex += 1) {
     const frame = frames[frameIndex] as Grid;
     const configuredDelay = Array.isArray(options.delayMs) ? options.delayMs[frameIndex] : options.delayMs;
-    const delay = Math.max(1, Math.round((configuredDelay ?? 100) / 10));
+    const delay = Math.max(1, Math.round((configuredDelay ?? DEFAULT_FRAME_DURATION_MS) / 10));
     writer.ascii("!");
     writer.byte(0xf9);
     writer.byte(4);

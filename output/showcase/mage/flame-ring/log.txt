@@ -1,0 +1,16 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: a ring of orange fire tracing the staff's circle
+planned 4 poses in 20.6s; source read as: Three-quarter facing right; left hand holds staff upright at screen-left, right hand extends to screen-right as if casting; hooded head turned right; feet wide, left forward, right back, both planted; relaxed weight centered.
+  1. [grounded, 80ms] Anticipation: torso leans back-right, hips dip; left hand draws staff back across body toward rear-right, tip low; right hand tucks near chest; head glances right; both feet planted, knees bent. | effect: Small embers gather at crystal; faint spark trail starts behind tip low-right.
+  2. [grounded, 180ms] Key: sharp twist left; staff sweeps fast across front, mid-height to high-left; left arm extended, right arm swings back; torso forward-left, head follows arc; left foot braced, right planted. | effect: Bright flame arc from low-right across front to high-left; thick leading arc with short trailing fire.
+  3. [grounded, 140ms] Follow-through: staff continues overhead to back-right; left elbow bends, tip passing above hood; torso counter-rotates, right hand opens outward; weight shifts to right leg, left planted. | effect: Flame trail curves overhead to back-right, nearly closing the ring; sparks shed along the path.
+  4. [grounded, 120ms] Settle: staff comes down to near-upright at screen-left, slightly forward; torso untwists toward neutral; right hand re-extends forward; head centers; both feet reset, left leading. | effect: Fading arc completes low-left segment to close the circle; thin lingering ring dissipates.
+1 sheet(s) generated concurrently in 110.1s
+  baseline 512px, tolerance down 102px / up 41px, shifts 19, 19, 13, 8
+palette: added nothing; unmatched none
+judged in 8.9s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+wrote 4 frames to ../../output/showcase/mage/flame-ring; holds 80, 180, 140, 120ms; bottom rows 127, 127, 127, 127, 127; sheets 1; sheet seconds 110
+exit 0, wall 140s

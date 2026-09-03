@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Download,
@@ -15,7 +15,6 @@ import {
   paletteHexes,
   type Cell,
   type DocumentStore,
-  type Grid,
 } from "@zenith/core";
 import { Button } from "@/components/ui/button";
 import { useStoreRevision, useStoreSelector } from "@/lib/pixel";
@@ -26,19 +25,17 @@ import {
 } from "@/components/ui/resizable";
 import { useNarrowViewport } from "@/hooks/use-narrow-viewport";
 import { cn } from "@/lib/utils";
-import type { Joint, Pose } from "@/lib/skeleton";
-import { contentBounds, estimateSkeleton, moveJointToPixel, poseToPixels } from "@/lib/skeleton";
-import { bakeSkeletonPose, type AssetType } from "@/lib/editor";
+import type { AssetType } from "@/lib/editor";
 import { EditorSecondarySidebar } from "./editor-secondary-sidebar";
+import { useSkeletonRig } from "./use-skeleton-rig";
 import { ExportDialog } from "./export-dialog";
 import { FrameTimeline } from "./frame-timeline";
 import { PixelCanvas } from "./pixel-canvas";
 import { ToolRail } from "./tool-rail";
-import { SHORTCUT_TO_TOOL, type ToolId } from "./tools";
+import { clampPaletteIndex, SHORTCUT_TO_TOOL, type ToolId } from "./tools";
 import { useEditorController } from "./use-editor-controller";
 
 const selectPalette = (store: DocumentStore) => paletteHexes(store.palette);
-const selectContentBounds = (store: DocumentStore) => contentBounds(store.readComposite());
 
 export function EditorWorkspace({
   assetId,
@@ -59,60 +56,9 @@ export function EditorWorkspace({
   const [onionSkin, setOnionSkin] = useState(false);
   const [brushSize, setBrushSize] = useState(1);
   const [opacity, setOpacity] = useState(100);
-  const [skeleton, setSkeleton] = useState<Pose | null>(null);
-  const rigBase = useRef<Pose | null>(null);
-  const rigSource = useRef<Grid | null>(null);
   const spaceHeld = useRef(false);
-  const skeletonBounds = useStoreSelector(store, selectContentBounds);
-
-  const onSkeleton = useCallback((pose: Pose | null) => {
-    if (pose === null) {
-      rigBase.current = null;
-      rigSource.current = null;
-    } else if (rigBase.current === null) {
-      rigBase.current = pose;
-      rigSource.current = store.readComposite();
-    }
-    setSkeleton(pose);
-  }, [store]);
-
-  const moveSkeletonJoint = useCallback((joint: string, x: number, y: number) => {
-    if (skeletonBounds === null) return;
-    setSkeleton((current) => current === null
-      ? null
-      : moveJointToPixel(
-          current,
-          joint as Joint,
-          {
-            x: Math.max(0, Math.min(store.width - 1, x)),
-            y: Math.max(0, Math.min(store.height - 1, y)),
-          },
-          skeletonBounds,
-        ));
-  }, [skeletonBounds, store.height, store.width]);
-
-  const onSkeletonBake = useCallback(() => {
-    if (skeleton === null || rigBase.current === null || rigSource.current === null) {
-      throw new Error("Estimate a skeleton before creating a posed frame.");
-    }
-    return bakeSkeletonPose(store, rigSource.current, rigBase.current, skeleton);
-  }, [skeleton, store]);
-
-  /**
-   * Joint markers in art coordinates.
-   *
-   * Poses are normalised to the content bounds, so they must be projected
-   * through the sprite's own extent — a pose is proportions, not pixels, which
-   * is exactly what makes it transferable between characters.
-   */
-  const skeletonJoints = useMemo(() => {
-    if (skeleton === null || skeletonBounds === null) return undefined;
-    return Object.entries(poseToPixels(skeleton, skeletonBounds)).map(([joint, position]) => ({
-      joint,
-      x: position.x,
-      y: position.y,
-    }));
-  }, [skeleton, skeletonBounds]);
+  const rig = useSkeletonRig(store);
+  const { controller: skeleton } = rig;
 
   // Below ~1100px the secondary sidebar becomes an overlay drawer rather than
   // squeezing the canvas to nothing.
@@ -120,6 +66,7 @@ export function EditorWorkspace({
 
   const revision = useStoreRevision(store);
   const palette = useStoreSelector(store, selectPalette);
+  const selectedIndex = clampPaletteIndex(index, palette.length);
 
   const onPickColor = useCallback((picked: Cell) => {
     setIndex(picked);
@@ -129,7 +76,7 @@ export function EditorWorkspace({
   const controller = useEditorController({
     store,
     tool,
-    index,
+    index: selectedIndex,
     onPickColor,
     brushSize,
     opacity,
@@ -159,7 +106,16 @@ export function EditorWorkspace({
 
       if (key === "e" && spaceHeld.current) {
         event.preventDefault();
-        onSkeleton(skeleton === null ? estimateSkeleton(store.readComposite()) : null);
+        if (skeleton.pose !== null) {
+          skeleton.hide();
+        } else {
+          // An empty frame has nothing to rig; the panel reports that, the shortcut stays quiet.
+          try {
+            skeleton.estimate();
+          } catch {
+            // Nothing to estimate from.
+          }
+        }
         return;
       }
 
@@ -194,7 +150,8 @@ export function EditorWorkspace({
         event.preventDefault();
         setIndex((current) => {
           const step = key === "]" ? 1 : -1;
-          const next = (current === TRANSPARENT ? 0 : current) + step;
+          const selected = clampPaletteIndex(current, palette.length);
+          const next = (selected === TRANSPARENT ? 0 : selected) + step;
           if (next < 0) return palette.length - 1;
           if (next >= palette.length) return 0;
           return next;
@@ -215,7 +172,7 @@ export function EditorWorkspace({
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", releaseSpace);
     };
-  }, [onSkeleton, palette.length, skeleton, store]);
+  }, [palette.length, skeleton, store]);
 
   // Opens the dialog rather than firing one format: there are eleven now, and
   // guessing which the user wanted is worse than asking.
@@ -294,13 +251,14 @@ export function EditorWorkspace({
                   onPointerLeave={controller.onPointerLeave}
                   onPointerMove={controller.onPointerMove}
                   onPointerUp={controller.onPointerUp}
-                  onSkeletonMove={skeleton === null ? undefined : moveSkeletonJoint}
+                  onSkeletonMove={rig.joints === undefined ? undefined : rig.moveJoint}
+                  preview={rig.preview}
                   onResize={setViewSize}
                   onWheel={controller.onWheel}
                   onionSkin={onionSkin}
                   showGrid={showGrid}
                   selection={controller.selection}
-                  skeleton={skeletonJoints}
+                  skeleton={rig.joints}
                   store={store}
                   viewport={viewport}
                 />
@@ -327,9 +285,7 @@ export function EditorWorkspace({
                   onPaletteSelect={setIndex}
                   onOpacity={setOpacity}
                   opacity={opacity}
-                  onSkeleton={onSkeleton}
-                  onSkeletonBake={onSkeletonBake}
-                  paletteIndex={index}
+                  paletteIndex={selectedIndex}
                   revision={revision}
                   selection={controller.selection}
                   skeleton={skeleton}
@@ -365,9 +321,7 @@ export function EditorWorkspace({
                 onPaletteSelect={setIndex}
                 onOpacity={setOpacity}
                 opacity={opacity}
-                onSkeleton={onSkeleton}
-                onSkeletonBake={onSkeletonBake}
-                paletteIndex={index}
+                paletteIndex={selectedIndex}
                 revision={revision}
                 selection={controller.selection}
                 skeleton={skeleton}

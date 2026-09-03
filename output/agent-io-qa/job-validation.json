@@ -1,0 +1,68 @@
+{
+  "firstJob": {
+    "job_id": "job_6723bd1a-9057-4b3f-8e98-a2feb99a89c6",
+    "request_id": "agent-io-invalid-source-1",
+    "tool": "build_character_from_reference",
+    "status": "running",
+    "started_at": 1788387743057,
+    "finished_at": null,
+    "result": null,
+    "error": null,
+    "started_context": {
+      "pathname": "/asset/asset_032",
+      "visible_asset_id": "asset_032",
+      "active_asset_id": "asset_032",
+      "requested_asset_id": null
+    },
+    "context": {
+      "pathname": "/asset/asset_032",
+      "visible_asset_id": "asset_032",
+      "active_asset_id": "asset_032",
+      "requested_asset_id": null
+    }
+  },
+  "jobResult": {
+    "job_id": "job_6723bd1a-9057-4b3f-8e98-a2feb99a89c6",
+    "request_id": "agent-io-invalid-source-1",
+    "tool": "build_character_from_reference",
+    "status": "failed",
+    "started_at": 1788387743057,
+    "finished_at": 1788387743058,
+    "result": null,
+    "error": "No asset 'missing-qa-source'. Call list_assets for valid source_asset_id values.",
+    "started_context": {
+      "pathname": "/asset/asset_032",
+      "visible_asset_id": "asset_032",
+      "active_asset_id": "asset_032",
+      "requested_asset_id": null
+    },
+    "context": {
+      "pathname": "/asset/asset_032",
+      "visible_asset_id": "asset_032",
+      "active_asset_id": "asset_032",
+      "requested_asset_id": null
+    }
+  },
+  "retryJob": {
+    "job_id": "job_6723bd1a-9057-4b3f-8e98-a2feb99a89c6",
+    "request_id": "agent-io-invalid-source-1",
+    "tool": "build_character_from_reference",
+    "status": "failed",
+    "started_at": 1788387743057,
+    "finished_at": 1788387743058,
+    "result": null,
+    "error": "No asset 'missing-qa-source'. Call list_assets for valid source_asset_id values.",
+    "started_context": {
+      "pathname": "/asset/asset_032",
+      "visible_asset_id": "asset_032",
+      "active_asset_id": "asset_032",
+      "requested_asset_id": null
+    },
+    "context": {
+      "pathname": "/asset/asset_032",
+      "visible_asset_id": "asset_032",
+      "active_asset_id": "asset_032",
+      "requested_asset_id": null
+    }
+  }
+}

@@ -1,0 +1,18 @@
+128x128 source, 5 frames -> 3x2@4 (1536x1024); effects: a small dust puff on take-off and on landing
+planned 5 poses in 23.6s; source read as: Three-quarter facing screen-right in a wide low guard; right hand holds katana low and forward near the lead right foot, left hand open back by hip; head turned right; right foot forward, left foot back, both planted.
+  1. [grounded, 90ms] Anticipation: sink deeper, torso leans slightly forward; right hand lowers blade further forward/down; left hand reaches slightly forward; head dips, eyes to right; knees load, heels heavy; right foot leads, both feet firmly planted.
+  2. [airborne, 90ms] Takeoff: legs drive and hips whip back; torso snaps up then back; right arm sweeps katana up past shoulder; left arm throws down/back; head starts to tilt back into flip; toes leave together. | effect: small dust puffs at both toe takeoff points; bright arc tracing blade from low-front to above-shoulder
+  3. [airborne, 150ms] Apex key: fully inverted, torso tucked; knees to chest; right hand tucks katana across body, blade pointing left; left hand near knee for balance; head upside-down facing right.
+  4. [airborne, 110ms] Descent: rotate toward upright; torso untucks, chest forward; right leg extends down to meet ground, left leg trailing; right arm lets blade sweep down/front; left hand forward for balance; head realigns to right. | effect: short faint trail behind blade’s downward sweep
+  5. [grounded, 160ms] Landing and recover: both feet plant, knees bent to absorb; weight forward into guard; right hand lowers katana toward original low line; left hand opens back by hip; head steady to right. | effect: small dust puffs at both heels on impact
+1 sheet(s) generated concurrently in 112.6s
+  baseline 512px, tolerance down 102px / up 41px, shifts 24, 0, 0, 0, 30
+palette: added nothing; unmatched none
+judged in 7.8s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+  frame 5: ok
+wrote 5 frames to ../../output/showcase/ninja/backflip; holds 90, 90, 150, 110, 160ms; bottom rows 127, 127, 119, 102, 115, 127; sheets 1; sheet seconds 113
+exit 0, wall 145s

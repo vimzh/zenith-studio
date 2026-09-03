@@ -6,7 +6,6 @@ import { agentConsoleCopy } from "@/data/agent";
 import { toolRunnerState, useToolRunnerState, type AgentPanel } from "@/lib/webmcp";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentChat } from "./agent-chat";
-import { AgentNavigation } from "./agent-navigation";
 import { ToolRunner } from "./tool-runner";
 import { ToolTranscript } from "./tool-transcript";
 import { WebMCPStatusBadge } from "./webmcp-status-badge";
@@ -33,8 +32,6 @@ export function AgentConsole({ selection }: { selection: Region | null }) {
 
   return (
     <aside className="flex h-full min-h-0 flex-col bg-background">
-      <AgentNavigation />
-
       <header className="flex flex-col gap-1.5 border-b border-border px-2.5 py-2">
         <div className="flex items-baseline gap-2">
           <h2 className="text-xs font-semibold tracking-wide uppercase">

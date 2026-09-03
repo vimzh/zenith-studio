@@ -94,6 +94,22 @@ to add more adjectives. When you add a clause to a shared prompt, read the whole
 prompt back and ask which instruction a reader would follow if they could only
 follow one — then check the output, because the metrics will not tell you.
 
+### N independent renders cannot share a camera
+
+When several generated images have to agree — frames of one animation, views of
+one object — asking for agreement in the prompt does not produce it. The first
+text-animation pipeline bought one image per frame, each conditioned on the same
+source and each told to "preserve scale and registration". Every frame was the
+same character; every frame had its own scale, its own ground line and its own
+framing, and one ran off the canvas. Every mechanical check passed, because a
+frame can be individually perfect and collectively useless.
+
+The fix was structural, not adjectival: draw all the frames as one sprite sheet
+with the source in the first cell at the exact scale every other cell must
+match. Consistency becomes the easiest thing for the model to do rather than the
+hardest thing to ask for, and it is one paid call instead of N. The general
+rule: if a property spans several outputs, put those outputs in one image.
+
 ### Test the input the product actually produces
 
 Not the one that is convenient to construct. The two diverge quietly, and the gap is where bugs live.

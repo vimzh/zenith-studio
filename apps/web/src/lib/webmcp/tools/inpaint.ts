@@ -10,15 +10,14 @@ import {
   type Grid,
   type Region,
 } from "@zenith/core";
-import { session } from "@/lib/editor";
 import { encodeIndexedPng } from "@/lib/export";
 import { pixelizeAsync } from "@/lib/pixelize";
 import { deriveImage } from "../api";
-import { readInteger, readString } from "../args";
+import { readBoolean, readInteger, readString } from "../args";
 import { decodeBase64Png } from "../raster";
 import { ToolError, type ToolDefinition } from "../types";
-import { requireActiveAsset, toToolError } from "./active";
-import { conformToPalette, mergePalette, usedPaletteIndices } from "./generation";
+import { assertEditTarget, captureEditTarget, requireActiveAsset, toToolError, type EditTarget } from "./active";
+import { conformToPalette, mergePalette } from "./generation";
 
 /**
  * The colours the model actually put inside the mask.
@@ -81,16 +80,70 @@ export function applyInpaintRegion(
   store: DocumentStore,
   generated: Grid,
   region: Region,
+  allowRemoval = false,
 ): number {
-  if (generated.width !== store.width || generated.height !== store.height) {
-    throw new ToolError(
-      `The inpaint resolved to ${String(generated.width)}x${String(generated.height)}, not the asset's ${String(store.width)}x${String(store.height)} grid. The asset was not changed.`,
-    );
-  }
+  validateInpaintRegion(store.readComposite(), generated, region, allowRemoval);
   const bounds = normalizeRegion(generated, region);
   return store.transaction("inpaint_region", () =>
     store.writeRegion(bounds.x, bounds.y, cropGrid(generated, bounds)),
   );
+}
+
+/** A mask is permission to edit, not permission to silently erase the subject. */
+export function validateInpaintRegion(source: Grid, generated: Grid, region: Region, allowRemoval = false): void {
+  if (generated.width !== source.width || generated.height !== source.height) {
+    throw new ToolError(
+      `The inpaint resolved to ${String(generated.width)}x${String(generated.height)}, not the asset's ${String(source.width)}x${String(source.height)} grid. The asset was not changed.`,
+    );
+  }
+  const bounds = normalizeRegion(generated, region);
+  let opaque = 0;
+  let removed = 0;
+  for (let y = bounds.y; y < bounds.y + bounds.height; y++) {
+    for (let x = bounds.x; x < bounds.x + bounds.width; x++) {
+      const offset = y * source.width + x;
+      if (source.cells[offset] === TRANSPARENT) continue;
+      opaque++;
+      if (generated.cells[offset] === TRANSPARENT) removed++;
+    }
+  }
+  // A quarter of the selected subject disappearing is destructive, even when
+  // the total output still has plenty of opaque pixels and a confident grid.
+  // Explicit removal can opt out; this is not an anatomy-quality classifier.
+  if (!allowRemoval && removed > opaque * 0.25) {
+    throw new ToolError(`The model removed ${String(removed)} of ${String(opaque)} subject pixels inside the selection. The asset was not changed. Use a tighter selection; set allow_removal only when erasing part of the subject is intended.`);
+  }
+}
+
+/** Colours used outside the replaced layer region cannot be repurposed. */
+export function protectedInpaintColors(store: DocumentStore, region: Region): ReadonlySet<number> {
+  const used = new Set<number>();
+  const snapshot = store.snapshot();
+  snapshot.frames.forEach((frame, fi) => frame.layers.forEach((layer, li) => {
+    layer.grid.cells.forEach((cell, offset) => {
+      const x = offset % store.width;
+      const y = Math.floor(offset / store.width);
+      const replaced = fi === store.activeFrame && li === store.activeLayer &&
+        x >= region.x && x < region.x + region.width && y >= region.y && y < region.y + region.height;
+      if (!replaced && cell !== TRANSPARENT) used.add(cell);
+    });
+  }));
+  return used;
+}
+
+/** Commit only against the unchanged source; a slow edit must never win a race. */
+export function commitInpaintResult(target: EditTarget, grid: Grid, palette: readonly string[], region: Region, allowRemoval = false): number {
+  assertEditTarget(target);
+  const { store, revision } = target;
+  validateInpaintRegion(store.readComposite(), grid, region, allowRemoval);
+  const changed = store.transaction("inpaint_region", () => {
+    store.setPalette(palette);
+    return store.writeRegion(region.x, region.y, cropGrid(grid, region));
+  });
+  if (store.revision === revision) {
+    throw new ToolError("The model made no pixel or palette changes. No undo entry was created; the existing artwork and history are unchanged.");
+  }
+  return changed;
 }
 
 /**
@@ -126,7 +179,7 @@ export const inpaintRegion: ToolDefinition = {
   network: true,
   name: "inpaint_region",
   description:
-    "Edit only a selected rectangle of the currently open asset using the original image as context. Coordinates are asset-local: (0,0) is the top-left pixel, x increases right, and y increases down. The model sees the full source but may edit only the transparent mask rectangle; its result is pixelised and palette-matched before only that grid region is merged. Pixels outside the rectangle remain byte-identical, and one undo restores the whole edit. This makes one slow, paid image-model call.",
+    "Edit only a selected rectangle of the currently open asset's square, single-layer frame using the original image as context. Coordinates are asset-local: (0,0) is the top-left pixel, x increases right, and y increases down. The model sees the full source but may edit only the transparent mask rectangle; its result is pixelised and palette-matched before only that grid region is merged. Pixels outside the rectangle remain byte-identical, and one undo restores an applied edit. An unchanged result creates no undo entry. Edits that erase more than a quarter of the selected subject are refused unless allow_removal is explicitly enabled for intended erasure. This makes one slow, paid image-model call.",
   inputSchema: {
     type: "object",
     properties: {
@@ -155,6 +208,10 @@ export const inpaintRegion: ToolDefinition = {
         description:
           "What to change inside the rectangle, such as 'replace the helmet with a red hood'.",
       },
+      allow_removal: {
+        type: "boolean",
+        description: "Defaults to false: refuse an edit that erases more than a quarter of the selected subject. Set true only when the user explicitly wants part of the subject removed, never for recolouring or rotation.",
+      },
     },
     required: ["x", "y", "width", "height", "prompt"],
   },
@@ -174,6 +231,11 @@ export const inpaintRegion: ToolDefinition = {
       height: readInteger(args, "height", 1),
     };
     const prompt = readString(args, "prompt");
+    const allowRemoval = readBoolean(args, "allow_removal", false);
+    const target = captureEditTarget({ id, store });
+    if (store.width !== store.height || store.layerCount !== 1) {
+      throw new ToolError("Masked image editing currently needs a square, single-layer frame. No model call was made and the asset was not changed.");
+    }
     const grid = store.readComposite();
     const palette = store.palette.colors.map((colour) => colour.hex);
 
@@ -187,10 +249,9 @@ export const inpaintRegion: ToolDefinition = {
       (type === "tile" || type === "texture") && !grid.cells.includes(TRANSPARENT)
         ? "texture"
         : "sprite";
-    // Room is counted in *live* colours, not slots: an asset using seven of
-    // sixteen has nine to spend, which is the difference between a red cherry
-    // and a brown one.
-    const used = usedPaletteIndices(store);
+    // Only colours used outside this layer's mask must stay reserved. Colours
+    // used solely inside it can be replaced unless the result still needs them.
+    const used = protectedInpaintColors(store, inputs.region);
     const generated = await deriveImage(
       inputs.source,
       inpaintInstruction(prompt, palette, MAX_PALETTE_SIZE - used.size),
@@ -204,6 +265,7 @@ export const inpaintRegion: ToolDefinition = {
     try {
       result = await pixelizeAsync(raster, {
         targetWidth: store.width,
+        targetHeight: store.height,
         maxColors: 16,
       });
     } catch (error) {
@@ -224,24 +286,20 @@ export const inpaintRegion: ToolDefinition = {
     // spending palette slots on it would fill the palette with what is already
     // there.
     const merge = mergePalette(palette, regionColors(result.grid, result.palette, inputs.region), used);
-    if (merge.added.length > 0) session.recolor(id, [...merge.colors]);
-    // Rebuilding the document to widen the palette replaces the store, so the
-    // write has to go through the current one.
-    const target = session.get(id) ?? store;
-
-    const changed = applyInpaintRegion(
+    if (merge.unmatched.length > 0) {
+      throw new ToolError(`The edit needs colours that cannot fit without changing pixels outside the selection: ${merge.unmatched.join(", ")}. The asset was not changed. Free palette colours or simplify the requested edit.`);
+    }
+    const changed = commitInpaintResult(
       target,
       conformToPalette(result.grid, result.palette, merge.colors),
+      merge.colors,
       inputs.region,
+      allowRemoval,
     );
     const grew =
       merge.added.length === 0
         ? ""
-        : ` Added ${merge.added.join(", ")} to the palette (now ${String(merge.colors.length)} colours), which reset this asset's pixel history.`;
-    const lost =
-      merge.unmatched.length === 0
-        ? ""
-        : ` The palette is full, so ${merge.unmatched.join(", ")} were matched to their nearest existing shade.`;
-    return `Inpainted (${String(inputs.region.x)}, ${String(inputs.region.y)}) ${String(inputs.region.width)}x${String(inputs.region.height)}; ${String(changed)} pixel(s) changed. Pixels outside the selection are unchanged.${grew}${lost}`;
+        : ` Added ${merge.added.join(", ")} to the palette (now ${String(merge.colors.length)} colours).`;
+    return `Inpainted (${String(inputs.region.x)}, ${String(inputs.region.y)}) ${String(inputs.region.width)}x${String(inputs.region.height)}; ${String(changed)} pixel(s) changed. Pixels outside the selection are unchanged. One undo restores the pixels and palette.${grew} Inspect the result; grid validation does not verify visual quality.`;
   },
 };

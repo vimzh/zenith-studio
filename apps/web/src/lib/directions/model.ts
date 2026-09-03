@@ -36,6 +36,11 @@ export const DIRECTION_SETS = {
 
 export type DirectionSet = keyof typeof DIRECTION_SETS;
 
+/** Direction labels shared by the panel, local mirrors, and model tools. */
+export function directionFromName(name: string): Direction | undefined {
+  return DIRECTIONS.find((direction) => name.toLowerCase().endsWith(` ${direction}`));
+}
+
 /**
  * The direction a horizontal flip produces, or null when there is none.
  *

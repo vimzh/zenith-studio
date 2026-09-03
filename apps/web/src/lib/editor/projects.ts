@@ -172,8 +172,9 @@ export class ProjectLibrary {
     return true;
   }
 
-  openProject(id: string): boolean {
-    if (!this.#projects.has(id)) return false;
+  /** null explicitly clears project context when the route opens a loose asset. */
+  openProject(id: string | null): boolean {
+    if (id !== null && !this.#projects.has(id)) return false;
     this.#activeProjectId = id;
     // A folder id from the project being left would place new assets into
     // another project's tree, which `place` refuses — leaving them loose.
@@ -346,6 +347,8 @@ export class ProjectLibrary {
       const folder = this.#folders.get(folderId);
       if (folder === undefined || folder.projectId !== projectId) return false;
     }
+    const previous = this.#placements.get(assetId)?.projectId ?? null;
+    if (previous !== projectId) this.#removeStyleReference(assetId, previous);
     this.#placements.set(assetId, { projectId, folderId });
     this.#bump();
     return true;
@@ -374,9 +377,21 @@ export class ProjectLibrary {
 
   /** Returns an asset to the loose pool without touching the asset itself. */
   unplace(assetId: string): boolean {
+    const previous = this.#placements.get(assetId)?.projectId ?? null;
     if (!this.#placements.delete(assetId)) return false;
+    this.#removeStyleReference(assetId, previous);
     this.#bump();
     return true;
+  }
+
+  /** Membership and references change before one notification, for UI and tools alike. */
+  #removeStyleReference(assetId: string, projectId: string | null): void {
+    const project = projectId === null ? undefined : this.#projects.get(projectId);
+    if (project === undefined || !project.style.references.includes(assetId)) return;
+    this.#projects.set(project.id, {
+      ...project,
+      style: { ...project.style, references: project.style.references.filter(id => id !== assetId) },
+    });
   }
 
   /** Builds the folder tree for a project, roots first. */

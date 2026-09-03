@@ -166,6 +166,7 @@ export {
   type FrameChange,
   type FrameHistoryEntry,
   type HistoryEntry,
+  type PaletteHistoryEntry,
   type PixelHistoryEntry,
 } from "./store";
 

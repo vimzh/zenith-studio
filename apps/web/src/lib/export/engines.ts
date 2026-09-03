@@ -1,4 +1,5 @@
 import type { Atlas } from "@/lib/spritesheet";
+import { DEFAULT_FRAME_DURATION_MS } from "@zenith/core";
 
 /**
  * Engine export bundles.
@@ -170,7 +171,7 @@ function phaser({ name, atlas }: EngineOptions): EngineBundle {
   const animations = tags
     .map(
       (tag) =>
-        `  this.anims.create({\n    key: '${tag.name}',\n    frames: this.anims.generateFrameNames('${name}', { start: ${String(tag.from)}, end: ${String(tag.to)} }),\n    frameRate: ${String(Math.round(1000 / (atlas.frames[tag.from]?.duration ?? 100)))},\n    repeat: -1,\n  });`
+        `  this.anims.create({\n    key: '${tag.name}',\n    frames: this.anims.generateFrameNames('${name}', { start: ${String(tag.from)}, end: ${String(tag.to)} }),\n    frameRate: ${String(Math.round(1000 / (atlas.frames[tag.from]?.duration ?? DEFAULT_FRAME_DURATION_MS)))},\n    repeat: -1,\n  });`
     )
     .join("\n");
 

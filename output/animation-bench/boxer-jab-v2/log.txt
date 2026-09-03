@@ -1,0 +1,23 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: a short white air-cut streak behind the lead glove at full extension
+planned 4 poses in 51.8s; source read as: Three‑quarter guard facing screen-right: lead (left) foot forward in stagger, weight centered; knees soft; left glove slightly ahead of chin, right glove tight at cheek; elbows in; head looking right; both hands wear boxing gloves.
+  1. [grounded, 90ms] Anticipation: small dip back; torso leans slightly rearward, weight shifts to rear foot; lead glove retracts near chest, rear glove rises to cheek; elbows tight; head still right; rear foot planted, front heel light.
+  2. [grounded, 200ms] Strike key: torso drives and twists right; lead arm fully extended straight at target, fist vertical; rear glove tight at cheek; lead foot planted and knee flexed; rear heel pivots up; head tucked behind lead shoulder. | effect: short white air-cut streak trailing behind the extended lead glove along its forward path.
+  3. [grounded, 90ms] Recoil: torso passes neutral; lead arm snaps halfway back toward guard, elbow low; rear glove shades jaw; weight re-centers; lead foot planted, rear heel lowering; head lifts but faces right.
+  4. [grounded, 120ms] Settle: torso upright with slight forward lean; lead glove returns close to chin, rear glove firm at cheek; shoulders relax toward start; both feet planted with same stagger, knees soft; weight balanced; head faces right to loop.
+sheet 1 (frames 1, 2, 3, 4) generated in 112.3s
+  baseline 456px, tolerance down 102px / up 41px, shifts 2, -2, 19, 19
+palette: added nothing; unmatched #c33b25, #b0b0c8, #aeabbb, #abadc0, #d9d7e6, #b2aec8, #d5d3e1, #7d7b8a, #4b4858, #807f92, #564e61, #444156, #7f808a
+435 |       body: JSON.stringify({ messages: [{ role: "user", content }] }),
+436 |       signal,
+437 |     }),
+438 |   );
+439 |   if (!response.ok) {
+440 |     throw new ToolError(
+                ^
+ToolError: Request body is 998297 characters; the cap is 400000. Fix the request and try again.
+      at askChat (/Users/vanshgaur/projects/zenith-studio/apps/web/src/lib/webmcp/api.ts:440:11)
+      at async judgeFrames (/Users/vanshgaur/projects/zenith-studio/apps/web/src/lib/webmcp/api.ts:515:30)
+      at async <anonymous> (/Users/vanshgaur/projects/zenith-studio/apps/web/scripts/animate-bench.ts:173:25)
+
+Bun v1.4.0 (macOS arm64)
+exit 1

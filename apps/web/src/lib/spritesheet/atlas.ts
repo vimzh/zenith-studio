@@ -1,4 +1,4 @@
-import { TRANSPARENT, type Cell, type Grid } from "@zenith/core";
+import { DEFAULT_FRAME_DURATION_MS, TRANSPARENT, type Cell, type Grid } from "@zenith/core";
 
 /**
  * Spritesheet packing and the JSON atlas beside it.
@@ -109,7 +109,7 @@ export function packSpritesheet(
       trimmed: false,
       spriteSourceSize: { x: 0, y: 0, w: cellWidth, h: cellHeight },
       sourceSize: { w: cellWidth, h: cellHeight },
-      duration: frame.durationMs ?? 100,
+      duration: frame.durationMs ?? DEFAULT_FRAME_DURATION_MS,
     });
   });
 

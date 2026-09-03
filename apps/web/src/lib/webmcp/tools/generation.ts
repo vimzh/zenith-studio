@@ -1,7 +1,7 @@
 import {
+  bucketFill,
   checkSeamlessTiling,
   createPalette,
-  encodeGrid,
   expectedSize,
   hexToOklab,
   MAX_PALETTE_SIZE,
@@ -13,11 +13,11 @@ import {
   type Grid,
   type StyleProfile,
 } from "@zenith/core";
-import { projects, session, type AssetSummary, type AssetType } from "@/lib/editor";
+import { assertGenerationDestination, projects, session, type AssetSummary, type AssetType } from "@/lib/editor";
 import { encodeIndexedPng } from "@/lib/export";
 import { CANVAS_PRESETS, DEFAULT_PRESET_ID, findPreset } from "@/lib/pixel";
 import { frameToCanvas, pixelizeAsync } from "@/lib/pixelize";
-import { deriveImage, generateImage } from "../api";
+import { deriveImage, deriveImages, generateImage, type GenerateResponse } from "../api";
 import { assetNavigation } from "../navigation";
 import { decodeBase64Png } from "../raster";
 import {
@@ -29,7 +29,7 @@ import {
   readString,
 } from "../args";
 import { ToolError, type ToolDefinition } from "../types";
-import { asOneEdit, requireActiveAsset, toToolError } from "./active";
+import { asOneEdit, assertEditTarget, captureEditTarget, requireActiveAsset, toToolError } from "./active";
 
 /**
  * Generation — the one path that leaves the browser.
@@ -249,7 +249,7 @@ export const generateAsset: ToolDefinition = {
   network: true,
   name: "generate_asset",
   description:
-    "Generate a new pixel-art asset from a text description and open it. This is SLOW: the image call has been measured between 20 and 157 seconds depending on quality and options, and it is essentially all of the wait — pixelising its output locally takes about 35ms. Do not treat a slow response as a failure: there is no retry that helps, and a second call buys a second image. A concurrent call is refused for that reason. Inside an open project the generation is conditioned on that project's style contract — camera angle, outline, shading, exact palette, and a bound on feature size so the art is not composed finer than the grid can hold — and if the project has a style reference, the model is shown that asset rather than told about it. That is what makes assets generated weeks apart belong to one game. The result is pixelised in the browser — grid detected, every cell resolved to one palette index, alpha made fully opaque or fully transparent — so what lands in the library is a true indexed grid, never a soft raster. Prefer the deterministic tools when they can do the job: this is the slowest and most expensive tool here, and drawing a 16x16 icon with write_region is both faster and exact. Returns the new asset's id, its size, and any warnings from the detector.",
+    "Create and open an indexed asset from a prompt, applying project style/reference. Returns ID, size and pixelisation warnings. Slow and paid (20–157s measured); concurrent calls refused. Never retry merely for slowness: retries buy images. Prefer deterministic tools when suitable.",
   inputSchema: {
     type: "object",
     properties: {
@@ -323,6 +323,7 @@ export const generateAsset: ToolDefinition = {
     // "generate a slime enemy" is underspecified in a chat window and fully
     // determined here — camera angle, outline, shading, palette, feature scale.
     const style = activeStyleContext(type);
+    const destination = { projectId: projects.activeProjectId, folderId: projects.activeFolderId };
     const targetWidth = style === null ? preset.width : (expectedSize(style.style, type) ?? preset.width);
 
     const artwork = await generateArtwork({
@@ -338,6 +339,7 @@ export const generateAsset: ToolDefinition = {
       ...(size === undefined ? {} : { size }),
     });
 
+    assertGenerationDestination(destination);
     const id = session.create({
       name,
       type,
@@ -346,7 +348,9 @@ export const generateAsset: ToolDefinition = {
       width: targetWidth,
       height: targetWidth,
     });
-    if (style !== null) projects.place(id, style.id, projects.activeFolderId);
+    if (destination.projectId !== null && !projects.place(id, destination.projectId, destination.folderId)) {
+      throw new ToolError(`The generation destination changed before '${id}' could be placed. The asset is available in the loose library.`);
+    }
     assetNavigation.request(id);
 
     return (
@@ -377,7 +381,7 @@ export const drawFromPrompt: ToolDefinition = {
   network: true,
   name: "draw_from_prompt",
   description:
-    "Draw the open asset from a text description, replacing the pixels in its current frame. Use this when the human asks for a subject on the canvas in front of them — 'make a bush', 'draw a health potion', 'replace this with a stone wall' — and there is nothing to derive from, or they want a fresh start. Do NOT hand-draw a whole sprite with set_pixels or write_region instead: a model drawing a 32x32 subject pixel by pixel takes many turns and produces mud, while this produces real pixel art in one call. The image is generated at high resolution, then pixelised in the browser — grid detected, every cell resolved to one palette index, alpha binarised — and conformed to this asset's own palette, so the result is a true indexed grid. Inside a project the generation is also conditioned on that project's style contract, so it matches everything else in the game. SLOW AND PAID: the image call has been measured between 20 and 157 seconds; a concurrent call is refused, and a second call buys a second image. The whole frame is replaced as one undo entry. Prefer the deterministic editing tools for a local change, and inpaint_region when only part of the canvas should change.",
+    "Replace the open asset's current frame from a prompt, matching its palette/project style; one undo. Use for new subjects, not pixel-by-pixel sprite drawing. Slow and paid (20–157s measured); concurrent calls refused; retries buy images. Use deterministic edits or inpaint_region for local changes.",
   inputSchema: {
     type: "object",
     properties: {
@@ -398,6 +402,7 @@ export const drawFromPrompt: ToolDefinition = {
   example: { prompt: "a round leafy bush" },
   execute: async (args) => {
     const active = requireActiveAsset();
+    const target = captureEditTarget(active);
     const prompt = readString(args, "prompt");
     const background =
       args["background"] === undefined ? undefined : readEnum(args, "background", BACKGROUNDS);
@@ -423,19 +428,20 @@ export const drawFromPrompt: ToolDefinition = {
       style: activeStyleContext(type),
     });
 
-    const merge = adoptGeneratedPalette(active.id, store, artwork.palette);
-    // The palette change rebuilds the document, so the store this tool started
-    // with is stale. Reading it again is not defensive — writing through the
-    // old one would write into a document nothing is rendering.
-    const target = session.get(active.id) ?? store;
-    const changed = asOneEdit(target, "draw_from_prompt", () =>
-      target.writeRegion(0, 0, encodeGrid(conformToPalette(artwork.grid, artwork.palette, merge.colors))),
-    );
+    assertEditTarget(target);
+    const merge = planGeneratedPalette(store, artwork.palette);
+    const changed = asOneEdit(store, "draw_from_prompt", () => {
+      store.setPalette(merge.colors);
+      return store.writeRegion(0, 0, conformToPalette(artwork.grid, artwork.palette, merge.colors));
+    });
+    if (store.revision === target.revision) {
+      throw new ToolError("The generated artwork did not change the pixels or palette. No undo entry was created.");
+    }
 
     return (
       `Drew '${prompt}' into '${active.name}' with ${MODEL_NOTE(artwork.model)}, pixelised to ` +
       `${String(store.width)}x${String(store.width)} (${artwork.note}). ${String(changed)} pixel(s) changed on ` +
-      `frame ${String(target.activeFrame)}.${describeMerge(merge)} Call read_canvas to see it.`
+      `frame ${String(target.frame)}.${describeMerge(merge)} One undo restores the pixels and palette. Call read_canvas to see it.`
     );
   },
 };
@@ -449,12 +455,9 @@ export const drawFromPrompt: ToolDefinition = {
  * elsewhere. Anything already drawn keeps every colour it uses, and the
  * generation spends whatever slots are spare.
  *
- * Rebuilding the document to change a palette resets that asset's undo history
- * — the store has no palette setter by design — so this only rebuilds when the
- * palette genuinely changed, and the caller says so out loud.
+ * Plans only: the caller commits the palette and pixels together so both undo.
  */
-function adoptGeneratedPalette(
-  id: string,
+function planGeneratedPalette(
   store: DocumentStore,
   generated: readonly string[],
 ): PaletteMerge & { readonly adopted: boolean } {
@@ -463,25 +466,22 @@ function adoptGeneratedPalette(
 
   if (used.size === 0) {
     const colors = [...generated];
-    session.recolor(id, colors);
     return { colors, added: colors, unmatched: [], adopted: true };
   }
 
   const merge = mergePalette(existing, generated, used);
-  if (merge.added.length > 0) session.recolor(id, [...merge.colors]);
   return { ...merge, adopted: false };
 }
 
 /** Says what happened to the palette, because silently losing a colour is the bug. */
 function describeMerge(merge: PaletteMerge & { readonly adopted?: boolean }): string {
   if (merge.adopted === true) {
-    return ` The canvas was empty, so it took the generated ${String(merge.colors.length)}-colour palette; ` +
-      `pixel history was reset by the palette change.`;
+    return ` The canvas was empty, so it took the generated ${String(merge.colors.length)}-colour palette.`;
   }
   const grew =
     merge.added.length === 0
       ? ""
-      : ` Added ${merge.added.join(", ")} to the palette (now ${String(merge.colors.length)} colours), which reset this asset's pixel history.`;
+      : ` Added ${merge.added.join(", ")} to the palette (now ${String(merge.colors.length)} colours).`;
   const lost =
     merge.unmatched.length === 0
       ? ""
@@ -494,7 +494,7 @@ export const deriveVariant: ToolDefinition = {
   network: true,
   name: "derive_variant",
   description:
-    "Create one high-quality variation of the open pixel asset, such as a mossy cobblestone tile or an arcane chest. The source remains unchanged. The model is shown the actual source and must preserve its identity, perspective, scale, pixel cadence, lighting logic, and palette complexity; the result is pixelised back to the same dimensions. Tile-like assets are also checked for seamless edges. This makes one slow, paid image-model call.",
+    "Derive one same-size variation from the open asset; source unchanged. Preserves identity, perspective, scale, pixel cadence, lighting and palette complexity; checks tile seams. One slow, paid image call.",
   inputSchema: {
     type: "object",
     properties: {
@@ -584,7 +584,7 @@ export const generateVariationSet: ToolDefinition = {
   network: true,
   name: "generate_variation_set",
   description:
-    "Generate a coherent creative family from the open asset using agent-supplied concepts or strong built-in directions. Each result is a separate editable indexed asset derived directly from the untouched source—not from the previous result—so silhouette, perspective, scale, pixel cadence, and lighting stay consistent while materials, rarity, age, biome, culture, ornament, and magic can vary boldly. Makes 2-6 slow, paid image-model calls. Use only when the human explicitly asks to create or generate multiple variations.",
+    "Create 2–6 editable variations from the untouched open source. Materials, rarity, age, biome, ornament or magic vary; silhouette, perspective, scale, pixel cadence and lighting persist. Slow/paid: one image each. Requires explicit request for multiple variants.",
   inputSchema: {
     type: "object",
     properties: {
@@ -650,9 +650,9 @@ export const generateVariationSet: ToolDefinition = {
 
     for (const variation of plan) {
       try {
-        created.push(
-          await deriveFromSource(source, variation.instruction, variation.name),
-        );
+        const result = await deriveFromSource(source, variation.instruction, variation.name);
+        created.push(result);
+        assetNavigation.request(result.id);
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
         if (created.length === 0) throw error;
@@ -702,6 +702,7 @@ export interface DerivationSource {
   readonly store: DocumentStore;
   readonly summary: AssetSummary;
   readonly png: Uint8Array;
+  readonly palette: readonly string[];
   readonly kind: "sprite" | "texture";
 }
 
@@ -711,11 +712,14 @@ interface DerivationResult {
   readonly message: string;
 }
 
-export function activeDerivationSource(): DerivationSource {
-  const store = session.active;
-  const id = session.activeId;
-  if (store === null || id === null)
+/** Capture a source without changing which asset the route is showing. */
+export function activeDerivationSource(sourceId?: string): DerivationSource {
+  const id = sourceId ?? session.activeId;
+  if (id === null)
     throw new ToolError("No asset is open. Open the source asset first.");
+  const store = session.get(id);
+  if (store === undefined)
+    throw new ToolError(`The source asset '${id}' no longer exists.`);
   const summary = session.list().find((asset) => asset.id === id);
   if (summary === undefined)
     throw new ToolError(`The open asset '${id}' no longer exists.`);
@@ -733,6 +737,7 @@ export function activeDerivationSource(): DerivationSource {
     store,
     summary,
     png: encodeIndexedPng(grid, palette, { scale }),
+    palette,
     kind:
       (summary.type === "tile" || summary.type === "texture") && fillsCanvas
         ? "texture"
@@ -755,6 +760,44 @@ export async function deriveFromSource(
   mode: "vary" | "rotate" | "pose" = "vary",
 ): Promise<DerivationResult> {
   const generated = await deriveImage(source.png, instruction, source.kind, mode);
+  return finishDerivation({ source, instruction, name, mode }, generated);
+}
+
+export interface DerivationRequest {
+  readonly source: DerivationSource;
+  readonly instruction: string;
+  readonly name: string;
+  readonly mode: "vary" | "rotate" | "pose";
+}
+
+/**
+ * Several derivations as one action, bought concurrently.
+ *
+ * A direction set's three turned views were generated one after another, each
+ * a two-minute wait, for a bill that is the same either way. Results come back
+ * settled and in order: each success is already an asset beside its source,
+ * and one failure does not discard the views drawn beside it.
+ */
+export async function deriveFromSources(
+  requests: readonly DerivationRequest[],
+): Promise<PromiseSettledResult<DerivationResult>[]> {
+  const generated = await deriveImages(
+    requests.map((request) => ({ source: request.source.png, instruction: request.instruction, kind: request.source.kind, mode: request.mode })),
+  );
+  return Promise.all(
+    generated.map(async (outcome, index): Promise<PromiseSettledResult<DerivationResult>> => {
+      if (outcome.status === "rejected") return outcome;
+      try {
+        return { status: "fulfilled", value: await finishDerivation(requests[index] as DerivationRequest, outcome.value) };
+      } catch (error) {
+        return { status: "rejected", reason: toToolError(error) };
+      }
+    }),
+  );
+}
+
+/** Everything after the image: pixelise, check, and file the asset beside its source. */
+async function finishDerivation({ source, name }: DerivationRequest, generated: GenerateResponse): Promise<DerivationResult> {
   const raster = await decodeBase64Png(generated.image);
   let result;
   try {
@@ -786,7 +829,7 @@ export async function deriveFromSource(
     );
   }
 
-  const sourcePalette = source.store.palette.colors.map((colour) => colour.hex);
+  const sourcePalette = source.palette;
   const id = session.create({
     name,
     type: source.summary.type,
@@ -873,23 +916,45 @@ export function mergePalette(
   const colors = [...existing];
   const added: string[] = [];
   const unmatched: string[] = [];
+
+  /** The entry this colour resolves to, and how far away it is. */
+  const nearest = (hex: string): { index: number; distance: number } => {
+    const lab = hexToOklab(hex);
+    let index = -1;
+    let distance = Number.POSITIVE_INFINITY;
+    for (let candidate = 0; candidate < colors.length; candidate += 1) {
+      const measured = oklabDistance(lab, hexToOklab(colors[candidate] as string));
+      if (measured < distance) {
+        distance = measured;
+        index = candidate;
+      }
+    }
+    return { index, distance };
+  };
+
+  // An entry the incoming art itself relies on is not spare, however little the
+  // canvas uses it. `used` describes what is *drawn*, and the edit's own
+  // colours are not drawn yet — so a near-white the canvas had stopped using
+  // was a free slot by that measure, and handing it to a new violet deleted the
+  // white the same edit was about to paint with.
+  const needed = new Set<number>();
+  for (const hex of incoming) {
+    const match = nearest(hex);
+    if (match.distance <= NEW_COLOUR_DISTANCE && match.index >= 0) needed.add(match.index);
+  }
+
   // Slots to spend, in the order to spend them: grow the palette first, then
-  // reclaim entries nothing on the canvas refers to.
+  // reclaim entries neither the canvas nor this edit refers to.
   const free: number[] = [];
   for (let index = colors.length; index < limit; index += 1) free.push(index);
   for (let index = 0; index < colors.length; index += 1) {
-    if (!used.has(index)) free.push(index);
+    if (!used.has(index) && !needed.has(index)) free.push(index);
   }
 
   for (const hex of incoming) {
-    const lab = hexToOklab(hex);
     // Measured against the growing list, so two near-identical incoming
     // colours spend one slot rather than two.
-    const nearest = colors.reduce(
-      (best, colour) => Math.min(best, oklabDistance(lab, hexToOklab(colour))),
-      Number.POSITIVE_INFINITY,
-    );
-    if (nearest <= NEW_COLOUR_DISTANCE) continue;
+    if (nearest(hex).distance <= NEW_COLOUR_DISTANCE) continue;
 
     const slot = free.shift();
     if (slot === undefined) {
@@ -903,11 +968,11 @@ export function mergePalette(
   return { colors, added, unmatched };
 }
 
-/** Every palette index the asset actually refers to, across every frame. */
+/** Reserve every layer's indices, including hidden or occluded artwork. */
 export function usedPaletteIndices(store: DocumentStore): ReadonlySet<number> {
   const used = new Set<number>();
-  for (let frame = 0; frame < store.frameCount; frame += 1) {
-    for (const cell of store.readComposite(frame).cells) {
+  for (const frame of store.snapshot().frames) for (const layer of frame.layers) {
+    for (const cell of layer.grid.cells) {
       if (cell !== TRANSPARENT) used.add(cell);
     }
   }
@@ -937,7 +1002,7 @@ function MODEL_NOTE(model: string): string {
 export const pixelizeCanvas: ToolDefinition = {
   name: "pixelize",
   description:
-    "Re-pixelise the currently open asset at a different size or colour count, replacing its pixels. Useful after generation when the detector chose a size that reads badly, or to reduce a 16-colour asset to a tighter palette. This is a lossy resample of what is already on the canvas — undo restores the previous pixels in one step.",
+    "Create/open a lossy single-frame/layer copy of the selected composite, with extracted palette and source type/placement. Width 8–128px, height proportional. Original frames/history unchanged; inspect the copy.",
   inputSchema: {
     type: "object",
     properties: {
@@ -945,7 +1010,7 @@ export const pixelizeCanvas: ToolDefinition = {
         type: "integer",
         minimum: 8,
         maximum: 128,
-        description: "New width in pixels.",
+        description: "Copy width in pixels; height preserves the source aspect ratio.",
       },
       max_colors: {
         type: "integer",
@@ -958,12 +1023,10 @@ export const pixelizeCanvas: ToolDefinition = {
   },
   example: { target_width: 16 },
   execute: async (args) => {
-    const store = session.active;
-    if (store === null) {
-      throw new ToolError(
-        "No asset is open. Call open_asset or generate_asset first.",
-      );
-    }
+    const source = requireActiveAsset();
+    const { id, name, type, store } = source;
+    const target = captureEditTarget(source);
+    const destination = { ...projects.placementOf(id) };
     const targetWidth = readInteger(args, "target_width", 8, 128);
     const maxColors =
       readOptionalInteger(args, "max_colors", 2, 16) ??
@@ -985,21 +1048,28 @@ export const pixelizeCanvas: ToolDefinition = {
       throw toToolError(error);
     }
 
-    if (
-      result.grid.width !== store.width ||
-      result.grid.height !== store.height
-    ) {
+    assertEditTarget(target);
+    assertGenerationDestination(destination);
+    if (result.palette.length === 0) {
       throw new ToolError(
-        `Pixelising to ${String(targetWidth)} would produce a ${String(result.grid.width)}x${String(result.grid.height)} grid, ` +
-          `but '${store.name}' is ${String(store.width)}x${String(store.height)} and dimensions are immutable. ` +
-          `Use generate_asset for a different size, or pick a target_width that divides evenly.`,
+        "The selected frame contains no opaque pixels. No pixelised copy was created.",
       );
     }
 
-    const changed = store.transaction("pixelize", () =>
-      store.writeRegion(0, 0, encodeGrid(result.grid)),
-    );
-    return `Re-pixelised to ${String(result.palette.length)} colours; ${String(changed)} pixel(s) changed.`;
+    // Grid indices belong to the extracted palette, never to the source palette.
+    const copyId = session.create({
+      name: `${name} pixelised ${String(result.grid.width)}x${String(result.grid.height)}`,
+      type: type as AssetType,
+      width: result.grid.width,
+      height: result.grid.height,
+      palette: result.palette,
+      grid: result.grid,
+    });
+    if (destination.projectId !== null && !projects.place(copyId, destination.projectId, destination.folderId)) {
+      throw new ToolError(`Pixelised copy '${copyId}' was created but could not be placed in its source folder. It is available in the loose library.`);
+    }
+    assetNavigation.request(copyId);
+    return `Created and opened pixelised copy '${copyId}' (${String(result.grid.width)}x${String(result.grid.height)}, ${String(result.palette.length)} colours) from frame ${String(target.frame)} of '${id}'. The original asset and its history are unchanged. Inspect the copy to verify its appearance.`;
   },
 };
 
@@ -1035,31 +1105,46 @@ export const reduceColors: ToolDefinition = {
 export const removeBackground: ToolDefinition = {
   name: "remove_background",
   description:
-    "Remove a flat background by replacing the most common opaque border colour with transparency.",
+    "Clear only border-connected pixels matching the active layer's most common border colour. Transparency-dominated borders do nothing; enclosed matching pixels remain.",
   inputSchema: { type: "object", properties: {} },
   example: {},
   execute: () => {
     const { store } = requireActiveAsset();
-    const grid = store.readComposite();
+    const grid = store.readLayer();
     const counts = new Map<number, number>();
     for (let x = 0; x < grid.width; x += 1)
       for (const y of [0, grid.height - 1]) {
         const cell = grid.cells[y * grid.width + x] as number;
-        if (cell >= 0) counts.set(cell, (counts.get(cell) ?? 0) + 1);
+        counts.set(cell, (counts.get(cell) ?? 0) + 1);
       }
     for (let y = 1; y < grid.height - 1; y += 1)
       for (const x of [0, grid.width - 1]) {
         const cell = grid.cells[y * grid.width + x] as number;
-        if (cell >= 0) counts.set(cell, (counts.get(cell) ?? 0) + 1);
+        counts.set(cell, (counts.get(cell) ?? 0) + 1);
       }
     const background = [...counts.entries()].sort(
       (a, b) => b[1] - a[1],
     )[0]?.[0];
-    if (background === undefined)
+    if (background === undefined || background === TRANSPARENT)
       return "Nothing changed: the border is already transparent.";
-    const changed = store.transaction("remove_background", () =>
-      store.replaceColor(background as never, TRANSPARENT),
-    );
+    const changed = store.transaction("remove_background", () => {
+      let removed = 0;
+      const clearComponent = (x: number, y: number) => {
+        const start = y * grid.width + x;
+        if (grid.cells[start] !== background) return;
+        const changes = bucketFill(grid, x, y, TRANSPARENT, {});
+        for (const change of changes) grid.cells[change.offset] = change.to;
+        removed += changes.length;
+      };
+      for (let x = 0; x < grid.width; x += 1) for (const y of [0, grid.height - 1]) {
+        clearComponent(x, y);
+      }
+      for (let y = 1; y < grid.height - 1; y += 1) for (const x of [0, grid.width - 1]) {
+        clearComponent(x, y);
+      }
+      if (removed > 0) store.writeRegion(0, 0, grid);
+      return removed;
+    });
     return `Removed border colour index ${String(background)} from ${String(changed)} pixel(s).`;
   },
 };

@@ -44,6 +44,12 @@ interface Sample {
 }
 
 function bounds(start: number, cell: number, limit: number): [number, number] {
+  // Upscaling samples one source pixel; rounded bounds can spill past the edge.
+  if (cell < 1) {
+    // Keep fractional-scale roundoff from moving an exact boundary one pixel left.
+    const pixel = Math.max(0, Math.min(limit - 1, Math.floor(start + cell / 2 + Number.EPSILON * limit)));
+    return [pixel, pixel + 1];
+  }
   const from = Math.max(0, Math.round(start));
   const to = Math.min(limit, Math.round(start + cell));
   return [from, Math.max(from + 1, to)];
@@ -192,7 +198,7 @@ export function resolveCell(
   return { r: winner.r, g: winner.g, b: winner.b, a: 255 };
 }
 
-/** Resamples the image down to the detected grid, one resolved colour per cell. */
+/** Resamples the image to the requested grid, one resolved colour per cell. */
 export function resampleToGrid(image: RasterImage, grid: DetectedGrid): RasterImage {
   const width = Math.max(1, grid.x.count);
   const height = Math.max(1, grid.y.count);

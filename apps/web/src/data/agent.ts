@@ -51,3 +51,50 @@ export const agentConsoleCopy = {
     assistantLabel: "Assistant",
   },
 } as const;
+
+/** Costs shown before completing a character's existing direction family. */
+export const directionPanelCopy = {
+  complete: (set: string) => `${set} is complete.`,
+  mirrored: (mirrors: number, models: number) => `${String(mirrors)} free by mirroring, ${String(models)} need a model.`,
+  missing: (missing: number, calls: number) => `${String(missing)} directions are missing. Nothing can be mirrored yet; ${String(calls)} model calls would complete the set.`,
+};
+
+export const timelineCopy = { mixedFps: "Mixed" } as const;
+
+/** The asset panel's text-animation section. */
+export const animationPanelCopy = {
+  title: "Text animation",
+  descriptionLabel: "Animation description",
+  descriptionPlaceholder: "A quick jab, an overhead slash, a jump…",
+  effectsLabel: "Animation effects",
+  effectsPlaceholder: "Effects, optional: purple trail behind the blade, air-cut arc…",
+  framesLabel: "Animation frame count",
+  generateLabel: "Generate frames",
+  hint: "One image buys the whole cycle beside the source frame; a vision check redraws frames that drift. Results appear in the timeline below the canvas.",
+} as const;
+
+export const skeletonPanelCopy = {
+  title: "Skeleton",
+  estimateLabel: "Estimate from silhouette",
+  reestimateLabel: "Re-estimate from this frame",
+  hideLabel: "Hide skeleton",
+  typeLabel: "Character type",
+  types: [
+    { value: "bipedal", label: "bipedal" },
+    { value: "bipedal-chibi", label: "chibi" },
+    { value: "quadrupedal", label: "quadruped" },
+  ],
+  facingLabel: "Facing",
+  facings: [
+    { value: "east", label: "faces east" },
+    { value: "west", label: "faces west" },
+  ],
+  templateLabel: "Pose template",
+  templatePlaceholder: "Pose…",
+  buildCycleLabel: (template: string) => `Build ${template} cycle — local`,
+  framesLabel: "Skeleton animation frame count",
+  bakeLabel: "Create posed frame — local",
+  resetLabel: "Reset pose",
+  hint: "Drag a joint on the canvas: the sprite follows live, limbs turn as one piece, and the pose snaps to art pixels. Create posed frame adds the result as a new editable frame; a template pose or cycle turns this character's own limbs by the template's angles.",
+  quadrupedHint: "Stock cycles are bipedal. Pose a quadruped by dragging its joints, then create the frame.",
+} as const;

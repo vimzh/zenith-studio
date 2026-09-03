@@ -2,6 +2,10 @@
 
 **Goal.** Frames, timeline, playback, and the perception tools that make multi-frame work affordable for an agent.
 
+**Timing default (3 September 2026):** new frames use 250ms (4fps). The timeline
+shows the rate implied by saved frame durations, or “Mixed” for unequal holds.
+Existing saved timing is preserved; changing FPS explicitly updates all frames.
+
 **Why here.** Animation is the strongest differentiator ([`../idea.md` §8](../idea.md)) and mostly deterministic, so it lands before the generation-dependent rotation phase. Structure before authoring: this phase makes frames exist and legible; [phase 08](./08-animation-authoring.md) makes them easy to create.
 
 ## The model

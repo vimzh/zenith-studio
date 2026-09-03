@@ -1,0 +1,42 @@
+{
+  "subject": "slender elf archer in a green hooded cloak with a tall recurve longbow in the left hand and a quiver on the back",
+  "motion": "leaping upward and firing three glowing arrows downward",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "three glowing green arrows fanning downward",
+  "frames": 5,
+  "plan": {
+    "source": "Elf archer faces right; left hand holds tall bow upright ahead, right hand raised by back quiver; cloak draped; weight mostly on left foot, right slightly back; head turned right.",
+    "frames": [
+      {
+        "pose": "Anticipation: torso dips, hips back; left hand lowers bow diagonally near thigh; right hand grabs three from quiver; head tilts down-right; left foot planted, right heel lifted, knees loaded.",
+        "contact": "grounded",
+        "ms": 90,
+        "effect": "Small green sparkles gather at right hand by quiver."
+      },
+      {
+        "pose": "Takeoff: spring up; both feet leave ground, knees tuck; left arm lifts bow overhead; right hand sweeps forward, three nocked to string; head angles up; cloak lags.",
+        "contact": "airborne",
+        "ms": 80,
+        "effect": "Sparkles at nock; faint trail from right hand sweep to string."
+      },
+      {
+        "pose": "Apex fire: torso arches; left arm fully extends aiming bow down-right; right hand at cheek releasing; legs tucked, toes back; head sights along bow.",
+        "contact": "airborne",
+        "ms": 160,
+        "effect": "Three glowing green arrows burst and fan downward with short trails; bowstring snap arc by grip."
+      },
+      {
+        "pose": "Follow-through: descending; left arm recoils past near-vertical; right hand past chin to rib; legs extend slightly, toes down; head still tracking.",
+        "contact": "airborne",
+        "ms": 100,
+        "effect": "Fading green trails along the three downward paths; a few sparkles at bow tip."
+      },
+      {
+        "pose": "Landing/settle: left foot plants forward, right toe then heel sets behind; knees bend; torso rises toward neutral; left hand lowers bow to upright; right hand drops toward quiver; head faces right.",
+        "contact": "grounded",
+        "ms": 130
+      }
+    ]
+  },
+  "planSeconds": 26.935014250000002
+}

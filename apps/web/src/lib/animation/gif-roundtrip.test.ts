@@ -17,6 +17,7 @@ interface Decoded {
   readonly height: number;
   readonly frames: number[][];
   readonly transparentIndex: number;
+  readonly delays: number[];
 }
 
 /** Minimal GIF89a reader — enough to verify what the encoder wrote. */
@@ -40,11 +41,13 @@ function decodeGif(bytes: Uint8Array): Decoded {
   at += tableSize * 3; // skip the global colour table
 
   const frames: number[][] = [];
+  const delays: number[] = [];
 
   while (at < bytes.length) {
     const marker = bytes[at] as number;
 
     if (marker === 0x21) {
+      if (bytes[at + 1] === 0xf9) delays.push(((bytes[at + 4] as number) | ((bytes[at + 5] as number) << 8)) * 10);
       // Extension: skip its blocks.
       at += 2;
       while ((bytes[at] as number) !== 0) {
@@ -83,7 +86,7 @@ function decodeGif(bytes: Uint8Array): Decoded {
     frames.push(lzwDecode(data, minimumCodeSize, width * height));
   }
 
-  return { width, height, frames, transparentIndex };
+  return { width, height, frames, transparentIndex, delays };
 }
 
 function lzwDecode(data: readonly number[], minimumCodeSize: number, expected: number): number[] {
@@ -171,6 +174,12 @@ function indicesOf(grid: Grid, transparentIndex: number): number[] {
 const PALETTE = ["#000000", "#ff0000", "#00ff00", "#0000ff"];
 
 describe("GIF round-trip", () => {
+  test("defaults to 4 fps and preserves explicit uniform or mixed frame timings", () => {
+    const frames = [createGrid(2, 2, 0), createGrid(2, 2, 1)];
+    expect(decodeGif(encodeGif(frames, PALETTE)).delays).toEqual([250, 250]);
+    expect(decodeGif(encodeGif(frames, PALETTE, { delayMs: 80 })).delays).toEqual([80, 80]);
+    expect(decodeGif(encodeGif(frames, PALETTE, { delayMs: [80, 350] })).delays).toEqual([80, 350]);
+  });
   test("a single frame decodes back to its exact pixels", () => {
     const grid = gridFromRows(["0123", "3210", "0011", "2233"]);
     const decoded = decodeGif(encodeGif([grid], PALETTE));

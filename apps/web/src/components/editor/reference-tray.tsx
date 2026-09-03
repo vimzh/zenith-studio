@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { DocumentStore } from "@zenith/core";
+import { paletteHexes, type DocumentStore } from "@zenith/core";
 import { Upload } from "lucide-react";
+import { encodeIndexedPng } from "@/lib/export";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -62,6 +63,23 @@ async function fileBase64Png(file: File): Promise<string> {
   }
 }
 
+/**
+ * The open asset, rendered as something a model can read.
+ *
+ * Upscaled to roughly 512px on its long side for the same reason a style
+ * reference is: a 32x32 PNG gives an image model almost nothing to work from.
+ * The scale stays an integer so the source it sees is the art, not a resampled
+ * approximation of it.
+ */
+async function storeBase64Png(store: DocumentStore): Promise<string> {
+  const scale = Math.max(1, Math.floor(512 / Math.max(store.width, store.height)));
+  const png = encodeIndexedPng(store.readComposite(), paletteHexes(store.palette), { scale });
+  // Through a Blob rather than String.fromCharCode over the array: a 512x512
+  // PNG is hundreds of thousands of bytes and spreading that into a call
+  // overflows the stack, which is exactly how the exporter broke once.
+  return await blobBase64(new Blob([png as BlobPart], { type: "image/png" }));
+}
+
 async function executeTool(name: string, args: Readonly<Record<string, unknown>>): Promise<string> {
   const tool = findTool(name);
   if (tool === undefined) throw new Error(`The ${name} tool is not registered.`);
@@ -73,11 +91,16 @@ async function executeTool(name: string, args: Readonly<Record<string, unknown>>
 /** Stages concept art, builds one base sprite, then explicitly completes its direction set. */
 export function ReferenceTray({
   allowDirectionGeneration,
+  assetId,
+  store,
 }: {
   readonly allowDirectionGeneration: boolean;
+  readonly assetId: string;
+  readonly store: DocumentStore;
 }) {
   const input = useRef<HTMLInputElement | null>(null);
-  const [file, setFile] = useState<File | null>(null);
+  /** The staged concept: a file from disk, or the asset already open. */
+  const [concept, setConcept] = useState<{ name: string; png: string } | null>(null);
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [outputId, setOutputId] = useState<string | null>(null);
   const [targetSize, setTargetSize] = useState<TargetSize>(32);
@@ -95,15 +118,39 @@ export function ReferenceTray({
 
   const output: DocumentStore | undefined = outputId === null ? undefined : session.get(outputId);
 
+  /**
+   * Stages the asset already open, instead of asking for a file.
+   *
+   * The tray was built for concept art arriving from disk, so with a character
+   * on screen the build button simply sat greyed out — the source it wanted was
+   * the thing the human was looking at. Explicit rather than a silent fallback:
+   * the staged concept shows in the Source preview, so what the model will be
+   * given is on screen before anything is spent.
+   */
+  const stageOpenAsset = async () => {
+    setFailed(false);
+    try {
+      const png = await storeBase64Png(store);
+      const name = session.list().find((asset) => asset.id === assetId)?.name ?? "Open asset";
+      setConcept({ name, png });
+      setOutputId(null);
+      setSourceUrl(`data:image/png;base64,${png}`);
+      setStatus(`Staged '${name}' as the concept.`);
+    } catch (error) {
+      setFailed(true);
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   const buildBase = async () => {
-    if (file === null) return;
+    if (concept === null) return;
     setBusy("base");
     setFailed(false);
     setStatus("Extracting and pixelising the base sprite…");
     try {
       const result = await buildCharacterFromConcept({
-        image: await fileBase64Png(file),
-        name: file.name.replace(/\.[^.]+$/, ""),
+        image: concept.png,
+        name: concept.name,
         direction_set: directionSet,
         base_direction: baseDirection,
         target_width: targetSize,
@@ -172,12 +219,26 @@ export function ReferenceTray({
         className="hidden"
         onChange={(event) => {
           const next = event.target.files?.[0] ?? null;
-          setFile(next);
-          setOutputId(null);
-          setStatus(next === null ? null : "Concept staged locally.");
-          setFailed(false);
-          setSourceUrl(next === null ? null : URL.createObjectURL(next));
           event.target.value = "";
+          setOutputId(null);
+          setFailed(false);
+          if (next === null) {
+            setConcept(null);
+            setSourceUrl(null);
+            setStatus(null);
+            return;
+          }
+          setSourceUrl(URL.createObjectURL(next));
+          void fileBase64Png(next)
+            .then((png) => {
+              setConcept({ name: next.name.replace(/\.[^.]+$/, ""), png });
+              setStatus("Concept staged locally.");
+            })
+            .catch((error: unknown) => {
+              setConcept(null);
+              setFailed(true);
+              setStatus(error instanceof Error ? error.message : String(error));
+            });
         }}
         ref={input}
         type="file"
@@ -221,14 +282,24 @@ export function ReferenceTray({
 
       <div className="mt-1.5 grid gap-1">
         <Button className="h-7 justify-start rounded-sm text-xs" disabled={busy !== null} onClick={() => input.current?.click()} size="sm" type="button" variant="outline">
-          {file === null ? "Choose image…" : "Replace image…"}
+          {concept === null ? "Choose image…" : "Replace image…"}
         </Button>
         <Button
           className="h-7 justify-start rounded-sm text-xs"
-          disabled={file === null || busy !== null}
+          disabled={busy !== null}
+          onClick={() => void stageOpenAsset()}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          Use open asset
+        </Button>
+        <Button
+          className="h-7 justify-start rounded-sm text-xs"
+          disabled={concept === null || busy !== null}
           onClick={() => void buildBase()}
           size="sm"
-          title={file === null ? "Choose a concept image first." : undefined}
+          title={concept === null ? "Choose a concept image, or use the open asset." : undefined}
           type="button"
           variant="outline"
         >
@@ -257,10 +328,10 @@ export function ReferenceTray({
       */}
       {busy === null ? (
         <p className="mt-1.5 font-mono text-[10px] leading-relaxed text-muted-foreground">
-          {file === null
-            ? "Choose a concept image to build from — a drawing or photo of one character."
+          {concept === null
+            ? "Build from a drawing or photo of one character, or from the asset open right now."
             : outputId === null
-              ? "Builds one clean base sprite from the concept. Takes a minute."
+              ? "Redraws the concept as one clean base sprite. Takes a minute. To turn a character you already have, use Directions above instead."
               : "Base sprite ready. Generating directions mirrors what it can and draws the rest."}
         </p>
       ) : null}

@@ -1,0 +1,23 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: orange flames bursting up from the ground in front of the mage
+planned 4 poses in 18.2s; source read as: Mage in crimson hood faces right three-quarter; left hand holds an upright gnarled staff with ember crystal, right arm extended pointing; right foot forward, left back, relaxed stance.
+  1. [grounded, 80ms] Anticipation: torso leans back; left hand lifts staff behind left shoulder, top angled back; right hand retracts to chest; knees dip; hips shift over left leg; head tilts to ground ahead; both feet planted. | effect: Small ember sparkles gather at the crystal; faint upward trail from the lifted staff.
+  2. [grounded, 200ms] Key: torso snaps forward; left arm slams staff down, tip hitting ground before right toe; right arm swings back; deep knee bend, weight over right; head at impact; both feet planted. | effect: Bright arc along the staff’s downswing; ground impact flare and tall orange flames burst up in front of the mage.
+  3. [grounded, 160ms] Follow-through: torso pitched forward; left hand pins staff tip to ground ahead; right arm thrown back for balance; knees still bent; head follows flames; both feet planted. | effect: Flame column peaks in front, tapering upward; ember sparks trail above the burst.
+  4. [grounded, 100ms] Recovery: torso straightens; left hand slides staff upright beside left hip; right arm comes forward, palm open; knees easing to neutral; head lifts; both feet planted. | effect: Low licking flames at the impact spot in front fading; a few drifting embers remain.
+1 sheet(s) generated concurrently in 113.5s
+  baseline 512px, tolerance down 102px / up 41px, shifts 35, 32, 58, 0
+  frame 4: empty cell
+palette: added nothing; unmatched none
+judged in 15.5s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+1 sheet(s) generated concurrently in 153.2s
+  baseline 512px, tolerance down 102px / up 41px, shifts 22
+judged in 20.7s
+  after repair, frame 1: ok
+  after repair, frame 2: ok
+  after repair, frame 3: ok
+  after repair, frame 4: still rejected — Stage mismatch: shows an upright hold with continuing large flames, not recovery. Effects mismatch: tall flame column persists instead of low fading flames with a few embers.
+wrote 4 frames to ../../output/showcase/mage/eruption; holds 80, 200, 160, 100ms; bottom rows 127, 126, 127, 127, 127; sheets 2; sheet seconds 113, 153
+exit 0, wall 322s

@@ -1,0 +1,56 @@
+{
+  "sourceProject": "project_003",
+  "restoredProject": {
+    "projectId": "project_005",
+    "assetIds": {
+      "asset_032": "asset_039",
+      "asset_038": "asset_040"
+    },
+    "folderIds": {
+      "folder_001": "folder_002"
+    },
+    "imported_in_memory": true,
+    "persistence": "not confirmed; call flush_storage"
+  },
+  "allDocumentsEqual": true,
+  "restoredContents": {
+    "project": {
+      "id": "project_005",
+      "name": "Agent I/O verified — restored",
+      "style_references": [
+        "asset_039"
+      ]
+    },
+    "folders": [
+      {
+        "id": "folder_002",
+        "projectId": "project_005",
+        "parentId": null,
+        "name": "Characters",
+        "order": 7
+      }
+    ],
+    "assets": [
+      {
+        "id": "asset_039",
+        "name": "Agent I/O fixture",
+        "type": "character",
+        "width": 64,
+        "height": 64,
+        "frameCount": 4,
+        "projectId": "project_005",
+        "folderId": "folder_002"
+      },
+      {
+        "id": "asset_040",
+        "name": "Agent I/O imported PNG",
+        "type": "character",
+        "width": 64,
+        "height": 64,
+        "frameCount": 1,
+        "projectId": "project_005",
+        "folderId": null
+      }
+    ]
+  }
+}

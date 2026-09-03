@@ -1,0 +1,55 @@
+{
+  "subject": "adult male boxer, bare torso, red boxing gloves held up in guard, red shorts, dark boxing boots",
+  "motion": "a one-two combination: a quick lead-hand jab followed by a rear-hand cross, then back to guard",
+  "facing": "in a three-quarter fighting view facing screen-right",
+  "effects": "a short white air-cut streak behind whichever glove is at full extension",
+  "frames": 8,
+  "plan": {
+    "source": "Boxer in three-quarter guard facing right, left foot forward, weight centered, gloves up near chin with left slightly ahead, elbows in, knees soft.",
+    "frames": [
+      {
+        "pose": "Small dip and slight draw of left shoulder; weight shifts to right leg; left glove tight to cheek, right a touch higher; hips preload left; left knee bends; left foot planted, right heel light.",
+        "contact": "grounded",
+        "ms": 60
+      },
+      {
+        "pose": "Snap left jab to full reach; torso snaps forward; right glove at cheek; chin tucked; hips square; left foot planted, right heel lifted slightly.",
+        "contact": "grounded",
+        "ms": 100,
+        "effect": "short white streak behind extended left glove, arcing back toward his left shoulder"
+      },
+      {
+        "pose": "Retract left to guard; slight rebound back; torso straightens; right still high; left foot planted, right heel lowering.",
+        "contact": "grounded",
+        "ms": 60
+      },
+      {
+        "pose": "Wind for cross: rotate hips, right shoulder coils back; left glove screens forward; weight shifts to left leg; left foot planted, right on ball ready to pivot.",
+        "contact": "grounded",
+        "ms": 60
+      },
+      {
+        "pose": "Drive right cross full extension; hips rotate through, slight forward lean; left glove tight to cheek; chin down; left foot planted, right ball pivots outward.",
+        "contact": "grounded",
+        "ms": 120,
+        "effect": "short white streak behind extended right glove, curving back toward his right shoulder"
+      },
+      {
+        "pose": "Begin cross retraction across center; torso decelerates; left hand edges forward to cover; weight recenters; left foot planted, right heel starts to settle.",
+        "contact": "grounded",
+        "ms": 60
+      },
+      {
+        "pose": "Settle to guard; both gloves return near chin; slight upward bounce; torso upright; knees soft; left foot planted, right foot flat again.",
+        "contact": "grounded",
+        "ms": 80
+      },
+      {
+        "pose": "Micro drop to match rest; elbows in; head level; stance squared to flow into idle; left foot planted, right relaxed under hip.",
+        "contact": "grounded",
+        "ms": 60
+      }
+    ]
+  },
+  "planSeconds": 0.00018870799999999121
+}

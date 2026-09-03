@@ -33,6 +33,8 @@ import type { ScopeContext } from "./scope";
 import type { ToolDefinition } from "./types";
 
 export const CHAT_TOOL_NAMES: readonly string[] = [
+  // Explicit metadata correction, without regenerating an existing subject.
+  "set_asset_type",
   // Perception — the agent must see before it edits.
   "read_canvas",
   "get_palette",
@@ -88,7 +90,6 @@ export const CHAT_TOOL_NAMES: readonly string[] = [
   "generate_variation_set",
   "set_palette",
   "estimate_skeleton",
-  "list_pose_templates",
 ];
 
 /** The chat allowlist, narrowed to what the current view can actually act on. */

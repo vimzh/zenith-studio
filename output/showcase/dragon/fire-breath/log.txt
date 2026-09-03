@@ -1,0 +1,16 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: a cone of orange and yellow fire from the mouth
+planned 4 poses in 24.5s; source read as: Small dragon whelp on all fours facing right; head high, mouth closed; near forepaw slightly ahead; far wing half-open; tail curled behind. No items held.
+  1. [grounded, 90ms] Anticipation: torso rocks back, chest dips; head tucks, jaw parts; shoulders draw back; forepaws press; hindlegs crouch; wing tucks slightly; tail coils tighter behind. | effect: Small orange/yellow glow gathers at the mouth.
+  2. [grounded, 180ms] Key: sharp lunge forward; chest up; head thrust right, jaw wide; forepaws braced straight; hips drive; wing flares; tail whips opposite. | effect: Broad cone of orange/yellow fire blasts from mouth forward-right.
+  3. [grounded, 90ms] Follow-through: neck still extended but lowering; jaw open; torso settles forward; forepaws bend; wing easing inward; tail continues swing. | effect: Longer cone from mouth, tapering with a few orange/yellow embers along it.
+  4. [grounded, 160ms] Recovery: torso rocks back toward neutral; head lifts, jaw closing; forepaws relax; hindlegs straighten; wing folds toward half-open; tail curls back. | effect: Cone ceases; tiny orange/yellow puff and ember just before the mouth.
+1 sheet(s) generated concurrently in 108.8s
+  baseline 512px, tolerance down 102px / up 41px, shifts 40, 45, 83, 61
+palette: added nothing; unmatched none
+judged in 9.2s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+wrote 4 frames to ../../output/showcase/dragon/fire-breath; holds 90, 180, 90, 160ms; bottom rows 127, 127, 127, 127, 127; sheets 1; sheet seconds 109
+exit 0, wall 143s

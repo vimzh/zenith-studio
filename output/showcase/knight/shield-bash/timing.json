@@ -1,0 +1,17 @@
+{
+  "planSeconds": 21.8329335,
+  "sheetSeconds": [
+    113.68675774999998,
+    157.325151292
+  ],
+  "sheets": 2,
+  "layouts": [
+    {
+      "columns": 3,
+      "rows": 2,
+      "scale": 4,
+      "width": 1536,
+      "height": 1024
+    }
+  ]
+}

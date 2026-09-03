@@ -114,25 +114,34 @@ instead — never silently corrected.
 
 ## The tool surface
 
-73 tools, registered **scoped to the current view** rather than all at once: the
-library offers a handful, a tile is never offered skeleton tools, and frame
+Tools are registered **scoped to the current view** rather than all at once: the
+library offers project and file operations, a tile is never offered skeleton tools, and frame
 diffing appears only once an asset has a second frame.
+
+External agents can drive the main flow without the built-in chat: image input,
+indexed editing, animation, project organization, save checks and complete file
+output. Long model calls have pollable jobs with request-ID deduplication;
+exports have readable byte chunks instead of requiring download clicks. See the
+[agent workflow](docs/agent-workflow.md) for the protocol and its browser-session
+limits. This is live-tab WebMCP, not a standalone remote MCP server.
 
 | Group | Tools |
 | --- | --- |
+| Projects | `list_projects` `create_project` `open_project` `list_project_contents` `create_folder` `move_asset` `rename_project` `import_project` `get_style_profile` `set_style_profile` `add_style_reference` `check_style_consistency` `conform_to_style` |
+| Jobs and storage | `start_tool_job` `get_tool_job` `get_storage_status` `flush_storage` |
 | Context | `list_assets` `create_asset` `open_asset` `rename_asset` `duplicate_asset` `delete_asset` `describe_asset` |
 | Viewport | `get_viewport` `focus_viewport` |
 | Perception | `read_canvas` `read_region` `get_palette` `get_color_at` `find_color_regions` `check_readability` |
 | Editing | `write_region` `set_pixels` `fill_region` `bucket_fill` `replace_color` `clear_region` `shift` `mirror` `draw_line` `draw_rect` `dither_region` `rotate_grid` `resize_canvas` `crop_to_content` |
 | Frames | `list_frames` `add_frame` `select_frame` `delete_frame` `reorder_frames` `set_frame_duration` `read_frame` `get_silhouette` |
-| Animation | `read_frames_diff` `read_animation_summary` `check_animation_coherence` `animate_procedural` `interpolate_frames` |
+| Animation | `read_frames_diff` `read_animation_summary` `check_animation_coherence` `animate_procedural` `animate_with_skeleton` `animate_with_text` `interpolate_frames` |
 | Directions | `get_directions` `select_direction` `derive_direction_by_mirror` `rotate_character` `generate_direction_set` |
 | History | `undo` `redo` |
 | Generation | `generate_asset` `derive_variant` `generate_variation_set` `pixelize` `import_image` `build_character_from_reference` `generate_tileset` `reduce_colors` `remove_background` `extract_palette` `check_grid_alignment` |
 | Authoring | `set_palette` `estimate_skeleton` `list_pose_templates` |
 | Worlds | `generate_texture` `generate_isometric_tile` `assemble_map` `extend_map` |
 | Validation | `check_seamless_tiling` |
-| Export | `export_png` `export_animation` `export_for_engine` `export_palette` `export_project` |
+| Export | `export_png` `export_animation` `export_for_engine` `export_palette` `export_project` `list_exports` `read_export` `release_export` |
 
 Three of these are worth singling out.
 
@@ -154,7 +163,7 @@ beside stone at the seam is invisible when mortar sits beside stone throughout.
 ## Development
 
 ```bash
-bun run test        # 632 tests across three workspaces
+bun run test        # tests across three workspaces
 bun run typecheck
 bun run lint
 bun run build

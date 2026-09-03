@@ -1,0 +1,59 @@
+[
+  {
+    "pass": 1,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": false,
+        "problems": [
+          "No orange-yellow sparks gathering at the crystal.",
+          "No faint glow at the staff tip."
+        ]
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  },
+  {
+    "pass": 2,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": false,
+        "problems": [
+          "Staff missing; equipment mismatch with source.",
+          "Effects gather at hand, not at staff crystal.",
+          "No glow at staff tip."
+        ]
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  }
+]

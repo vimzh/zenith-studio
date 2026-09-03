@@ -41,12 +41,12 @@ Skeleton editor overlay · skeleton library panel · template picker
 - [ ] `transfer_animation` moves a hand-authored cycle to a different character with the pose preserved
 - [ ] Every generated frame passes `check_palette_compliance` and `check_animation_coherence`
 - [ ] Saved skeletons persist across sessions and projects
-- [ ] An agent can pose a skeleton entirely through tools, no UI required
+- [x] An agent can pose a skeleton entirely through tools, no UI required — `estimate_skeleton`, then `animate_with_skeleton` with `joints`
 
 ## Risks
 
 | Risk | Mitigation |
 | --- | --- |
 | Keypoint precision is poor at 32×32 — a joint is 1–2 pixels | Keep normalised pose storage, render and drag on the pixel grid, and bake only when the pose reads clearly. |
-| Flat deformation can distort overlaps | Use it for blocking, preserve the indexed source, and finish silhouette/overlap corrections with normal pixel tools. |
+| Flat deformation can distort overlaps | Bind every pixel to one bone and move it rigidly, so a limb turns as a piece and the body stays put; a held prop follows the hand. Use it for blocking, preserve the indexed source, and finish overlap corrections with normal pixel tools. |
 | Highest-cost phase, most deferrable | It is 14th for exactly this reason. Phases 09–10 already ship real animation; this is leverage, not table stakes. |

@@ -1,4 +1,7 @@
 import { TRANSPARENT, createGrid, type Cell, type Grid } from "@zenith/core";
+import { session } from "./session";
+import { assetStorage } from "./storage";
+import { importLibrary } from "./transfer";
 
 /**
  * Example assets, generated at startup.
@@ -144,3 +147,89 @@ export const SEED_ASSETS: readonly SeedAsset[] = [
   { name: "Grass", type: "tile", preset: "tile-32", grid: grass() },
   { name: "Crate", type: "item", preset: "item-16", grid: crate() },
 ];
+
+/**
+ * The generated character pack, fetched rather than bundled.
+ *
+ * Forty sprites is 274KB of serialised documents — 63KB over the wire — and
+ * putting that in the JS bundle would cost every visit to pay for something
+ * only the first one uses. It lives in `public/` and is fetched once, when the
+ * library turns out to be empty.
+ */
+const CHARACTER_PACK = "/seed/characters.json";
+
+/**
+ * Remembers that seeding already happened, so an emptied library stays empty.
+ *
+ * Seeding on `size === 0` alone means deleting every asset brings them all
+ * back on the next visit — a nuisance with three examples and unacceptable
+ * with forty. The marker is per-browser, which is the same scope as the
+ * library itself, and losing it (private window, cleared site data) only
+ * re-seeds a library that is empty anyway.
+ */
+const SEEDED_KEY = "zenith.seeded.v1";
+
+function alreadySeeded(): boolean {
+  try {
+    // Read the storage out before comparing. `localStorage?.getItem(k) !== null`
+    // reads as "no marker" but evaluates to `undefined !== null`, which is true
+    // — so anywhere without localStorage would decide it had already seeded and
+    // silently never seed at all.
+    const storage: Storage | undefined = globalThis.localStorage;
+    return storage !== undefined && storage.getItem(SEEDED_KEY) !== null;
+  } catch {
+    // Storage can throw outright rather than return null — a browser set to
+    // block site data, or a sandboxed frame. Treat it as "not seeded".
+    return false;
+  }
+}
+
+function markSeeded(): void {
+  try {
+    globalThis.localStorage?.setItem(SEEDED_KEY, new Date().toISOString());
+  } catch {
+    // Nothing to do: the worst case is seeding again on the next empty visit.
+  }
+}
+
+/**
+ * Fills an empty library once, so a cold visitor lands on artwork.
+ *
+ * Hydration first and always, because seeding a library that has not finished
+ * loading is how deleted assets come back to life under their original ids —
+ * `session.hydrate` returns its in-flight promise for exactly this reason.
+ *
+ * The tiles are built in code because they demonstrate seam checking and must
+ * tile exactly; the characters are generated art shipped as data. A judge
+ * opening the deployed URL sees both without touching anything.
+ */
+export async function ensureSeeded(): Promise<number> {
+  await session.hydrate();
+  if (session.size > 0 || alreadySeeded()) return 0;
+
+  for (const asset of SEED_ASSETS) session.create(asset);
+  let created = SEED_ASSETS.length;
+
+  try {
+    const response = await fetch(CHARACTER_PACK);
+    if (response.ok) {
+      // Through `importLibrary`, so the pack is read by the same validator a
+      // human-supplied bundle is; a malformed pack skips assets rather than
+      // leaving the library half-built.
+      created += importLibrary(await response.json()).imported;
+    }
+  } catch {
+    // The pack is a nicety, not a requirement. A visitor offline or behind a
+    // proxy that eats it still gets the tiles and a working editor.
+  }
+
+  // Only remember it if the library can actually keep it. Marking
+  // unconditionally means one failed persist — storage blocked, a private
+  // window, a delete still pending behind an open connection — leaves an empty
+  // library that will never seed again, because the marker outlives the data it
+  // was recording. localStorage and IndexedDB fail independently, so the marker
+  // surviving proves nothing about the assets.
+  await assetStorage.flush();
+  if (assetStorage.state === "ready") markSeeded();
+  return created;
+}

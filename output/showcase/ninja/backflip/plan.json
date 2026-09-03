@@ -1,0 +1,41 @@
+{
+  "subject": "lean ninja in a black shinobi outfit with a red sash and mask, katana in the right hand",
+  "motion": "a backflip jump and landing",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "a small dust puff on take-off and on landing",
+  "frames": 5,
+  "plan": {
+    "source": "Three-quarter facing screen-right in a wide low guard; right hand holds katana low and forward near the lead right foot, left hand open back by hip; head turned right; right foot forward, left foot back, both planted.",
+    "frames": [
+      {
+        "pose": "Anticipation: sink deeper, torso leans slightly forward; right hand lowers blade further forward/down; left hand reaches slightly forward; head dips, eyes to right; knees load, heels heavy; right foot leads, both feet firmly planted.",
+        "contact": "grounded",
+        "ms": 90
+      },
+      {
+        "pose": "Takeoff: legs drive and hips whip back; torso snaps up then back; right arm sweeps katana up past shoulder; left arm throws down/back; head starts to tilt back into flip; toes leave together.",
+        "contact": "airborne",
+        "ms": 90,
+        "effect": "small dust puffs at both toe takeoff points; bright arc tracing blade from low-front to above-shoulder"
+      },
+      {
+        "pose": "Apex key: fully inverted, torso tucked; knees to chest; right hand tucks katana across body, blade pointing left; left hand near knee for balance; head upside-down facing right.",
+        "contact": "airborne",
+        "ms": 150
+      },
+      {
+        "pose": "Descent: rotate toward upright; torso untucks, chest forward; right leg extends down to meet ground, left leg trailing; right arm lets blade sweep down/front; left hand forward for balance; head realigns to right.",
+        "contact": "airborne",
+        "ms": 110,
+        "effect": "short faint trail behind blade’s downward sweep"
+      },
+      {
+        "pose": "Landing and recover: both feet plant, knees bent to absorb; weight forward into guard; right hand lowers katana toward original low line; left hand opens back by hip; head steady to right.",
+        "contact": "grounded",
+        "ms": 160,
+        "effect": "small dust puffs at both heels on impact"
+      }
+    ]
+  },
+  "planSeconds": 23.593061792
+}

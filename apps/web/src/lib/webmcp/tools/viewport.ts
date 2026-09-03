@@ -17,7 +17,7 @@ const NOT_WIRED =
 export const getViewport: ToolDefinition = {
   name: "get_viewport",
   description:
-    "Report what the human is currently looking at: the region of the open asset visible on their screen, in asset-local pixel coordinates, and the integer zoom level. Origin (0,0) is the top-left pixel, x increases right, y increases down. Use it before focus_viewport to see whether the area you care about is already on screen.",
+    "Read the open asset's visible region and integer zoom before focus_viewport. Coordinates are asset-local pixels: (0,0) top-left, x right, y down. Requires a mounted editor.",
   readOnly: true,
   inputSchema: { type: "object", properties: {} },
   example: {},
@@ -41,7 +41,7 @@ export const getViewport: ToolDefinition = {
 export const focusViewport: ToolDefinition = {
   name: "focus_viewport",
   description:
-    "Pan and zoom the human's canvas to bring a region of the open asset into view, centred, at the largest integer zoom that fits it. Coordinates are asset-local pixels: (0,0) is the top-left pixel, x increases right, y increases down. Use it to show the human where you have been working — after fixing a seam, or before describing a change — so they are looking at the same pixels you are. Omit the region to frame the whole asset.",
+    "Centre the open asset's region at the largest fitting integer zoom; omit coordinates to frame the whole asset. Region must fit the canvas. Asset-local pixels: (0,0) top-left, x right, y down. Requires a mounted editor.",
   inputSchema: {
     type: "object",
     properties: {

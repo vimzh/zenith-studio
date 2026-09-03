@@ -239,3 +239,31 @@ describe("subscription", () => {
     expect(store.revision).toBe(2);
   });
 });
+
+describe("selection moves the revision", () => {
+  /**
+   * Every `useSyncExternalStore` selector caches on `revision`, and a bare
+   * `readComposite()` reads the active frame. A selection that notified
+   * without moving the revision was a change every subscriber ignored: the
+   * canvas kept painting the previous frame after the timeline switched.
+   */
+  test("selecting a different frame bumps the revision and re-reads the composite", () => {
+    const store = makeStore(2, 2);
+    store.addFrame();
+    store.selectFrame(0);
+    store.setPixels([{ x: 0, y: 0, index: 0 }]);
+    const before = store.revision;
+    store.selectFrame(1);
+    expect(store.revision).toBeGreaterThan(before);
+    expect(store.readComposite().cells[0]).toBe(TRANSPARENT);
+    store.selectFrame(0);
+    expect(store.readComposite().cells[0]).toBe(0);
+  });
+
+  test("re-selecting the current frame is a no-op for the revision", () => {
+    const store = makeStore(2, 2);
+    const before = store.revision;
+    store.selectFrame(0);
+    expect(store.revision).toBe(before);
+  });
+});

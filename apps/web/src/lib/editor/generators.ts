@@ -1,7 +1,7 @@
 import { createGrid, paletteHexes, TRANSPARENT, type Cell, type DocumentStore, type Grid } from "@zenith/core";
 import { buildCharacter } from "@/lib/character";
 import {
-  DIRECTION_SETS,
+  directionFromName,
   generationCount,
   mirrorGrid,
   planDirectionSet,
@@ -19,8 +19,8 @@ import {
   poseTemplate,
   type Pose,
 } from "@/lib/skeleton";
-import { projects } from "./projects";
-import { session, type AssetType } from "./session";
+import { projects, type AssetPlacement } from "./projects";
+import { session, type AssetSummary, type AssetType } from "./session";
 
 /**
  * Asset-producing operations, shared by the UI panels and available to the
@@ -62,6 +62,16 @@ function placeInOpenProject(assetId: string): void {
   if (projectId !== null) projects.place(assetId, projectId, projects.activeFolderId);
 }
 
+/** A slow creator must validate its captured destination before saving assets. */
+export function assertGenerationDestination({ projectId, folderId }: AssetPlacement): void {
+  if (projectId !== null && projects.getProject(projectId) === undefined) {
+    throw new Error("The generation destination project was deleted. No asset was created.");
+  }
+  if (folderId !== null && (projectId === null || projects.getFolder(folderId)?.projectId !== projectId)) {
+    throw new Error("The generation destination folder was deleted or moved. No asset was created.");
+  }
+}
+
 function preservingActiveAsset<T>(work: () => T): T {
   const before = session.activeId;
   const result = work();
@@ -69,6 +79,28 @@ function preservingActiveAsset<T>(work: () => T): T {
     session.open(before);
   }
   return result;
+}
+
+/** Resolve named siblings inside the source project, never a different game. */
+export function directionFamily(sourceId: string, baseName?: string): {
+  name: string;
+  direction: Direction | undefined;
+  assets: Map<Direction, AssetSummary>;
+} {
+  const summaries = session.list();
+  const source = summaries.find((asset) => asset.id === sourceId);
+  if (source === undefined) throw new Error(`No asset '${sourceId}' is open.`);
+  const direction = directionFromName(source.name);
+  const name = baseName ?? (direction === undefined ? source.name : source.name.slice(0, -direction.length - 1));
+  const projectId = projects.placementOf(sourceId).projectId;
+  const assets = new Map<Direction, AssetSummary>();
+  for (const asset of summaries) {
+    const facing = directionFromName(asset.name);
+    if (facing !== undefined && asset.name.toLowerCase() === `${name} ${facing}`.toLowerCase() && projects.placementOf(asset.id).projectId === projectId) {
+      if (!assets.has(facing) || asset.id === sourceId) assets.set(facing, asset);
+    }
+  }
+  return { name, direction, assets };
 }
 
 /**
@@ -89,10 +121,17 @@ export function generateDirections(
     throw new Error(`No asset '${sourceId}' is open.`);
   }
 
-  const palette = paletteHexes(store.palette);
-  const base = DIRECTION_SETS[set][0] as Direction;
-  const grids = new Map<Direction, Grid>([[base, store.readComposite()]]);
-  const plan = planDirectionSet([base], set);
+  const family = directionFamily(sourceId);
+  const base = family.direction ?? (set === "side2" ? "east" : "south");
+  const grids = new Map<Direction, { grid: Grid; palette: readonly string[]; sourceId: string }>();
+  for (const [direction, asset] of family.assets) {
+    const sibling = session.get(asset.id);
+    if (sibling === undefined) throw new Error(`No asset '${asset.id}' is open.`);
+    grids.set(direction, { grid: sibling.readComposite(), palette: paletteHexes(sibling.palette), sourceId: asset.id });
+  }
+  if (!grids.has(base)) grids.set(base, { grid: store.readComposite(), palette: paletteHexes(store.palette), sourceId });
+  const existing = new Set(grids.keys());
+  const plan = planDirectionSet([...existing], set);
   const skipped: Direction[] = [];
 
   for (const step of plan) {
@@ -102,7 +141,7 @@ export function generateDirections(
     if (step.method === "mirror") {
       const source = grids.get(step.from as Direction);
       if (source !== undefined) {
-        grids.set(step.direction, mirrorGrid(source));
+        grids.set(step.direction, { ...source, grid: mirrorGrid(source.grid) });
         continue;
       }
     }
@@ -110,17 +149,18 @@ export function generateDirections(
       skipped.push(step.direction);
       continue;
     }
-    grids.set(step.direction, generate(store.readComposite(), step.direction));
+    grids.set(step.direction, { grid: generate(store.readComposite(), step.direction), palette: paletteHexes(store.palette), sourceId });
   }
 
   let created = 0;
   preservingActiveAsset(() => {
-  for (const [direction, grid] of grids) {
-    if (direction === base) {
+  for (const [direction, entry] of grids) {
+    if (existing.has(direction)) {
       continue;
     }
-    session.create({
-      name: `${summary.name} ${direction}`,
+    const { grid, palette } = entry;
+    const id = session.create({
+      name: `${family.name} ${direction}`,
       type: "character",
       preset: "tile-32",
       grid,
@@ -128,6 +168,7 @@ export function generateDirections(
       width: grid.width,
       height: grid.height,
     });
+    projects.inherit(entry.sourceId, id);
     created += 1;
   }
   });
@@ -194,8 +235,9 @@ export function generateTileset(sourceId: string, edgeIndex?: Cell): string {
 export async function buildCharacterFromReference(
   reference: RasterImage,
   name: string,
-  options: { directionSet?: DirectionSet; baseDirection?: Direction; targetWidth?: number } = {}
+  options: { directionSet?: DirectionSet; baseDirection?: Direction; targetWidth?: number; destination?: AssetPlacement } = {}
 ): Promise<string> {
+  const destination = options.destination ?? { projectId: projects.activeProjectId, folderId: projects.activeFolderId };
   const targetWidth = options.targetWidth ?? 32;
   const framed = frameToCanvas(reference, targetWidth, targetWidth);
   const result = await buildCharacter(framed?.image ?? reference, {
@@ -206,6 +248,7 @@ export async function buildCharacterFromReference(
   });
 
   const palette = result.pixelised.palette;
+  assertGenerationDestination(destination);
   preservingActiveAsset(() => {
   for (const [direction, entry] of result.directions) {
     const id = session.create({
@@ -217,7 +260,9 @@ export async function buildCharacterFromReference(
       width: entry.grid.width,
       height: entry.grid.height,
     });
-    placeInOpenProject(id);
+    if (destination.projectId !== null && !projects.place(id, destination.projectId, destination.folderId)) {
+      throw new Error(`The generation destination changed before '${id}' could be placed. The asset is available in the loose library.`);
+    }
   }
   });
 
@@ -228,45 +273,62 @@ export async function buildCharacterFromReference(
     : `Built ${String(result.directions.size)} directions; ${String(result.skipped.length)} skipped without a generator. ${steps}`;
 }
 
-/** Creates one manually posed frame from the untouched rig source. */
+/**
+ * Creates one posed frame from the untouched rig source, inserted after the
+ * active frame (or after `options.after`).
+ */
 export function bakeSkeletonPose(
   store: DocumentStore,
   source: Grid,
   base: Pose,
   target: Pose,
+  options: { readonly after?: number } = {},
 ): string {
   const grid = deformGridByPose(source, base, target);
-  const after = store.activeFrame + 1;
+  const after = (options.after ?? store.activeFrame) + 1;
   store.transaction("Pose with skeleton", () => {
     const frame = store.addFrame({ at: after });
     store.writeRegion(0, 0, grid, { frame });
   });
-  return `Created posed frame ${String(after + 1)} locally. No prompt or model call was used.`;
+  return `Created posed frame ${String(after + 1)} locally with the bone rig. No prompt or model call was used.`;
 }
 
-/** Applies a stock pose sequence by deterministic flat-sprite deformation. */
+export interface SkeletonTemplateOptions {
+  /** A corrected skeleton to rig from, instead of a fresh estimate. */
+  readonly base?: Pose;
+  /** Which way the character faces. Stock cycles are authored facing east. */
+  readonly facing?: "east" | "west";
+}
+
+/** Applies a stock pose sequence by deterministic flat-sprite bone deformation. */
 export function applySkeletonTemplate(
   store: DocumentStore,
   template: string,
   frameCount: number,
+  options: SkeletonTemplateOptions = {},
 ): string {
   const source = store.readComposite(store.activeFrame);
-  const base = estimateSkeleton(source);
+  const base = options.base ?? estimateSkeleton(source);
   if (base === null) throw new Error("The active frame is empty, so it cannot be rigged.");
-  const cycle = animateGridWithSkeleton(source, base, poseTemplate(template), frameCount);
+  const cycle = animateGridWithSkeleton(source, base, poseTemplate(template), frameCount, {
+    facing: options.facing,
+  });
   const start = store.activeFrame;
   const first = cycle.frames[0];
   if (first === undefined) throw new Error(`The ${template} template produced no frames.`);
 
+  // The cycle follows its source frame rather than landing at the end of the
+  // timeline, so a cycle built from frame 1 of a five-frame asset plays as
+  // frames 1-4, not as frame 1 and then frames 6-8.
   store.transaction(`Animate with skeleton: ${template}`, () => {
     store.writeRegion(0, 0, first, { frame: start });
-    for (const grid of cycle.frames.slice(1)) {
-      const frame = store.addFrame();
+    cycle.frames.slice(1).forEach((grid, index) => {
+      const frame = store.addFrame({ at: start + index + 1 });
       store.writeRegion(0, 0, grid, { frame });
-    }
+    });
   });
   store.selectFrame(start);
-  return `Built a ${String(frameCount)}-frame ${template} cycle locally from the skeleton. No prompt or model call was used.`;
+  return `Built a ${String(frameCount)}-frame ${template} cycle locally from the skeleton, facing ${options.facing ?? "east"}. No prompt or model call was used.`;
 }
 
 
@@ -277,7 +339,7 @@ export function recolorAsset(assetId: string, colors: readonly string[], label: 
   if (!session.recolor(assetId, colors)) {
     throw new Error(`No asset '${assetId}' is open.`);
   }
-  return `Recoloured to '${label}' (${String(colors.length)} colours) using perceptual nearest-colour matching. The artwork keeps its shape and transparency. Undo history was reset — a palette change rebuilds the document.`;
+  return `Recoloured to '${label}' (${String(colors.length)} colours) using perceptual nearest-colour matching. The artwork keeps its shape and transparency. One undo restores the previous palette and pixels.`;
 }
 
 /** Rotates every frame by a right angle. Exact: no pixel is resampled. */

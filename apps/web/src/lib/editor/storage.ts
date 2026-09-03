@@ -64,12 +64,13 @@ function idleCallback(run: () => void): void {
   }
 }
 
-class AssetStorage {
+export class AssetStorage {
   #db: IDBDatabase | null = null;
   #state: StorageState = "unknown";
   #reason: string | null = null;
   #listeners = new Set<() => void>();
   #pending = new Map<string, StoredAsset>();
+  #inFlight = new Set<Promise<void>>();
   #removals = new Set<string>();
   #timer: ReturnType<typeof setTimeout> | null = null;
   #unloadBound = false;
@@ -229,9 +230,9 @@ class AssetStorage {
   async saveTree(snapshot: unknown): Promise<void> {
     if (this.#db === null || this.#state === "unavailable") return;
     try {
-      await this.#runOn<void>(TREE_STORE, "readwrite", (store) => {
+      await this.#track(this.#runOn<void>(TREE_STORE, "readwrite", (store) => {
         store.put(snapshot, TREE_KEY);
-      });
+      }));
     } catch (error) {
       this.#fail(error instanceof Error ? error.message : "Could not save the project tree.");
     }
@@ -263,6 +264,8 @@ class AssetStorage {
       this.#timer = null;
     }
     await this.#write();
+    // A previous write may have drained the queue but not committed yet.
+    while (this.#inFlight.size > 0) await Promise.all([...this.#inFlight]);
   }
 
   #schedule(): void {
@@ -278,11 +281,25 @@ class AssetStorage {
     }, FLUSH_DELAY_MS);
   }
 
-  async #write(): Promise<void> {
-    if (this.#db === null || (this.#pending.size === 0 && this.#removals.size === 0)) {
-      if (this.#state === "saving") {
+  #write(): Promise<void> {
+    if (this.#db === null || (this.#pending.size === 0 && this.#removals.size === 0)) return Promise.resolve();
+    return this.#track(this.#writePending());
+  }
+
+  #track(write: Promise<void>): Promise<void> {
+    this.#set("saving");
+    const operation = write.finally(() => {
+      this.#inFlight.delete(operation);
+      if (this.#db !== null && this.#state !== "unavailable" && this.#inFlight.size === 0 && this.#pending.size === 0 && this.#removals.size === 0) {
         this.#set("ready");
       }
+    });
+    this.#inFlight.add(operation);
+    return operation;
+  }
+
+  async #writePending(): Promise<void> {
+    if (this.#db === null || (this.#pending.size === 0 && this.#removals.size === 0)) {
       return;
     }
 
@@ -301,7 +318,6 @@ class AssetStorage {
         }
         return store.count();
       });
-      this.#set("ready");
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.#fail(

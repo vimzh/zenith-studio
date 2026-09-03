@@ -1,0 +1,19 @@
+128x128 source, 5 frames -> 3x2@4 (1536x1024); effects: three glowing green arrows fanning downward
+planned 5 poses in 26.9s; source read as: Elf archer faces right; left hand holds tall bow upright ahead, right hand raised by back quiver; cloak draped; weight mostly on left foot, right slightly back; head turned right.
+  1. [grounded, 90ms] Anticipation: torso dips, hips back; left hand lowers bow diagonally near thigh; right hand grabs three from quiver; head tilts down-right; left foot planted, right heel lifted, knees loaded. | effect: Small green sparkles gather at right hand by quiver.
+  2. [airborne, 80ms] Takeoff: spring up; both feet leave ground, knees tuck; left arm lifts bow overhead; right hand sweeps forward, three nocked to string; head angles up; cloak lags. | effect: Sparkles at nock; faint trail from right hand sweep to string.
+  3. [airborne, 160ms] Apex fire: torso arches; left arm fully extends aiming bow down-right; right hand at cheek releasing; legs tucked, toes back; head sights along bow. | effect: Three glowing green arrows burst and fan downward with short trails; bowstring snap arc by grip.
+  4. [airborne, 100ms] Follow-through: descending; left arm recoils past near-vertical; right hand past chin to rib; legs extend slightly, toes down; head still tracking. | effect: Fading green trails along the three downward paths; a few sparkles at bow tip.
+  5. [grounded, 130ms] Landing/settle: left foot plants forward, right toe then heel sets behind; knees bend; torso rises toward neutral; left hand lowers bow to upright; right hand drops toward quiver; head faces right.
+1 sheet(s) generated concurrently in 117.1s
+  baseline 512px, tolerance down 102px / up 41px, shifts 2, 0, 0, 0, 14
+palette: folded #1d4621 into #265325 (0.045), #2e3126 into #0f331b (0.049)
+palette: added #119f0b, #baf85b; unmatched #35c713, #6ddf35
+judged in 20.1s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+  frame 5: ok
+wrote 5 frames to ../../output/showcase/archer/rain; holds 90, 80, 160, 100, 130ms; bottom rows 127, 127, 108, 105, 123, 127; sheets 1; sheet seconds 117
+exit 0, wall 165s

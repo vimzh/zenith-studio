@@ -8,6 +8,7 @@ import {
   listAssets,
   openAsset,
   renameAsset,
+  setAssetType,
 } from "./context";
 import {
   bucketFill,
@@ -32,7 +33,24 @@ import {
   exportPaletteTool,
   exportPng,
   exportProject,
+  listExports,
+  readExport,
+  releaseExport,
 } from "./export";
+import { createToolJobTools } from "./jobs";
+import {
+  createFolder,
+  deleteFolder,
+  deleteProject,
+  flushStorage,
+  getStorageStatus,
+  importProject,
+  listProjectContents,
+  moveAsset,
+  renameFolder,
+  renameProject,
+  undoDelete,
+} from "./project-io";
 import {
   checkGridAlignment,
   deriveVariant,
@@ -96,7 +114,6 @@ import {
   estimateSkeletonTool,
   generateTilesetTool,
   importImageTool,
-  listPoseTemplatesTool,
   setPaletteTool,
 } from "./authoring";
 import {
@@ -144,13 +161,26 @@ export interface GroupedTools {
   readonly tools: readonly ToolDefinition[];
 }
 
+const { startToolJob, getToolJob } = createToolJobTools(findTool);
+
 export const TOOL_GROUPS: readonly GroupedTools[] = [
   {
     group: "Projects",
     tools: [
       listProjects,
       createProject,
+      deleteProject,
+      renameFolder,
+      deleteFolder,
+      undoDelete,
       openProject,
+      listProjectContents,
+      createFolder,
+      moveAsset,
+      renameProject,
+      importProject,
+      getStorageStatus,
+      flushStorage,
       getStyleProfile,
       setStyleProfile,
       addStyleReference,
@@ -165,9 +195,12 @@ export const TOOL_GROUPS: readonly GroupedTools[] = [
       createAsset,
       openAsset,
       renameAsset,
+      setAssetType,
       duplicateAsset,
       deleteAsset,
       describeAsset,
+      startToolJob,
+      getToolJob,
     ],
   },
   { group: "Viewport", tools: [getViewport, focusViewport] },
@@ -257,7 +290,7 @@ export const TOOL_GROUPS: readonly GroupedTools[] = [
   },
   {
     group: "Authoring",
-    tools: [setPaletteTool, estimateSkeletonTool, listPoseTemplatesTool],
+    tools: [setPaletteTool, estimateSkeletonTool],
   },
   {
     group: "Worlds",
@@ -277,6 +310,9 @@ export const TOOL_GROUPS: readonly GroupedTools[] = [
       exportForEngineTool,
       exportPaletteTool,
       exportProject,
+      listExports,
+      readExport,
+      releaseExport,
     ],
   },
 ];

@@ -1,5 +1,6 @@
 import { GRID_OVERLAY_MIN_ZOOM, artToScreen, type Viewport } from "./viewport";
 import { TRANSPARENT, peekCell, type Grid } from "@zenith/core";
+import { ALL_BONES } from "@/lib/skeleton/model";
 import type { Selection } from "./types";
 
 /**
@@ -23,24 +24,14 @@ export const GRID_LINE = "rgba(0, 0, 0, 0.28)";
 /** Marks where the asset ends. The checker covers only the document, so without this the bounds are ambiguous against the void. */
 export const DOCUMENT_BORDER = "rgba(255, 255, 255, 0.22)";
 
-const SKELETON_BONES = [
-  ["head", "neck"], ["neck", "chest"], ["chest", "pelvis"],
-  ["chest", "shoulder-l"], ["shoulder-l", "elbow-l"], ["elbow-l", "hand-l"],
-  ["chest", "shoulder-r"], ["shoulder-r", "elbow-r"], ["elbow-r", "hand-r"],
-  ["pelvis", "hip-l"], ["hip-l", "knee-l"], ["knee-l", "foot-l"],
-  ["pelvis", "hip-r"], ["hip-r", "knee-r"], ["knee-r", "foot-r"],
-  ["pelvis", "tail"], ["chest", "fore-knee-l"], ["fore-knee-l", "fore-foot-l"],
-  ["chest", "fore-knee-r"], ["fore-knee-r", "fore-foot-r"],
-  ["pelvis", "hind-knee-l"], ["hind-knee-l", "hind-foot-l"],
-  ["pelvis", "hind-knee-r"], ["hind-knee-r", "hind-foot-r"],
-] as const;
-
 export interface RenderOptions {
   readonly showGrid?: boolean;
   /** Frames ghosted behind the current one, drawn before it. */
   readonly onionSkin?: readonly { grid: Grid; opacity: number }[];
   /** Skeleton joints in art coordinates, drawn over everything. */
   readonly skeleton?: readonly { x: number; y: number; joint: string }[];
+  /** The joint under the pointer or being dragged: drawn larger, with its name. */
+  readonly skeletonHighlight?: string | null;
   /** Marquee around the active selection. */
   readonly selection?: Selection | null;
   readonly checkerLight?: string;
@@ -199,7 +190,7 @@ export function renderDocument(
   }
 
   if (options.skeleton !== undefined && options.skeleton.length > 0) {
-    drawSkeleton(context, options.skeleton, viewport);
+    drawSkeleton(context, options.skeleton, viewport, options.skeletonHighlight ?? null);
   }
 }
 
@@ -232,48 +223,73 @@ function drawSelection(
   context.restore();
 }
 
+/** Left-side joints, right-side joints and the spine each get their own tint, so a crossed leg still reads. */
+function jointColour(name: string): string {
+  if (name.endsWith("-l")) return "rgba(255, 214, 64, 0.9)";
+  if (name.endsWith("-r")) return "rgba(64, 214, 255, 0.9)";
+  return "rgba(255, 255, 255, 0.9)";
+}
+
 /**
  * Joint markers over the artwork.
  *
  * Drawn as circles at the pixel's centre rather than filled cells: a joint is a
  * position, not a pixel, and drawing it as a pixel would imply it belongs to the
- * art. Scaled with zoom so it stays visible without swamping the sprite.
+ * art. Scaled with zoom so it stays visible without swamping the sprite. Bones
+ * take the colour of their child joint, so each limb is one colour end to end.
  */
 function drawSkeleton(
   context: CanvasRenderingContext2D,
   joints: readonly { x: number; y: number; joint: string }[],
-  viewport: Viewport
+  viewport: Viewport,
+  highlight: string | null
 ): void {
   const radius = Math.max(2, Math.min(6, viewport.zoom / 3));
   const byName = new Map(joints.map((joint) => [joint.joint, joint]));
+  const centre = (joint: { x: number; y: number }) => {
+    const origin = artToScreen(viewport, joint.x, joint.y);
+    return { x: origin.x + viewport.zoom / 2, y: origin.y + viewport.zoom / 2 };
+  };
 
   context.save();
-  context.beginPath();
-  for (const [fromName, toName] of SKELETON_BONES) {
+  context.lineWidth = Math.max(1, Math.min(3, viewport.zoom / 5));
+  for (const [fromName, toName] of ALL_BONES) {
     const from = byName.get(fromName);
     const to = byName.get(toName);
     if (from === undefined || to === undefined) continue;
-    const start = artToScreen(viewport, from.x, from.y);
-    const end = artToScreen(viewport, to.x, to.y);
-    context.moveTo(start.x + viewport.zoom / 2, start.y + viewport.zoom / 2);
-    context.lineTo(end.x + viewport.zoom / 2, end.y + viewport.zoom / 2);
+    const start = centre(from);
+    const end = centre(to);
+    context.beginPath();
+    context.moveTo(start.x, start.y);
+    context.lineTo(end.x, end.y);
+    context.strokeStyle = jointColour(toName).replace("0.9)", "0.75)");
+    context.stroke();
   }
-  context.lineWidth = Math.max(1, Math.min(3, viewport.zoom / 5));
-  context.strokeStyle = "rgba(255, 214, 64, 0.8)";
-  context.stroke();
 
   for (const joint of joints) {
-    const origin = artToScreen(viewport, joint.x, joint.y);
-    const centreX = origin.x + viewport.zoom / 2;
-    const centreY = origin.y + viewport.zoom / 2;
-
+    const at = centre(joint);
+    const active = joint.joint === highlight;
     context.beginPath();
-    context.arc(centreX, centreY, radius, 0, Math.PI * 2);
-    context.fillStyle = "rgba(255, 214, 64, 0.9)";
+    context.arc(at.x, at.y, active ? radius + 2 : radius, 0, Math.PI * 2);
+    context.fillStyle = jointColour(joint.joint);
     context.fill();
-    context.lineWidth = 1;
-    context.strokeStyle = "rgba(0, 0, 0, 0.7)";
+    context.lineWidth = active ? 2 : 1;
+    context.strokeStyle = "rgba(0, 0, 0, 0.75)";
     context.stroke();
+  }
+
+  const named = highlight === null ? undefined : byName.get(highlight);
+  if (named !== undefined) {
+    const at = centre(named);
+    const label = named.joint;
+    context.font = "11px ui-monospace, monospace";
+    const width = context.measureText(label).width + 8;
+    const x = Math.round(at.x + radius + 6);
+    const y = Math.round(at.y - 9);
+    context.fillStyle = "rgba(0, 0, 0, 0.8)";
+    context.fillRect(x, y, width, 16);
+    context.fillStyle = "rgba(255, 255, 255, 0.95)";
+    context.fillText(label, x + 4, y + 12);
   }
   context.restore();
 }

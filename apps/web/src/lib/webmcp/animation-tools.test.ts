@@ -29,7 +29,7 @@ describe("frame structure", () => {
     await call("fill_region", { x: 0, y: 0, width: 8, height: 8, index: 1 });
     const result = await call("list_frames");
     expect(result).toContain("1 frame(s)");
-    expect(result).toContain("100ms");
+    expect(result).toContain("250ms");
     expect(result).toContain("64 opaque px");
     expect(result).toContain("[selected]");
   });
@@ -157,6 +157,7 @@ describe("animation authoring", () => {
     expect(result).toContain("4-frame bob cycle");
     expect(session.active?.frameCount).toBe(4);
     expect(session.active?.history().at(-1)).toBe("animate_procedural (bob)");
+    expect(session.active?.snapshot().frames.map((frame) => frame.durationMs)).toEqual([250, 250, 250, 250]);
 
     session.active?.undo();
     expect(session.active?.frameCount).toBe(1);
@@ -189,6 +190,7 @@ describe("animation authoring", () => {
     await call("interpolate_frames", { from_index: 0, to_index: 1, steps: 2 });
     expect(session.active?.frameCount).toBe(4);
     expect(session.active?.history().at(-1)).toBe("interpolate_frames (2)");
+    expect(session.active?.snapshot().frames.map((frame) => frame.durationMs)).toEqual([250, 250, 250, 250]);
 
     session.active?.undo();
     expect(session.active?.frameCount).toBe(2);
@@ -196,10 +198,27 @@ describe("animation authoring", () => {
 });
 
 describe("coherence", () => {
+  test("reports character boundary contacts instead of claiming polished motion", async () => {
+    await call("fill_region", { x: 12, y: 0, width: 8, height: 16, index: 6 });
+    await call("add_frame", { copy_from: 0 });
+    const result = await call("check_animation_coherence");
+    expect(result).toContain("[bounds]");
+    expect(result).toContain("frame 0");
+    expect(result).toContain("edge contact alone cannot prove clipping");
+    expect(result).not.toContain("is coherent");
+  });
+
+  test("a disabled loop check does not claim to have checked the loop", async () => {
+    await call("fill_region", { x: 12, y: 8, width: 8, height: 16, index: 6 });
+    const result = await call("check_animation_coherence", { loop: false });
+    expect(result).not.toContain("duplicate loop endpoint");
+    expect(result).toContain("does not verify anatomy, foot contact, registration or smooth motion");
+  });
+
   test("passes a clean cycle", async () => {
     await call("fill_region", { x: 8, y: 8, width: 16, height: 16, index: 6 });
     await call("animate_procedural", { preset: "bob", frames: 4 });
-    expect(await call("check_animation_coherence")).toContain("is coherent");
+    expect(await call("check_animation_coherence")).toContain("passed automatic checks");
   });
 
   /** Reports frame indices, never a bare verdict — the fix-and-recheck loop. */

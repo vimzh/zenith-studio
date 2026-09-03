@@ -418,10 +418,8 @@ export class EditorSession {
   /**
    * Replaces an asset's document, keeping its id, name, type and position.
    *
-   * The store deliberately has no palette setter and forbids dimension changes
-   * — a document's size and palette are invariants, not fields. Operations that
-   * genuinely change them (recolour, resize, rotate) therefore rebuild the
-   * document rather than mutating it.
+   * Dimension changes and structural style conformance still rebuild the
+   * document. Palette-only changes use the store's undoable setter instead.
    *
    * The cost is that undo history does not survive, which is why this is never
    * used for anything a pixel mutation could express. Callers should say so.
@@ -441,14 +439,15 @@ export class EditorSession {
     return true;
   }
 
-  /** Remaps every layer into a new palette using perceptual Oklab distance. */
+  /** Remaps every layer into a new palette as one undoable Oklab colour match. */
   recolor(id: string, colors: readonly string[]): boolean {
     const entry = this.#assets.get(id);
     if (entry === undefined) {
       return false;
     }
 
-    const snapshot = entry.store.snapshot();
+    const store = entry.store;
+    const snapshot = store.snapshot();
     const palette = createPalette({ colors });
     const lookup = snapshot.palette.colors.map((color) => nearestIndex(palette, color.hex));
     const frames = snapshot.frames.map((frame) => ({
@@ -462,20 +461,33 @@ export class EditorSession {
         return { ...layer, grid: { ...layer.grid, cells } };
       }),
     }));
-    return this.#replace(id, createDocument({ ...snapshot, palette, frames }));
+    store.transaction("Recolour", () => {
+      // New indices must exist before writing them; retain the old head until
+      // all cells are remapped so palette shrinkage cannot invalidate a layer.
+      if (colors.length > snapshot.palette.colors.length) {
+        store.setPalette([...snapshot.palette.colors.map(color => color.hex), ...colors.slice(snapshot.palette.colors.length)]);
+      }
+      frames.forEach((frame, frameIndex) => frame.layers.forEach((layer, layerIndex) => {
+        store.writeRegion(0, 0, layer.grid, { frame: frameIndex, layer: layerIndex });
+      }));
+      store.setPalette(colors);
+    });
+    this.#bump();
+    return true;
   }
 
-  /** Replaces one palette entry without remapping indices. Rebuilds the store because palettes are immutable. */
+  /** Changes one palette colour without reindexing cells or replacing their undo history. */
   setPaletteColor(id: string, index: number, hex: string): boolean {
     const entry = this.#assets.get(id);
     if (entry === undefined) return false;
-    const snapshot = entry.store.snapshot();
-    if (!Number.isInteger(index) || index < 0 || index >= snapshot.palette.colors.length) {
-      throw new Error(`Palette index ${String(index)} is outside 0-${String(snapshot.palette.colors.length - 1)}.`);
+    const colors = entry.store.palette.colors.map(color => color.hex);
+    if (!Number.isInteger(index) || index < 0 || index >= colors.length) {
+      throw new Error(`Palette index ${String(index)} is outside 0-${String(colors.length - 1)}.`);
     }
-    const colors = snapshot.palette.colors.map((color) => color.hex);
     colors[index] = hex;
-    return this.#replace(id, createDocument({ ...snapshot, palette: createPalette({ colors }) }));
+    entry.store.setPalette(colors);
+    this.#bump();
+    return true;
   }
 
   /** Rebuilds every frame through `transform`, which may change dimensions. */

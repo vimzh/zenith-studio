@@ -9,6 +9,7 @@ import { CANVAS_PRESETS, DEFAULT_PRESET_ID } from "@/lib/pixel";
 import { readEnum, readOptionalString, readString } from "../args";
 import { assetNavigation } from "../navigation";
 import { ToolError, type ToolDefinition } from "../types";
+import { requireActiveAsset } from "./active";
 
 /**
  * Context — what exists, and what is open.
@@ -180,6 +181,28 @@ export const renameAsset: ToolDefinition = {
     if (name.length === 0) throw new ToolError("'name' cannot contain only whitespace.");
     if (!session.rename(id, name)) throw new ToolError(`No asset '${id}'. Call list_assets for valid ids.`);
     return `Renamed ${id} to '${name}'.`;
+  },
+};
+
+export const setAssetType: ToolDefinition = {
+  scope: "editor",
+  name: "set_asset_type",
+  description:
+    "Change the open asset's type only when the human explicitly confirms its classification. This changes metadata and available tools, not pixels, palette, frames, or undo history. Character type enables direction tools such as rotate_character. Do not infer a type change from an art prompt; ask when the current type prevents the requested operation.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      type: { type: "string", enum: [...ASSET_TYPES], description: "The asset type explicitly requested by the human." },
+    },
+    required: ["type"],
+  },
+  example: { type: "character" },
+  execute: (args) => {
+    const type = readEnum<AssetType>(args, "type", ASSET_TYPES);
+    const active = requireActiveAsset();
+    if (active.type === type) return `Asset ${active.id} is already a ${type}; nothing changed.`;
+    session.setType(active.id, type);
+    return `Changed ${active.id} from ${active.type} to ${type}. Pixels, palette, frames, and undo history are unchanged. Tool availability will refresh on the next turn.`;
   },
 };
 

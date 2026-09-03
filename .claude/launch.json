@@ -4,9 +4,37 @@
     {
       "name": "web",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "cwd": "apps/web",
       "port": 3000
+    },
+    {
+      "name": "showcase",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8765",
+        "--bind",
+        "127.0.0.1"
+      ],
+      "cwd": "output/showcase",
+      "port": 8765
+    },
+    {
+      "name": "web-preview",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--port",
+        "3010"
+      ],
+      "cwd": "apps/web",
+      "port": 3010
     }
   ]
 }

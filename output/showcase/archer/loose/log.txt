@@ -1,0 +1,17 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: a streaking arrow with a thin green magic trail
+planned 4 poses in 24.3s; source read as: Three-quarter facing right; right hand holds tall recurve bow down and forward; left hand raised near the quiver behind head; feet staggered with left forward; head looking right.
+  1. [grounded, 100ms] Anticipation: torso leans slightly toward target; right arm dips the bow a notch forward; left hand reaches back to quiver to grab an arrow; head right; left foot forward planted, right back planted.
+  2. [grounded, 190ms] Key: torso leans back and opens; right arm extends, bow up at chest height to screen-right; left hand draws string to cheek with arrow nocked; head sights along arrow; left foot planted, right light but planted.
+  3. [grounded, 90ms] Release: left fingers open past cheek; right arm steadies as bow snaps; torso rotates into shot; head tracks right; both feet planted. | effect: Arrow streaks off screen-right from bow, thin green magic trail lagging; small pale arc at bow tips showing snap.
+  4. [grounded, 150ms] Recovery: torso returns upright; right arm lowers bow toward vertical at side; left hand drops then starts lifting back toward quiver; head relaxes; feet as before, weight centered.
+1 sheet(s) generated concurrently in 110.7s
+  baseline 512px, tolerance down 102px / up 41px, shifts 2, 5, 10, 1
+palette: folded #1d4621 into #265325 (0.045)
+palette: added #3f9b06; unmatched none
+judged in 13.4s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+wrote 4 frames to ../../output/showcase/archer/loose; holds 100, 190, 90, 150ms; bottom rows 127, 127, 127, 127, 127; sheets 1; sheet seconds 111
+exit 0, wall 149s

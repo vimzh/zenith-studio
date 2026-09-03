@@ -8,7 +8,362 @@ Live tracking of what is **actually** done versus what a phase claims. Updated a
 
 **Rule for this file:** a criterion is only ticked when it has been *verified*, not when the code that should satisfy it exists. Anything verified by proxy (a stub, a reasoned argument) says so.
 
-Last updated: 2026-09-02.
+Last updated: 2026-09-03.
+
+## 2026-09-03 — Composed image prompts no longer hit the 1,000-character cap
+
+- [x] Generation and derive/edit requests accept 16,000 characters including client-appended style text, with matching browser/API guards and received-length errors. No truncation.
+- [x] The original Moss Knight request reproduces the old failure: 1,149 characters after project-style composition. Regression tests failed on the old guards and pass after the fix, including 16,000/16,001 boundaries and validation before batched paid calls.
+- [x] Animation sheets preserve long motion descriptions instead of replacing them with a generic placeholder. The planner's separate 10,000-character description cap is unchanged.
+- [x] Real local HTTP replay with the model key deliberately absent: original composed prompt and 16,000 characters reach `generation_unconfigured` (503); 16,001 returns `invalid_argument` (400). This verifies validation, not a new paid image generation; existing artwork was untouched.
+
+Scope: the landing page's 500-character quick-start input is unchanged; this fixes the shared generation/edit transport used by the studio and WebMCP.
+
+Verification: 1,025 workspace tests pass (180 core, 79 API, 766 web), plus lint, typecheck and production build. The final focused replay passes 59 tests. Local web `/home` and API `/health` return 200. `git diff --check` still reports pre-existing trailing whitespace on the removed/folded skeleton-tool rows in `docs/tools.md`; those unrelated edits were preserved.
+
+## 2026-09-03 — Loop timing: a rest beat, and a speed for sharing
+
+The user sent the showcase GIFs to a friend and found them too fast. Two causes:
+
+- [x] **The showcase bench wrote GIFs at a flat 120ms per frame**, ignoring the
+  planner's holds — a five-frame jab looped every 600ms. Bench bug, not the
+  pipeline; the product's `export_animation` already used authored timing.
+  The bench now writes the planner's holds and a `cycle-share.gif` at half speed.
+- [x] **A looping preview needs a beat the game gets for free.** In a game an
+  attack plays once and returns to idle; a loop restarts the instant it lands.
+  The planner now returns `rest` (100–1200ms, long for a one-shot action, an
+  ordinary hold for a continuous cycle) and the tool applies it to the source
+  frame when that frame still has the default 250ms hold — a frame the human
+  timed keeps its timing — inside the same undo entry, and says so.
+- [x] **`export_animation` takes `speed` (0.25–4).** Authored holds are game
+  timing; 0.5 doubles every hold for a GIF that loops unattended in a chat,
+  without retiming the asset. The export dialog does not expose it yet.
+
+The showcase page now plays loops at half speed with the rest beat and has a
+"Game speed" switch; `output/showcase/*/*/frames.json` records both delay sets.
+
+## 2026-09-03 — Text animation v3: speed, measured
+
+The user asked for the pipeline to be fast without losing quality. Local work
+was measured first and dismissed: decoding a sheet is 61ms, cutting it 1ms,
+pixelising a cell 40ms, compressing a sheet 3ms. Every second is in the four
+model calls, so the levers are model settings and concurrency
+(`scripts/animate-speed.ts`, `output/animation-bench/*/speed.json`).
+
+| Lever | Before | After | Quality |
+| --- | --- | --- | --- |
+| Planner reasoning (same warrior plan) | default, 69.0s | `low`, 24.9s | same source reading, same four-stage plan, effects placed |
+| Judge reasoning (same strip) | default, 28.1s | `low`, 10.4s | same 4/4 verdict |
+| `minimal` reasoning | — | plan 5.4s, judge 2.4s | **rejected**: judge falsely failed a frame, which buys a 115s repair |
+| gpt-5-mini at `low` | — | plan 8.8s, judge 6.5s | **rejected**: planner invented sparkles; judge falsely failed a frame |
+| Sheet quality (same warrior plan) | `high`, 115s | `medium`, 52s | **rejected**: an unrequested arc on the wind-up, a clipped trail, one repair bought and one frame still rejected — net time equal, output worse |
+| Two sheets (8 frames at 128px) | sequential, ~230s | one concurrent batch, 159s | identical per-sheet output; the paid slot is held once for the batch, so a rival action is still refused |
+| Direction set (ordinal8 from south) | 3–4 turned views one after another | one concurrent batch | same prompts; a failed view is reported while the others are kept |
+
+- [x] `/v1/chat` accepts `reasoning` and `verbosity`; the planner and judge send
+  `low`/`low`. The assistant loop keeps the defaults — a tool-using
+  conversation is where reasoning earns its time.
+- [x] `paidAll` holds a category's slot once for a batch of concurrent requests
+  and returns settled results in order. `deriveAnimationSheets`,
+  `deriveImages` and `deriveFromSources` are built on it; `animate_with_text`
+  buys a cycle's sheets together and `generate_direction_set` buys its turned
+  views together, mirroring partners afterwards.
+- [x] A blank cell is a rejection the judge never saw: it now joins the repair
+  batch instead of silently shortening the cycle. Found live — the 8-frame
+  combo's first sheet came back with its sixth cell empty and the cross
+  extension was missing from the loop. The sheet prompt now also says every
+  cell in the frame range must contain its frame.
+- [x] The second judge pass rules only on repaired frames. A judge asked twice
+  about an unchanged frame can answer differently (it did: a follow-through
+  passed, then failed after another frame's repair); a frame that passed once
+  and was never touched has not become wrong.
+
+**Measured end to end at the new defaults**, 128px boxer, effects on, judge on:
+
+| Cycle | Plan | Sheets | Judge | Repair | Total |
+| --- | --- | --- | --- | --- | --- |
+| 4 frames (v2 numbers, default reasoning) | 52s | 112s | 26s | none | ~190s |
+| 4 frames (v3 settings) | ~25s | ~115s | ~10s | none | ~150s |
+| 8 frames, two sheets concurrent | 25s | 159s | 13–18s | 152s + 11s (one blank cell plus two frames with unplanned streaks, redrawn together; final 8/8) | ~365s |
+
+**Still open:** the image call is now three quarters of a clean run and cannot
+be made faster without the quality loss measured above. Concurrency gives
+about 1.4× for two sheets, not 2×, because the two requests share the model's
+throughput. A repair is a second full image; the judge at `low` has not yet
+produced a false rejection in four runs, but it is a model.
+
+
+## 2026-09-03 — Agent-first WebMCP input/output
+
+The main workflow now supports external browser agents without using the built-in
+chat. See [the protocol guide](./agent-workflow.md) and
+[verification record](./verification/agent-io-2026-09-03.md).
+
+- [x] Native in-app-browser WebMCP discovery and calls work with 94 tools on an
+  animated character. The previous oversized catalog was rejected by the browser;
+  shorter descriptions and a per-scope payload regression test address that failure
+  without removing tools. Library scope exposes 32 tools.
+- [x] Agents can retrieve complete PNG, GIF, spritesheet, engine and palette files
+  as bounded base64 chunks, not just trigger a human download. Live PNG, GIF,
+  spritesheet and Phaser bundle bytes were saved and inspected; the other existing
+  engine/palette formats have automated export coverage, not engine-runtime proof.
+- [x] Project/folder organization, additive backup import with fresh IDs, reference
+  remapping and local save confirmation are exposed as tools. Live export/import
+  preserved every serialized document after expected ID remapping. Reload restored
+  the correct asset **and its project**, with four animation frames intact.
+- [x] Source-asset concept input avoids making agents round-trip base64 themselves.
+  Validation and source preservation are tested with mocked generation; no new paid
+  concept generation was performed for this verification.
+- [x] Long paid tools have start/poll jobs and same-request-ID retry protection.
+  A live invalid-source job failed before a paid call and its retry returned the same
+  job; successful asynchronous completion and concurrency guards have unit coverage.
+- [x] Save checks await in-flight writes and reject concurrent document edits.
+  Moving/deleting a style reference cleans the shared project model; deletion undo
+  restores it. Legacy stale references fail backup preflight with a tool-based
+  repair path. Regression tests cover these cases.
+- [x] Root lint, typecheck and production build passed; the full test run passed
+  **976 tests** (178 core, 76 API, 722 web).
+
+**Boundaries:** this remains live-tab WebMCP, not a standalone headless/cloud MCP
+server. Files and job IDs are page-session-local; IndexedDB saves are browser-local.
+This pass verifies the agent handoff and persistence, not every model's visual
+quality or every game engine's import behavior.
+
+## 2026-09-03 — Text animation v2: the planner sees, the judge checks, effects get colours
+
+The user's second ask: make the animations "super accurate, valid and
+consistent" and "more magical" — air-cut arcs, purple trails. Five changes,
+each measured live (`scripts/animate-bench.ts`, outputs under
+[`output/animation-bench`](../output/animation-bench/README.md)):
+
+- [x] **The planner reads the sprite.** The rest pose goes to the chat model as
+  an image beside the brief. Read back for the warrior: "right hand grips
+  pommel by hip, left hand under the guard by cheek; slab greatsword …
+  angled up-left towering overhead" — so the wind-up now starts from where
+  the blade actually rests, where the name-only plan had swung it low first.
+- [x] **Animator timing.** Each planned frame carries a hold (60–400ms):
+  jab 90/200/90/120ms, swing 90/180/100/160ms. Frames are appended with
+  those holds; the timeline shows "Mixed" and can retime.
+- [x] **Effects.** `effects` travels to the planner (which places the effect
+  per frame), to the sheet prompt (which permits only the requested effect and
+  otherwise forbids every trail and glow — the ban is conditional so it never
+  names a requested effect), and to the judge. Verified: a purple trail riding
+  the blade through all four swing frames with a white air-cut arc on the
+  slash; a grey streak trailing the boxer's glove at full extension.
+- [x] **Effect colours get palette slots.** Only colours *foreign* to the
+  palette (Oklab distance > 0.12 from every entry) are seated, so a drifted
+  glove red conforms instead of stealing a slot. A full palette folds its
+  closest near-duplicate pair(s) — the warrior folded #3a373e into #2f2b31
+  (0.047) and #7e767d into #958b93 (0.073) — to seat #6f05f3 and #e248fe. The
+  fold is an ordinary colour replacement inside the same undo entry. The boxer,
+  whose palette already had whites and greys, seated nothing.
+- [x] **A vision judge checks the strip; one repair sheet redraws rejections.**
+  Strict on identity, scale, facing, completeness and the *stage* of the motion;
+  told not to reject over foot, heel or hand detail after a first pass rejected
+  two clean boxer frames for a lifted heel. After tuning, both cycles passed
+  4/4 with no repair image bought. When the purple had failed to seat, the
+  judge rejected all four warrior frames for "purple trail missing" — the check
+  sees what the pixels show, which is the point.
+- [x] **Images are deflated before they travel.** The encoder writes stored
+  blocks; a 4× judge strip was 998,297 characters of base64 against the chat
+  route's 400,000 cap. `compressIndexedPng` recompresses IDAT with the
+  browser's own `CompressionStream` (a 1024² sheet drops from 1 MB to under
+  100 KB) and is applied to every image sent to a model.
+- [x] `gpt-image-2` rejects `input_fidelity`; not sent.
+
+| Cycle, 4 frames at 128px | Plan | Sheet | Judge | Ground row | Palette |
+| --- | --- | --- | --- | --- | --- |
+| Warrior swing + purple trail + air-cut | 59s (vision) | 115s, 1 image | 4/4 ok, 33s | 123 ×5 | 2 folds, +#6f05f3 +#e248fe |
+| Boxer jab + air-cut streak | 52s (vision) | 112s, 1 image | 4/4 ok, 26s | 113 ×5 | unchanged |
+
+**Still open, honestly:** the judge is a model and can be wrong both ways; a
+repair costs an image, so `verify: false` exists. The air-cut arc on the slash
+frame reaches the frame's left edge and the coherence check will say so. Only
+two slots are ever folded, so an effect with three foreign hues keeps the two
+most-used. Registration is vertical only. This is verified through the pure
+pipeline and the live API; the browser panel's new effects field is covered by
+the tool tests, not by a paid run from the UI.
+
+
+## 2026-09-03 — Text animation rebuilt as one sprite sheet
+
+The user's verdict on the generated animations — boxer jab, karate kick, sword
+swings — was that they were not good at all, and the five-frame warrior swing
+in [`output/warrior-slab`](../output/warrior-slab/README.md) shows why: the body
+changed size between frames, the feet wandered up and down the canvas and the
+overhead pose ran off the edge, while every mechanical check passed. The cause
+was structural. Each frame was a separate `images.edit` call, and N independent
+renders cannot share a camera however firmly the prompt asks.
+
+**What changed, end to end:**
+
+- [x] **Poses are planned like an animator plans them.** The planner is told
+  the source drawing is frame 0 of the loop, asked for anticipation, key
+  extreme, follow-through and recovery, told the sprite's facing (from the
+  direction in its name), and returns JSON with a per-frame `contact` of
+  grounded or airborne. Live output for "a quick straight jab with the lead
+  hand" named the coil, the locked-elbow extension with the rear glove at the
+  jaw, the half-retraction and the settle — four poses an animator would key.
+- [x] **The whole cycle is one sheet.** `/v1/derive` gained `mode: animate`
+  with `columns`, `rows` and `poses`; the browser composes the source into
+  cell 1 of a 1024²/1536×1024 sheet at 4–16 px per cell, the model fills the
+  next N cells, and the browser cuts them. `lib/animation/sheet.ts` is pure
+  TypeScript, so layout, composition, cutting and registration are tested and
+  scriptable. One paid image per sheet: 3–5 frames beside a 128px sprite, up to
+  15 beside a 32px one.
+- [x] **Grounded frames are registered to the source's ground line.** The one
+  drift a sheet still shows comes by the row — the model drew the warrior's
+  second row 72px (14% of the cell) high. Tolerance is asymmetric: a grounded
+  frame floating above the floor is brought down by up to 20% of the cell,
+  because that is never right; one hanging below is lifted at most 8%, because
+  a low follow-through can trail a blade beneath the feet. Airborne frames are
+  never touched.
+- [x] `gpt-image-2` rejects `input_fidelity` (400, "does not support"); it is
+  not sent.
+- [x] The tool reports repeated poses, empty cells, ground-line corrections and
+  edge contact, and says the frames hold 250ms so an action wants 8–12 fps.
+
+**Measured live, through the real pipeline** (`scripts/animate-bench.ts`,
+outputs in [`output/animation-bench`](../output/animation-bench)):
+
+| Cycle | Before (one image per frame) | After (one sheet) |
+| --- | --- | --- |
+| Warrior swing, 4 frames, 128px | 661.6s, 4 images; ground row varied 105–123; blade clipped at the top edge | **115.4s, 1 image**; ground row 123 in all five frames after registration; no frame touches an edge; blade inside the canvas in the overhead pose |
+| Boxer jab, 4 frames, 128px | not previously possible to judge; earlier idle needed an external tool | **115.4s, 1 image**; ground row 113 in all five frames with 0–5px corrections; same boxer, same scale; coil → extension → retract → settle |
+
+Raw sheets came back 86–90% transparent with 1.2–1.3% partial alpha (a glow the
+model paints around the figure), which the 128 alpha threshold drops; the
+indexed frames have no halo.
+
+**Still open, honestly:** the frames are a coherent cycle of the same character,
+not animator polish. The warrior's anticipation pose swings the blade low before
+the overhead wind-up, which is what the planner asked for and reads as one
+motion, but a human animator would key it differently. Registration corrects
+vertical drift only; horizontal drift is left alone because a lunge moves the
+body on purpose. A source whose lowest pixel is a prop rather than a foot
+defines the ground line by that prop. Body scale is consistent by eye; there is
+no automated scale check, because bounding boxes change with the pose.
+
+
+## 2026-09-03 — Sword-swing regression repair (partial; overlapping rewrite)
+
+- Reproduced per-pose fitting moving/rescaling a stationary body and stripping
+  transparent weapon margins. Exact-grid regressions at 32px and 128px failed
+  before the fix and now pass, including an intentionally airborne pose.
+  Text animation now keeps the full generated camera canvas and pixelises to
+  the document's explicit dimensions. Existing base frames remain unchanged.
+- Long briefs are planned intact (up to 10,000 characters) into self-contained
+  pose instructions. Every composed instruction is checked against the existing
+  1,000-character derive limit before any image call; nothing is silently cut.
+  Pose prompts no longer request re-centring or constant silhouette occupancy.
+- Coherence checks report character canvas-edge contacts and explicitly avoid
+  certifying anatomy, foot contact or smooth motion. Replaying the old swing
+  through the patched native tool flags all four generated poses instead of
+  reporting a clean cycle.
+- Shared exports retain their Blob URLs behind persistent native Download links,
+  releasing each only when its notice is dismissed. A regression demonstrated
+  that the old immediately revoked URL was already unreadable after export;
+  PNG bytes now remain readable. Tool messages no longer claim a confirmed disk
+  save. In-app browser delivery is still being verified.
+
+At the tested snapshot, **856 tests passed** (178 core, 612 web, 66 API), as did
+root lint/typecheck. A production build passed before the native-link refinement.
+The paid four-pose replay completed in **695.7s**, using the original 128px warrior
+on `asset_031` with a 1,760-character brief. All five frames are distinct, the
+source is unchanged, and all canvas edges are transparent. Native playback shows
+4fps/250ms; the independently parsed GIF has five 250ms delays.
+
+**Still unresolved:** visual ground-position drift remains. The lowest skin rows
+are 123, 122, 112, 119 and 120, with the downward-slash pose visibly floating
+relative to the source. Retaining the full canvas removes deterministic fitting
+drift, but does not make independent model poses share exact contact points.
+The retained-button export still produced no verifiable browser download; a
+native-link refinement passes tests but has not been loaded in the live build.
+
+During this live replay, work outside this agent's team replaced `api.ts` and
+`animate-text.ts` with a sprite-sheet generation pipeline. Those overlapping
+changes were preserved, not reverted or rebuilt. The earlier green checks and
+live output **do not certify that replacement**. User coordination was requested
+before final integration. The original `asset_029` remains untouched; see
+[the new output evidence](../output/warrior-slab/README.md#regression-replay).
+
+## 2026-09-03 — Live WebMCP sword swing
+
+Imported the 128px slab-sword warrior with `import_image` into `asset_029`, then
+used `animate_with_text` to generate four swing poses through the actual Zenith
+pipeline. The five-frame asset uses 250ms holds (4fps); original pixels/palette
+are unchanged and all five frames are distinct. Browser playback was started,
+and native frame/coherence reads succeeded. The exported GIF's five 250ms delays
+were verified independently. See [the artifact evidence](../output/warrior-slab/README.md).
+
+Limits: a long description exceeded the composed per-frame API instruction limit
+and bought no image frames; a concise retry completed in 661.6s. Ground position
+drifts and one raised-sword pose touches the edge despite a passing coherence
+check. WebMCP export reported success without a verifiable download; the supplied
+GIF uses Zenith's encoder over the exact WebMCP-read frames. No app code changed
+during this generation run.
+
+## 2026-09-03 — 4fps default and boxer idle hop
+
+New frames now default to 250ms (4fps), including generated, procedural,
+skeleton and interpolated frames. GIF and atlas fallback timing uses the same
+core constant. Existing explicit durations and duplicated-frame timings remain
+unchanged. The timeline derives its displayed rate from saved durations and
+shows “Mixed” for unequal holds; export adapters now retain those holds in
+spritesheet/engine metadata instead of dropping them.
+
+Verification: **839 tests pass** using `OPENAI_API_KEY='' bun run test` (178 core,
+597 web, 64 API); root lint, typecheck and production build pass. The initial
+unsanitised test run picked up a configured API key and made the unconfigured-key
+case fail; explicitly disabling the key made the declared suite deterministic.
+A production-browser reload showed an existing 100ms asset as 10fps, preserving
+its old timing instead of applying the new default retroactively.
+
+The [boxer output bundle](../output/boxer-idle/README.md) contains four distinct
+128×128 poses, a shared 16-colour palette, transparent margins and a one-second
+4fps GIF. GIF blocks were independently checked: four 250ms delays. Art came
+from built-in ImageGen, followed by Zenith's actual pixeliser and encoders.
+**Not yet imported into the live studio:** browser auto-review denied new-asset
+creation over a canvas-preset concern; explicit user approval was requested.
+The original assets were not changed.
+
+## 2026-09-03 — Character editing regression
+
+See [the dated evidence and option matrix](./verification/character-regression-2026-09-03.md).
+Repairs cover correct direction/source navigation, explicit type correction in
+chat, shared stale-result guards, palette-safe masked editing, atomic palette
+undo and captured generation destinations. An actual 128×128 merchant and its
+side/back views were generated through the in-app browser. A prompt-free joint
+drag, frame bake, six-frame walk and every export format were exercised; the
+downloaded indexed PNG matches the source exactly. The screenshot-sized new-colour
+inpaint correctly refused palette overflow without changing the asset.
+
+Current verification: **831 tests pass; lint, typecheck and production build pass.**
+Model anatomy, every camera/view combination and engine runtime imports are not
+proven by these checks. Earlier audit snapshots below remain historical.
+
+The option sweep additionally repaired non-destructive re-pixelisation (correct
+palette, source/destination retention), nearest-neighbour upscaling edge/cadence
+loss, and background removal deleting outlines on already-transparent sprites.
+Live production checks verify 64→32 and 64→128 copies, exact 2× pixels and the
+transparent-background no-op. Real text animation, 64px reference redraw, all six
+manual tools and the colour editor were also exercised; see the matrix for the
+difference between live checks, pure-pipeline tests and remaining quality limits.
+
+**Animated-character WebMCP surface:** the browser's configuration-limit error
+occurred in development and production. Investigation proved unnecessary
+78→20→78 registration churn during navigation. Registration now follows the
+visible route while shared execution and chat reject an unsettled target.
+After repair, ten live production asset switches, editor reads after each,
+the full 82-tool animated surface, and subsequent variant/source reads all
+succeeded without the error. No tools were removed. The exact browser-internal
+limit trigger and indefinite-session stability remain unproven.
+
+Two live variants retained connected right-facing anatomy and left the source's
+grid and palette byte-identical. The batch's delayed intermediate navigation
+was repaired and checked with a deferred-response regression. Full-mask purple
+recolour still shifted scarf colour; text-generated poses still drift in framing
+and equipment. These are recorded quality limitations, not perfect successes.
 
 ---
 
@@ -29,7 +384,7 @@ Swept phase by phase against the exit criteria in each phase doc, not against me
 | 09 Rotation & directions | done | yes | Directions panel; mirror path live, generation needs a model |
 | 10 Concept to character | done | yes | Reference upload runs the full chain |
 | 11 Worlds & tilesets | done | yes | Autotile panel derives 47 tiles into a sheet |
-| 12 Skeletons | done | partial | Draggable local rig, frame baking and stock cycles live; reusable rig library and transfer remain |
+| 12 Skeletons | done | partial | Silhouette-read estimation, bone rig with live preview, stock cycles and agent posing live; reusable rig library and transfer remain |
 | 13 Export & polish | done | partial | Export dialog live; the editor-polish half is not built |
 | 14 Projects | done | yes | Projects, folders, enforceable style and export are live; workspaces cut |
 
@@ -61,7 +416,7 @@ All listed engines now have live consumers. The registry is 91 tools with view s
 | [09](./phases/09-rotation-directions.md) Rotation & directions | **Deterministic half done** | 3/7 | Mirror path complete; generative path needs a key |
 | [10](./phases/10-concept-to-character.md) Concept → character | **Chain built; no upload UI** | 4/7 | Orchestration tested with an injected generator |
 | [11](./phases/11-worlds-tilesets.md) Worlds & tilesets | **Autotiling done; generation not** | 4/7 | 47-tile set derived by composition, no model |
-| [12](./phases/12-skeletons.md) Skeletons & transfer | **Local authoring live; reuse incomplete** | 3/7 | Saved pose libraries and cross-character transfer remain |
+| [12](./phases/12-skeletons.md) Skeletons & transfer | **Rig rebuilt; reuse incomplete** | 4/7 | Agent posing through `animate_with_skeleton` joints; saved pose libraries and cross-character transfer remain |
 | [13](./phases/13-export-polish.md) Export & polish | **Exports done; UI polish not** | 5/9 | Engine bundles, palettes, indexed PNG all built |
 | [14](./phases/14-projects.md) Projects | **Complete** | 6/6 | Browser, WebMCP, model and persistence paths verified |
 
@@ -73,7 +428,7 @@ The rules are in [`AGENTS.md`](../AGENTS.md) under "The route owns which asset i
 
 Do **not** resolve this by detecting a mismatch and navigating: effects run child-first, so route and session legitimately disagree for one commit on mount, and a detector navigates to the wrong asset. There is a regression test named for that failure.
 
-**Repo health:** 738 tests pass · typecheck clean (3 bun workspaces) · lint clean.
+**Repo health:** 740 tests pass · typecheck clean (3 bun workspaces) · lint clean.
 
 ---
 
@@ -614,3 +969,32 @@ From [`requirements.md` §6](./requirements.md), the items not yet true:
 - [ ] **Rotate the OpenAI key** after the demo.
 
 *Correction:* this section listed `LICENSE` and `README` as missing for several turns after they were written. The claim was carried forward from an earlier message rather than re-checked against the repo — the same failure as trusting a green test without asking whether it still fires.
+
+## Phase 12 — Skeleton rework, 2026-09-03
+
+The skeleton was accurate on nothing and functional for nothing. Checked against the product's real input — the model-generated merchant at 32px, side view, staff in hand, now kept as `lib/skeleton/fixtures/merchant-side-32.json` — rather than the 8×8 box the suite had been passing on.
+
+### What was wrong, measured
+
+- **The estimator did not read the sprite.** It took the widest row in a band as the shoulders and hung every other joint off proportions. On the merchant: head joint on the top pixel of the hat, hands outside the silhouette, legs straight below hips that were nowhere near the legs, and the staff read as the left arm. The old test suite could not see any of this because it only ever ran on a synthetic box.
+- **The deformer was not a rig.** Inverse-distance weighting let every joint pull on every pixel: dragging a hand slid the head, and a walk cycle melted the torso. Nothing rotated, because nothing was a limb.
+- **Templates stretched every character to one body.** Keyframes were absolute positions, so applying a stride grew or shrank the character's legs to the template author's proportions.
+
+### Verified
+
+- **Estimation reads runs of opaque pixels per row.** Head peak, neck valley, shoulder peak off the width profile, with the neck-versus-waist ambiguity resolved by whether the profile widens again below the valley; the crotch is the row where one run becomes two, and each leg is tracked to its own foot; an arm is the run beside the torso, or the torso's edge when held against it. Every joint lands on an opaque pixel of the part it names on the real 32px merchant and on the 128px front-view merchant (viewed at 8× and 2×). A held staff — a thin separated run in more than half the rows, in both halves of the sprite — is stripped before any of that, so it is no longer an arm or a leg, and two narrow legs are not mistaken for props.
+- **Bone rig with hard binding.** Every pixel binds to its nearest bone in the base pose (the spine as a capsule, so the torso's interior stays with the spine), and moves rigidly with it by inverse mapping, so a rotated limb has no holes. A toy test pins the property that matters: rotating one bone moves exactly its pixels and nothing else. Prop pixels bind to a zero-length bone at the hand, so the staff translates with the hand upright and in one piece — asserted as one contiguous column of the staff's index in every frame of a walk.
+- **Templates are angles, applied by rotation.** Keyframes are authored as degrees per bone and expanded by forward kinematics from the rest pose, so a limb's length cannot drift between keyframes (asserted for every bone of every template). `retargetPoseOnto` reads each bone's turn relative to the rest pose and applies it to the character's own bone in its own pixel space, keeping its length within a 0.5–1.5 clamp. Grounded cycles plant the lowest foot on the character's ground line; a jump on a sprite with no headroom is held at the canvas edge instead of clipped. Walk and run are four keyframes each (two contacts, two passes), with the arms opposed to the legs. `facing: "west"` mirrors the east-authored cycles.
+- **Retention on the real merchant:** every template keeps 75–100% of the sprite's pixels in every frame (losses are limbs crossing), six 32px frames in about 2ms and six 128px frames in about 5ms — cheap enough that the editor re-poses the sprite under the pointer on every drag.
+- **The editor poses live.** The canvas shows the rig source in the current pose while a skeleton is open, joints are colour-coded by side and labelled on hover, and a stroke that misses a joint no longer paints under the preview. The panel picks type, facing and a template pose (retargeted onto the character), builds a cycle from the corrected rig, bakes the pose as a new frame after the source frame, and resets or hides. `Space+E` still toggles the rig.
+- **An agent can pose through tools.** `animate_with_skeleton` takes `joints` — without a template they are the pose and one frame is inserted; with one they correct the estimated rig before the cycle — so an agent reads `estimate_skeleton`, moves what matters and gets a frame back with no UI. This was going to be a separate `re_pose`, and `list_pose_templates` was going to stay: the discovery catalog's byte budget (a regression guard under an observed browser rejection) had 290 bytes of headroom, so the pose path was folded into the one tool and the template list, whose only content was the enum the schema already carries, was removed.
+
+### Found while verifying in the browser
+
+- [x] **Frame selection never repainted.** `DocumentStore.selectFrame` and `selectLayer` notified subscribers without moving `revision`, and every `useSyncExternalStore` selector caches on `revision` — so clicking a frame in the timeline changed the store and nothing on screen: the old frame stayed highlighted and the canvas kept painting it. Confirmed by hashing the canvas across programmatic frame clicks (unchanged) and by forcing an unrelated re-render (the timeline then showed the new frame while the canvas still showed the old composite). Unchanged since the initial commit; found only because a built attack cycle looked identical on every frame. Selection now bumps the revision, re-selecting the current frame does not, and two core tests pin both. Frames 1, 3 and 4 of the cycle now render as three different poses.
+
+### Open
+
+- [ ] Reusable pose storage and `transfer_animation` across assets: poses transfer in the engine; no saved library or end-to-end application is surfaced.
+- [ ] Arms held against the torso in a side view are the torso's edge strip, so a swing shears that strip. Inherent to a flat rig without segmentation; it is why the cycles are labelled blocking quality.
+- [ ] Quadruped estimation reads the head end, body line and feet off the silhouette but has only a synthetic dog to check against; no stock quadruped cycles.

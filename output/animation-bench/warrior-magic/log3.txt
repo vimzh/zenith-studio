@@ -1,0 +1,17 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: a glowing purple magic trail following the blade's path, and a white air-cut arc at the moment of the slash
+planned 4 poses in 0.0s; source read as: Facing left in 3/4, wide stance: left foot forward and right back; torso braced; right hand grips pommel by hip, left hand under the guard by cheek; slab greatsword held two‑handed, angled up-left towering overhead.
+  1. [grounded, 90ms] Anticipation: sink and coil to the right; hips load back. Hands keep the hilt, drawing it near right ear; blade shifts overhead to back-right. Head stays facing left. Right foot planted, left toes pivot light but grounded. | effect: Short purple trail arcing above his head from high-left toward back-right behind the blade, clear of face.
+  2. [grounded, 180ms] Key: explosive diagonal slash. Weight drives onto left leg; left foot planted, right heel up pivoting. Torso leans forward-left, arms extend; blade sweeps from over-right across front to low-left outside the lead knee. | effect: White air-cut arc from above-right to low-left in front of him; bright and outside silhouette. Purple trail lags along the same path behind the blade.
+  3. [grounded, 100ms] Follow-through low: sword passes past target; hands down near left thigh, tip forward-left low. Torso folded over left. Left foot still planted; right toes skid forward slightly, heel up. | effect: Purple trail low-left, curling just behind the tip along the continuing arc near the ground; no air-cut.
+  4. [grounded, 160ms] Recovery: lift blade back up-left toward ready; hands draw in to chest—left near guard by cheek, right at pommel. Torso rises and recenters. Left foot planted; right foot steps back and plants. | effect: Faint purple trail rising from low-left toward up-left along the lift path, kept to the outer left edge.
+sheet 1 reused from disk
+  baseline 496px, tolerance down 102px / up 41px, shifts 23, 3, 66, 53
+palette: folded #3a373e into #2f2b31 (0.047), #7e767d into #958b93 (0.073)
+palette: added #6f05f3, #e248fe; unmatched #9927f4, #c486f1, #be2cfd
+judged in 32.8s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+wrote 4 frames to ../../output/animation-bench/warrior-magic; holds 90, 180, 100, 160ms; bottom rows 123, 123, 123, 123, 123; sheets 1; sheet seconds 
+exit 0

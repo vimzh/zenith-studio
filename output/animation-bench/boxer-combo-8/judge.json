@@ -1,0 +1,91 @@
+[
+  {
+    "pass": 1,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": false,
+        "problems": [
+          "Unplanned white streak effect appears despite no glove at full extension."
+        ]
+      },
+      {
+        "frame": 6,
+        "ok": false,
+        "problems": [
+          "Unplanned white streak effect appears during retraction."
+        ]
+      },
+      {
+        "frame": 7,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 8,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  },
+  {
+    "pass": 2,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 5,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 6,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 7,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 8,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  }
+]

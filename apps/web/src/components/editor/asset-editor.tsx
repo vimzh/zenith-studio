@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { session, useSessionSelector } from "@/lib/editor";
+import { activateAssetRoute } from "@/lib/editor/activate-asset-route";
 import { EditorWorkspace } from "./editor-workspace";
 
 /**
@@ -23,23 +24,24 @@ export function AssetEditor({ id }: { id: string }) {
   const asset = useSessionSelector((current) =>
     current.list().find((entry) => entry.id === id)
   );
-  const hydrated = useSessionSelector((current) => current.hydrated);
+  const [activation, setActivation] = useState<{ id: string; error: string | null } | null>(null);
   const store = session.get(id);
-  // A palette swap or resize replaces the store object rather than mutating it,
-  // since size and palette are document invariants. Keying on the generation
+  // Resizing replaces the immutable-size store. Keying on the generation
   // remounts the editor so nothing keeps reading the discarded store.
   const generation = useSessionSelector((current) => current.generationOf(id));
 
-  // Hydrate here too, not only in the library. A deep link opens this route
-  // directly, and without this the asset is on disk but never loaded — the page
-  // reports "not in this session" for an asset that exists.
+  // A deep link needs both documents and placements. Ignore obsolete callbacks
+  // so finishing hydration cannot reopen the asset whose route was just left.
   useEffect(() => {
-    void session.hydrate().then(() => {
-      session.open(id);
-    });
+    let cancelled = false;
+    void activateAssetRoute(id, () => !cancelled).then(
+      () => { if (!cancelled) setActivation({ id, error: null }); },
+      error => { if (!cancelled) setActivation({ id, error: error instanceof Error ? error.message : String(error) }); },
+    );
+    return () => { cancelled = true; };
   }, [id]);
 
-  if (!hydrated) {
+  if (activation?.id !== id) {
     return (
       <div className="flex h-full items-center justify-center">
         <p className="font-mono text-xs text-muted-foreground">Loading…</p>
@@ -47,11 +49,11 @@ export function AssetEditor({ id }: { id: string }) {
     );
   }
 
-  if (asset === undefined || store === undefined) {
+  if (activation.error !== null || asset === undefined || store === undefined) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
-        <p className="font-mono text-xs text-muted-foreground">
-          No asset <span className="text-foreground">{id}</span> in this session.
+        <p className="font-mono text-xs text-muted-foreground" role={activation.error === null ? undefined : "alert"}>
+          {activation.error ?? <>No asset <span className="text-foreground">{id}</span> in this session.</>}
         </p>
         <Link
           className="rounded-sm border border-border px-3 py-1.5 text-sm hover:border-foreground/30"

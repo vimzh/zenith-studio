@@ -82,8 +82,10 @@ describe("document serialisation", () => {
     expect(raw.palette.colors).toEqual(["#0f380f", "#306230", "#8bac0f", "#9bbc0f"]);
     expect(raw.metadata.createdAt).toBe("2026-09-02T00:00:00.000Z");
     expect(raw.metadata.tags).toEqual(["tile"]);
-    expect(raw.frames[0]?.durationMs).toBe(100);
+    expect(raw.frames[0]?.durationMs).toBe(250);
     expect(deserializeDocument(raw).name).toBe("cobble_01");
+    const saved = { ...raw, frames: raw.frames.map((frame) => ({ ...frame, durationMs: 100 })) };
+    expect(deserializeDocument(saved).frames[0]?.durationMs).toBe(100);
   });
 
   test("rejects unknown formats and versions", () => {

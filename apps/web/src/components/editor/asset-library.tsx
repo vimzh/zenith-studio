@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, Copy, Download, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { projectsContent } from "@/data/projects";
 import {
-  SEED_ASSETS,
+  ensureSeeded,
   downloadLibrary,
   deleteAsset,
   importLibrary,
@@ -93,16 +93,11 @@ export function AssetLibrary({
   const generationStarted = useRef(false);
   const router = useRouter();
 
-  // Read storage, then seed only if it came back empty. Seeding before
-  // hydration would duplicate the examples on every visit.
+  // One seeding path, shared with the project screen: it hydrates first, fills
+  // an empty library with the tiles and the character pack, and remembers that
+  // it did so an emptied library is not refilled on the next visit.
   useEffect(() => {
-    void session.hydrate().then(() => {
-      if (session.size === 0) {
-        for (const asset of SEED_ASSETS) {
-          session.create(asset);
-        }
-      }
-    });
+    void ensureSeeded();
   }, []);
 
   useEffect(() => {

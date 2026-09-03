@@ -20,6 +20,15 @@ import_reference(image | prompt)
 
 Every step is inspectable, undoable, and overridable. A bad north-facing sprite is fixed in place; nothing re-runs from scratch. Compare a monolithic "make me a character" endpoint, where a bad result means starting over — that difference is the argument for tool granularity, and it belongs in the submission description.
 
+**The concept can be the asset already open.** "Use open asset" stages it, so a
+sprite you already have can go through the same chain without a round trip to
+disk — the build button previously sat greyed out with the source it wanted on
+screen beside it. It is staged explicitly and shown in the Source preview, not
+substituted silently, because what the model is about to be given should be
+visible before anything is spent. To turn a character you already have, the
+Directions panel is still the direct path: it mirrors what it can and only pays
+for the rest, where this redraws the sprite from scratch.
+
 ## In scope
 
 - **Image upload** — drag onto the canvas, file picker, or paste. Formats: PNG, JPG, WebP.
@@ -55,6 +64,17 @@ Upload affordance · reference tray with before/after · multi-step progress · 
 - [ ] Uploaded images leave the browser only for the explicit character-extraction image edit; framing and pixelisation remain local
 
 ## Risks
+
+### 2026-09-03 repair verification
+
+Masked edits now preserve outside-region colours as well as pixel indices;
+palette and pixel changes undo atomically. Stale results, palette overflow,
+no-op results and large unrequested erasures are refused. The original
+128×128 screenshot-sized purple-skin edit was retested live: its extra colour
+could not fit, and it correctly left the source intact. This is not proof of
+perfect anatomy or of successful recolouring on every palette. Prompt/concept
+destination races and all in-place model target races have reproducible
+regression tests. See the [test report](../verification/character-regression-2026-09-03.md).
 
 | Risk | Mitigation |
 | --- | --- |

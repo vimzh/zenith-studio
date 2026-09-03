@@ -1,0 +1,10 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024)
+planned 4 poses in 25.4s
+  1. [grounded] 3/4 facing right. Anticipation: torso leans slightly back, weight to rear (right) leg; hips/shoulders coil. Lead (left) glove draws a bit back near ribs; rear (right) glove tight at cheek. Head level, chin tucked. Left foot light on ball, heel up; right foot planted under hip, knees soft.
+  2. [grounded] 3/4 facing right. Key jab: torso snaps forward with hip/shoulder rotation; weight drives to lead. Left arm fully extended straight to screen-right, fist vertical, shoulder raised. Right glove tight at jaw. Head slightly down. Left foot firmly planted; right heel lifted on ball behind; knees engaged.
+  3. [grounded] 3/4 facing right. Follow-through: torso a hair past forward then beginning to pull back; weight easing off lead. Left fist retracts to midway, elbow bending in-line. Right glove steady at guard. Head tracking target. Left foot planted; right on ball, heel high, stance springy; knees compressing.
+  4. [grounded] 3/4 facing right. Recovery: torso settles toward neutral with slight backward lean; weight re-centers. Left glove back near cheek in guard, elbow in. Right glove at jaw. Head upright, chin tucked. Left foot planted; right heel lowering toward floor, both feet grounded, knees easing to flow into rest.
+sheet 1 generated in 115.4s
+  baseline 456px, tolerance 41px, shifts 0, 0, 5, 2
+wrote 4 frames to ../../output/animation-bench/boxer-jab; bottom rows 113, 113, 113, 113, 113; sheet seconds 115
+exit 0

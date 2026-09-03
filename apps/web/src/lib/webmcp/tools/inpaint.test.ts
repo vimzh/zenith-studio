@@ -12,13 +12,30 @@ import {
   encodeInpaintInputs,
   inpaintInstruction,
   regionColors,
+  commitInpaintResult,
+  protectedInpaintColors,
 } from "./inpaint";
 import { mergePalette } from "./generation";
+import { session } from "@/lib/editor";
 
 const REGION: Region = { x: 1, y: 1, width: 2, height: 2 };
 const PALETTE = ["#000000", "#ffffff"];
 
 describe("inpainting boundaries", () => {
+  test("rejects a model result that erases the body instead of recolouring it", () => {
+    const store = createStore(createDocument({ width: 128, height: 128, palette: PALETTE }));
+    store.fillRegion({ x: 40, y: 10, width: 40, height: 110 }, 1);
+    store.clearHistory();
+    const before = store.encode();
+    const broken = store.readComposite();
+    for (let y = 12; y < 70; y++) broken.cells.fill(TRANSPARENT, y * 128 + 40, y * 128 + 80);
+
+    expect(() => applyInpaintRegion(store, broken, { x: 32, y: 12, width: 90, height: 100 }))
+      .toThrow("removed");
+    expect(store.encode()).toBe(before);
+    expect(store.canUndo).toBe(false);
+  });
+
   test("encodes source and mask at the same integer-scaled dimensions", () => {
     const grid = createGrid(4, 3, 0);
     const inputs = encodeInpaintInputs(grid, PALETTE, REGION);
@@ -58,6 +75,83 @@ describe("inpainting boundaries", () => {
     expect(inpaintInstruction("add a hood", PALETTE)).toBe(
       "add a hood. Use only this exact existing palette in the finished edit: #000000, #ffffff.",
     );
+  });
+});
+
+describe("inpaint commit safety", () => {
+  function fixture() {
+    const id = session.create({ name: "inpaint commit QA", type: "character", width: 4, height: 4, palette: PALETTE });
+    const store = session.get(id)!;
+    store.fillRegion({ x: 0, y: 0, width: 4, height: 4 }, 0);
+    store.fillRegion(REGION, 1);
+    store.clearHistory();
+    return { id, store, revision: store.revision, frame: store.activeFrame, layer: store.activeLayer };
+  }
+
+  test("only colours outside the mask stay reserved; palette plus edit undo together", () => {
+    const target = fixture();
+    expect([...protectedInpaintColors(target.store, REGION)]).toEqual([0]);
+    const before = target.store.encode();
+    const edited = target.store.readComposite();
+    edited.cells[5] = 0;
+    commitInpaintResult(target, edited, ["#000000", "#aa44cc"], REGION);
+    expect(target.store.palette.colors[1]?.hex).toBe("#aa44cc");
+    expect(session.get(target.id)).toBe(target.store);
+    expect(target.store.history()).toEqual(["inpaint_region"]);
+    target.store.undo();
+    expect(target.store.encode()).toBe(before);
+    expect(target.store.palette.colors.map(c => c.hex)).toEqual(PALETTE);
+    target.store.redo();
+    expect(target.store.palette.colors[1]?.hex).toBe("#aa44cc");
+  });
+
+  test("reports an unchanged result without promising undo of the preceding edit", () => {
+    const target = fixture();
+    target.store.setPixels([{ x: 0, y: 0, index: 1 }]);
+    const revision = target.store.revision;
+    const before = target.store.encode();
+    const history = target.store.history();
+
+    expect(() => commitInpaintResult({ ...target, revision }, target.store.readComposite(), PALETTE, REGION))
+      .toThrow("No undo entry was created");
+    expect(target.store.revision).toBe(revision);
+    expect(target.store.encode()).toBe(before);
+    expect(target.store.history()).toEqual(history);
+  });
+
+  test("a palette-only recolour is a real undoable edit even with zero index changes", () => {
+    const target = fixture();
+    expect(commitInpaintResult(target, target.store.readComposite(), ["#000000", "#aa44cc"], REGION)).toBe(0);
+    expect(target.store.revision).toBeGreaterThan(target.revision);
+    expect(target.store.history()).toEqual(["inpaint_region"]);
+    expect(target.store.palette.colors[1]?.hex).toBe("#aa44cc");
+    target.store.undo();
+    expect(target.store.palette.colors.map(color => color.hex)).toEqual(PALETTE);
+  });
+
+  test("refuses stale pixel, palette, frame or asset targets without applying anything", () => {
+    for (const change of ["pixels", "palette", "frame", "asset"] as const) {
+      const target = fixture();
+      const edited = target.store.readComposite();
+      if (change === "pixels") target.store.setPixels([{ x: 0, y: 0, index: 1 }]);
+      if (change === "palette") session.setPaletteColor(target.id, 0, "#112233");
+      if (change === "frame") { target.store.addFrame({ copyFrom: 0 }); target.store.selectFrame(1); }
+      if (change === "asset") session.create({ name: "other QA" });
+      const current = session.get(target.id)!;
+      const before = current.encode();
+      expect(() => commitInpaintResult(target, edited, ["#000000", "#aa44cc"], REGION)).toThrow("changed while generating");
+      expect(current.encode()).toBe(before);
+      expect(current.palette.colors.some(c => c.hex === "#aa44cc")).toBe(false);
+    }
+  });
+
+  test("intentional erasure is explicit and undoable", () => {
+    const target = fixture();
+    const generated = createGrid(4, 4, TRANSPARENT);
+    expect(() => applyInpaintRegion(target.store, generated, REGION)).toThrow("removed");
+    expect(applyInpaintRegion(target.store, generated, REGION, true)).toBe(4);
+    target.store.undo();
+    expect(target.store.readComposite().cells[5]).toBe(1);
   });
 });
 
@@ -108,6 +202,15 @@ describe("colours an edit needs but the palette does not have", () => {
     expect(merge.added).toEqual([]);
     expect(merge.unmatched).toEqual(["#c0392b"]);
     expect(merge.colors).toEqual(BUSH);
+  });
+
+  test("never overwrites a reclaimed colour that the edit still uses", () => {
+    const protectedSlots = new Set(BUSH.map((_, index) => index).filter(index => index !== 5));
+    for (const incoming of [[BUSH[5]!, "#b43ef8"], ["#b43ef8", BUSH[5]!]]) {
+      const merge = mergePalette(BUSH, incoming, protectedSlots);
+      expect(merge.colors[5]).toBe(BUSH[5]);
+      expect(merge.unmatched).toContain("#b43ef8");
+    }
   });
 
   test("the instruction stops forbidding new colours once there is room", () => {

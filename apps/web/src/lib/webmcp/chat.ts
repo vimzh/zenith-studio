@@ -101,8 +101,8 @@ export async function requestTurn(
 }
 
 export interface ChatRunOptions {
-  /** Tools this view can offer, already curated and scoped. */
-  readonly tools: readonly ToolDefinition[];
+  /** A live provider refreshes capabilities after type, frame, or direction changes. */
+  readonly tools: readonly ToolDefinition[] | (() => readonly ToolDefinition[]);
   /** Called after every appended message, so the UI can render as it goes. */
   readonly onMessage?: (message: ChatMessage) => void;
   readonly maxTurns?: number;
@@ -147,8 +147,6 @@ export async function runChat(
 ): Promise<ChatRunResult> {
   const messages: ChatMessage[] = [...history];
   const appended: ChatMessage[] = [];
-  const schemas = toOpenAiTools(options.tools);
-  const byName = new Map(options.tools.map((tool) => [tool.name, tool]));
   const maxTurns = options.maxTurns ?? MAX_TURNS;
 
   const append = (message: ChatMessage): void => {
@@ -160,6 +158,9 @@ export async function runChat(
   for (let turn = 0; turn < maxTurns; turn += 1) {
     if (options.signal?.aborted === true) break;
 
+    const tools = typeof options.tools === "function" ? options.tools() : options.tools;
+    const schemas = toOpenAiTools(tools);
+    const byName = new Map(tools.map((tool) => [tool.name, tool]));
     const result = await requestTurn(messages, schemas);
     append(result.message);
 

@@ -1,0 +1,24 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: golden sparkles around the raised blade
+planned 4 poses in 24.9s; source read as: Three-quarter right; right hand holds sword low across front pointing down-right; left arm raises kite shield before chest; left foot forward, right back; slight forward lean, head facing right.
+  1. [grounded, 120ms] Anticipation: torso leans slightly back-right, weight to right foot; right arm draws sword lower/back by thigh, tip down-right; left arm lifts shield a bit higher forward, elbow bent; knees flex; head tucks, facing right.
+  2. [grounded, 200ms] Key: torso drives up slightly left, weight to left foot; right arm fully extends, sword high overhead on right, near vertical; left arm straight, shield planted tip to ground ahead-left, rim outward; knees firm; head tilts up to blade. | effect: golden sparkles clustering around raised blade tip; pale arc trail along sword’s upswing from low-front to overhead on right side
+  3. [grounded, 160ms] Follow-through: torso eases, slight lean left; right arm keeps sword high but elbow soft, blade angled forward; left arm braced on planted shield; weight centered; head forward-right. | effect: golden sparkles around raised blade; a few small dots just below it
+  4. [grounded, 120ms] Recovery: torso returns toward neutral; right arm brings sword down to front diagonal toward guard; left arm lifts shield off ground toward chest, elbow bent; weight splits; head level, facing right.
+1 sheet(s) generated concurrently in 114.9s
+  baseline 512px, tolerance down 102px / up 41px, shifts 0, 0, 0, 6
+palette: folded #04051b into #000117 (0.036)
+palette: added #a7cdf2; unmatched none
+judged in 19.2s
+  frame 1: ok
+  frame 2: REJECTED — Shield not planted to ground ahead-left as planned
+  frame 3: REJECTED — Shield not planted and left arm not braced on it
+  frame 4: ok
+1 sheet(s) generated concurrently in 156.2s
+  baseline 512px, tolerance down 102px / up 41px, shifts 0, 35
+judged in 12.1s
+  after repair, frame 1: ok
+  after repair, frame 2: ok
+  after repair, frame 3: ok
+  after repair, frame 4: ok
+wrote 4 frames to ../../output/showcase/knight/victory; holds 120, 200, 160, 120ms; bottom rows 127, 127, 127, 127, 127; sheets 2; sheet seconds 115, 156
+exit 0, wall 328s

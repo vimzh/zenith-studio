@@ -1,0 +1,56 @@
+[
+  {
+    "pass": 1,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": false,
+        "problems": [
+          "Shield not planted to ground ahead-left as planned"
+        ]
+      },
+      {
+        "frame": 3,
+        "ok": false,
+        "problems": [
+          "Shield not planted and left arm not braced on it"
+        ]
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  },
+  {
+    "pass": 2,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  }
+]

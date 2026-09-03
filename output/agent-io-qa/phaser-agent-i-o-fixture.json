@@ -1,0 +1,110 @@
+{
+  "frames": [
+    {
+      "filename": "agent-i-o-fixture_0",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      },
+      "duration": 250
+    },
+    {
+      "filename": "agent-i-o-fixture_1",
+      "frame": {
+        "x": 64,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      },
+      "duration": 250
+    },
+    {
+      "filename": "agent-i-o-fixture_2",
+      "frame": {
+        "x": 0,
+        "y": 64,
+        "w": 64,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      },
+      "duration": 250
+    },
+    {
+      "filename": "agent-i-o-fixture_3",
+      "frame": {
+        "x": 64,
+        "y": 64,
+        "w": 64,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      },
+      "duration": 250
+    }
+  ],
+  "meta": {
+    "app": "Zenith Studio",
+    "version": "1.0",
+    "format": "I8",
+    "size": {
+      "w": 128,
+      "h": 128
+    },
+    "scale": "1",
+    "frameTags": [
+      {
+        "name": "agent-i-o-fixture",
+        "from": 0,
+        "to": 3,
+        "direction": "forward"
+      }
+    ]
+  }
+}

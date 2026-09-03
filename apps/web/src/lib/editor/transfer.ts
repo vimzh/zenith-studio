@@ -1,4 +1,5 @@
 import { deserializeDocument, serializeDocument, type SerializedDocument } from "@zenith/core";
+import { downloadBlob } from "@/lib/download";
 import { session, type AssetType } from "./session";
 import { projects } from "./projects";
 
@@ -93,12 +94,7 @@ export function downloadLibrary(filename = "zenith-library.json"): void {
   const blob = new Blob([JSON.stringify(exportLibrary(), null, 2)], {
     type: "application/json",
   });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, filename);
 }
 
 /** A project-scoped backup including its style, hierarchy and assets. */
@@ -106,6 +102,10 @@ export function exportProjectBundle(projectId: string) {
   const project = projects.getProject(projectId);
   if (project === undefined) throw new Error(`No project '${projectId}'.`);
   const assetIds = new Set(projects.assetsInProject(projectId));
+  const missing = project.style.references.filter((id) => !assetIds.has(id) || !session.has(id));
+  if (missing.length > 0) {
+    throw new Error(`Project has stale style references: ${missing.join(", ")}. Use set_style_profile with reference_asset_ids containing only existing project assets (or [] to clear), then export again.`);
+  }
   const tree = projects.snapshot();
   return {
     format: "zenith.project" as const,
@@ -128,10 +128,5 @@ export function downloadProject(projectId: string): void {
   const project = projects.getProject(projectId);
   if (project === undefined) throw new Error(`No project '${projectId}'.`);
   const blob = new Blob([JSON.stringify(exportProjectBundle(projectId), null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${project.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "project"}.zenith.json`;
-  link.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, `${project.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "project"}.zenith.json`);
 }

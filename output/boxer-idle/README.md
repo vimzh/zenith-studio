@@ -1,0 +1,15 @@
+# Boxer — idle hop
+
+- Four distinct 128×128 indexed frames; 16 shared colours; transparent background.
+- Guard → crouch → hop → landing. 250ms per frame, 4fps, one-second repeating loop.
+- `boxer-idle.gif`: 512×512 nearest-neighbour preview. The GIF block timing was independently read back and verified as `[250, 250, 250, 250]`ms.
+- `boxer-idle-sheet.png`: enlarged two-by-two indexed sheet.
+- `boxer-idle.json`: editable indexed grids and shared palette.
+- `source.png`: original built-in ImageGen output, retained without edits.
+- `build.ts`: source-sheet extraction, shared-palette conversion using Zenith's actual pixeliser, and GIF/PNG exports. All four frames are distinct, nonempty and have transparent canvas edges.
+
+The source was created with the **built-in image-generation tool**, not Zenith's image-model endpoint. Its two rows were separated at their actual transparent gap and given a shared ground baseline before pixelisation. Individual poses were not normalised to equal height, so the airborne motion is retained.
+
+## Generation prompt
+
+Use case: stylized-concept. Asset type: game-ready pixel-art animation sprite sheet for Zenith Studio. Create a FOUR FRAME idle hopping loop of ONE adult human male boxer, boxing gloves held in guard. A single square image arranged as an exact 2 by 2 grid of four equally sized square cells, no cell borders, no labels. Reading order top-left, top-right, bottom-left, bottom-right. SAME boxer identity, scale, camera, colors, clothing, anatomy, head size and x-position in all four cells. Attractive clean retro pixel art, large deliberate pixel clusters, dark one-pixel-style outline, 16-color feel, no gradients, blur, antialiasing or painterly texture. The boxer has clearly readable human anatomy: connected head, neck, torso, two arms, two gloved hands, two legs and two boxing boots. Short hair, bare athletic upper torso, red boxing gloves, red boxing shorts with pale waistband, dark calf-high boxing shoes. Three-quarter fighting view toward the right, both gloves up near face/chest, knees flexible, feet apart. No punches, no opponent. Whole body fully inside each cell with at least 12 percent clear margins, no cropping. Truly transparent background and no shadow, floor, scenery, text, logos or checkerboard. Frame 1 top-left: neutral alert guard, knees gently flexed, both boots on a shared imaginary baseline. Frame 2 top-right: small anticipation crouch, knees visibly bent and torso slightly lower, guard maintained, feet at that same baseline. Frame 3 bottom-left: gentle small hop, both feet visibly off the same imaginary baseline, knees slightly bent, torso a little higher, gloves maintain guard. Frame 4 bottom-right: soft landing, knees absorbing weight, almost back to first guard pose. Keep motion small and believable as an idle warm-up bounce, not a high jump. Match every cell's composition exactly so cutting into four equal squares and playing at 4 fps creates a clean one-second looping animation. Each cell must read clearly when rasterized to a 128 by 128 indexed sprite.

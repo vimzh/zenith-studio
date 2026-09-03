@@ -174,6 +174,8 @@ Two prompt changes landed with it. Every generation now sends the **cell count o
 
 ## UI introduced
 
+**Prompt budget (2026-09-03):** `/v1/generate` prompts and `/v1/derive` instructions accept 16,000 characters, including client-appended project style text. Both client and server validate this boundary without truncation. This replaces the 1,000-character cap that rejected the Moss Knight prompt after style composition (1,149 characters). Server drawing rules are added after this input budget. Animation motion descriptions retain their separate 10,000-character limit and now travel intact to the sheet renderer.
+
 Generation prompt in the agent pane · progress and cancel · before/after pixelisation preview · **grid candidate picker** when confidence is low
 
 ## Exit criteria
@@ -203,3 +205,15 @@ Generation prompt in the agent pane · progress and cancel · before/after pixel
 | Latency breaks demo pacing | Deterministic tools dominate the core loop. Pre-seed examples. Never block on generation. |
 | Cost per generation | Cache by prompt+style hash. Small default sizes. |
 | Pipeline complexity sprawl | Expose outcomes, not thresholds. Every internal constant gets a comment recording the *measured* case that set it. |
+
+### Verified repair — 3 September 2026
+
+`pixelize` now creates a separate single-frame copy from the selected composite,
+using the extracted palette and retaining the source's project/folder. The
+original frames and history remain intact. This replaces the broken in-place
+size-change contract. Browser-worker checks cover 64→32 and exact 64→128;
+pure-pipeline tests also check 64→96 nearest-neighbour cadence, stale work,
+empty images and deleted destinations. `remove_background` now leaves a
+dominantly transparent border alone and removes only border-connected opaque
+background regions in the active layer, preserving enclosed same-colour pixels.
+See the [dated verification matrix](../verification/character-regression-2026-09-03.md).

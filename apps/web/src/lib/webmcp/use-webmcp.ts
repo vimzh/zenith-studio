@@ -89,6 +89,14 @@ export function useRequestedAsset(): string | null {
   return useSyncExternalStore(subscribe, getRequested, getServerRequested);
 }
 
+/** The project explicitly requested by an agent; shares the asset navigation queue. */
+export function useRequestedProject(): string | null {
+  const subscribe = useCallback((onChange: () => void) => assetNavigation.subscribe(onChange), []);
+  const getRequested = useCallback(() => assetNavigation.peekProject(), []);
+  const getServerRequested = useCallback((): string | null => null, []);
+  return useSyncExternalStore(subscribe, getRequested, getServerRequested);
+}
+
 /** The Agent Console runner's current tool and arguments. */
 export function useToolRunnerState(): ToolRunnerSnapshot {
   const subscribe = useCallback((onChange: () => void) => toolRunnerState.subscribe(onChange), []);
@@ -99,10 +107,10 @@ export function useToolRunnerState(): ToolRunnerSnapshot {
 /**
  * What the agent's tool list should be scoped to right now.
  *
- * Subscribes to two moving parts: the session, for which asset is open, and
- * that asset's store, for its frame count. The store subscription is re-attached
- * whenever the session changes, because opening a different asset means a
- * different store to listen to.
+ * Subscribes to the session and the visible route's store. Navigation can change
+ * activeId before the route catches up; that must not unregister and re-register
+ * the entire editor surface. runTool separately refuses execution during that
+ * mismatch, so stable registration cannot target unseen artwork.
  *
  * The snapshot is a string key rather than an object so `useSyncExternalStore`
  * sees a stable value; the object is rebuilt only when the key changes, which is
@@ -113,14 +121,14 @@ export function useScopeContext(): ScopeContext {
   const subscribe = useCallback((onChange: () => void) => {
     let fromStore: (() => void) | null = null;
 
-    const listenToActiveStore = (): void => {
+    const listenToRouteStore = (): void => {
       fromStore?.();
-      fromStore = session.active?.subscribe(onChange) ?? null;
+      fromStore = routeAssetId === null ? null : session.get(routeAssetId)?.subscribe(onChange) ?? null;
     };
 
-    listenToActiveStore();
+    listenToRouteStore();
     const fromSession = session.subscribe(() => {
-      listenToActiveStore();
+      listenToRouteStore();
       onChange();
     });
 
@@ -128,7 +136,7 @@ export function useScopeContext(): ScopeContext {
       fromStore?.();
       fromSession();
     };
-  }, []);
+  }, [routeAssetId]);
 
   const readKey = useCallback(() => scopeKey(readScopeContext(routeAssetId)), [routeAssetId]);
   const readServerKey = useCallback(() => scopeKey(EMPTY_SCOPE), []);
@@ -140,14 +148,13 @@ export function useScopeContext(): ScopeContext {
   );
 }
 
-function readScopeContext(routeAssetId: string | null): ScopeContext {
-  if (routeAssetId === null || session.activeId !== routeAssetId) return EMPTY_SCOPE;
-  const id = session.activeId;
-  const store = session.active;
-  if (id === null || store === null) return EMPTY_SCOPE;
+export function readScopeContext(routeAssetId: string | null): ScopeContext {
+  if (routeAssetId === null) return EMPTY_SCOPE;
+  const store = session.get(routeAssetId);
+  if (store === undefined) return EMPTY_SCOPE;
   return {
-    assetId: id,
-    assetType: session.list().find((asset) => asset.id === id)?.type ?? null,
+    assetId: routeAssetId,
+    assetType: session.list().find((asset) => asset.id === routeAssetId)?.type ?? null,
     frameCount: store.frameCount,
   };
 }

@@ -1,5 +1,7 @@
 import { transcript, type ToolCallSource } from "./transcript";
 import { ToolError, type ToolArgs, type ToolDefinition, type ToolOutcome } from "./types";
+import { session } from "@/lib/editor/session";
+import { assetRouteId } from "./navigation";
 
 /**
  * The single path every tool call takes.
@@ -16,6 +18,12 @@ export async function runTool(
 ): Promise<ToolOutcome> {
   const started = performance.now();
   try {
+    if (typeof window !== "undefined" && definition.scope !== "always") {
+      const visibleId = assetRouteId(window.location.pathname);
+      if (visibleId === null || visibleId !== session.activeId || session.get(visibleId) === undefined) {
+        throw new ToolError("The visible asset and active editing target do not agree. Wait for navigation to finish or reopen the asset before running editor tools.");
+      }
+    }
     const text = await definition.execute(args);
     const outcome: ToolOutcome = { ok: true, text };
     transcript.record({

@@ -10,13 +10,21 @@ export const projectsContent = {
     /**
      * One game is one resolution, so it is chosen once, here.
      *
-     * These are the sizes the pipeline and the presets already work in: 16 for
-     * icon-scale work, 32 for the common sprite size everything defaults to,
-     * 48 and 64 where a character needs the room. Every asset type in the
-     * project starts at the chosen size; the style panel can still tune one
-     * type afterwards.
+     * 16 for icon-scale work, 32 for the common sprite size everything defaults
+     * to, 48 and 64 where a character needs the room, 128 and 256 for the
+     * detailed end. 256 is the ceiling the document model already enforces on
+     * `resize_canvas`, so nothing here can ask for a canvas the rest of the
+     * product refuses.
+     *
+     * The large sizes cost the agent, not the editor: `read_canvas` sends one
+     * character per pixel, so a 256x256 frame is 65,536 of them — roughly 21k
+     * tokens against 330 for a 32x32. Reading a whole 256 canvas repeatedly is
+     * the expensive habit; `read_region` and `read_frames_diff` exist for it.
+     *
+     * Every asset type in the project starts at the chosen size; the style
+     * panel can still tune one type afterwards.
      */
-    resolutions: [16, 32, 48, 64],
+    resolutions: [16, 32, 48, 64, 128, 256],
     confirm: "Create",
     cancel: "Cancel",
     empty:

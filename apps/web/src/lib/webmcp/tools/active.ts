@@ -18,6 +18,27 @@ export interface ActiveAsset {
   readonly store: DocumentStore;
 }
 
+export interface EditTarget {
+  readonly id: string;
+  readonly store: DocumentStore;
+  readonly revision: number;
+  readonly frame: number;
+  readonly layer: number;
+}
+
+/** Freeze the destination before a model call so its result cannot overwrite newer work. */
+export function captureEditTarget({ id, store }: Pick<ActiveAsset, "id" | "store">): EditTarget {
+  return { id, store, revision: store.revision, frame: store.activeFrame, layer: store.activeLayer };
+}
+
+export function assertEditTarget(target: EditTarget): void {
+  const { id, store, revision, frame, layer } = target;
+  if (session.activeId !== id || session.get(id) !== store || store.revision !== revision ||
+    store.activeFrame !== frame || store.activeLayer !== layer) {
+    throw new ToolError("The asset, frame, layer or artwork changed while generating. The result was not applied; your newer work is unchanged.");
+  }
+}
+
 export function requireActiveAsset(): ActiveAsset {
   const store = session.active;
   const id = session.activeId;

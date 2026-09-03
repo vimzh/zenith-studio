@@ -1,0 +1,17 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: blue speed lines behind the ninja and a white air-cut arc from the blade
+planned 4 poses in 24.7s; source read as: Right-facing three-quarter guard: right foot forward, left back wide; torso low; right hand holds katana low-forward pointing right; left hand open behind; head looking right.
+  1. [grounded, 90ms] Anticipation: weight shifts back onto left; right heel light; torso coils slightly left; right arm draws katana back by hip, tip angling up-left; left hand comes forward; head dips, eyes right. Left foot planted.
+  2. [airborne, 180ms] Key: explosive dash; both feet off ground, knees tucked; torso lunges right; right arm fully extends, katana slashes down-diagonal in front from above-right to below-right; left arm whips back; head forward. | effect: Blue speed lines trailing behind torso/limbs to screen-left; big white air-cut arc in front along the katana’s down-right sweep.
+  3. [grounded, 120ms] Follow-through: land hard on right foot, left sliding in; torso past the cut, still leaning right; right arm finishes low across front, blade pointing down-right; left hand forward to counter; head steady. | effect: Short blue lines trailing behind right arm, sash, and rear leg to screen-left.
+  4. [grounded, 160ms] Recovery: settle to wide stance; left steps back to plant, right knee bent; torso rises toward neutral; right hand returns katana to low-forward guard; left hand drifts back; head level, facing right.
+1 sheet(s) generated concurrently in 114.0s
+  baseline 512px, tolerance down 102px / up 41px, shifts 48, 0, 64, 31
+palette: folded #2e2f36 into #292a31 (0.020), #111115 into #17181c (0.030)
+palette: added #013ffa, #47cafc; unmatched #198ff6, #0639da, #342191
+judged in 12.0s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+wrote 4 frames to ../../output/showcase/ninja/dash-slash; holds 90, 180, 120, 160ms; bottom rows 127, 127, 122, 127, 127; sheets 1; sheet seconds 114
+exit 0, wall 151s

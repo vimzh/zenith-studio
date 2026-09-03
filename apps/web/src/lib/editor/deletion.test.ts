@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { deleteAsset, undoDeleteAsset } from "./deletion";
 import { projects } from "./projects";
 import { session } from "./session";
+import { exportProjectBundle } from "./transfer";
+import { importProjectBundle } from "./project-import";
 
 /**
  * The document and the placement have to move together.
@@ -62,5 +64,41 @@ describe("deleting an asset", () => {
 
   test("deleting an id that is not in the session changes nothing", () => {
     expect(deleteAsset("asset_missing")).toBe(false);
+  });
+
+  test("deleting a style exemplar leaves a reimportable backup and undo restores its reference", () => {
+    const projectId = projects.createProject("Moss Hollow");
+    const folderId = projects.createFolder(projectId, "Characters")!;
+    const first = session.create({ name: "First" });
+    const deleted = session.create({ name: "Deleted" });
+    const last = session.create({ name: "Last" });
+    for (const id of [first, deleted, last]) projects.place(id, projectId, folderId);
+    projects.setStyle(projectId, { references: [first, deleted, last] });
+    expect(deleteAsset(deleted)).toBe(true);
+    expect(projects.getProject(projectId)!.style.references).toEqual([first, last]);
+    expect(() => importProjectBundle(exportProjectBundle(projectId))).not.toThrow();
+    expect(undoDeleteAsset()).toBe(deleted);
+    expect(projects.getProject(projectId)!.style.references).toEqual([first, deleted, last]);
+    expect(projects.placementOf(deleted)).toEqual({ projectId, folderId });
+    expect(() => importProjectBundle(exportProjectBundle(projectId))).not.toThrow();
+  });
+
+  test("reference undo keeps intervening style edits but never recreates a deleted project", () => {
+    const projectId = projects.createProject("Moss Hollow");
+    const deleted = session.create({ name: "Deleted" });
+    const another = session.create({ name: "Another" });
+    projects.place(deleted, projectId);
+    projects.place(another, projectId);
+    projects.setStyle(projectId, { references: [deleted] });
+    deleteAsset(deleted);
+    projects.setStyle(projectId, { references: [another], notes: "Changed while deleted" });
+    undoDeleteAsset();
+    expect(projects.getProject(projectId)!.style.references).toEqual([deleted, another]);
+    expect(projects.getProject(projectId)!.style.notes).toBe("Changed while deleted");
+    deleteAsset(deleted);
+    projects.deleteProject(projectId);
+    expect(undoDeleteAsset()).toBe(deleted);
+    expect(projects.placementOf(deleted)).toEqual({ projectId: null, folderId: null });
+    expect(projects.getProject(projectId)).toBeUndefined();
   });
 });

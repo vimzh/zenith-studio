@@ -29,10 +29,10 @@ const CRC_TABLE = (() => {
   return table;
 })();
 
-function crc32(bytes: readonly number[]): number {
+function crc32(bytes: ArrayLike<number>): number {
   let crc = 0xffffffff;
-  for (const byte of bytes) {
-    crc = (CRC_TABLE[(crc ^ byte) & 0xff] as number) ^ (crc >>> 8);
+  for (let index = 0; index < bytes.length; index += 1) {
+    crc = (CRC_TABLE[(crc ^ (bytes[index] as number)) & 0xff] as number) ^ (crc >>> 8);
   }
   return (crc ^ 0xffffffff) >>> 0;
 }
@@ -175,4 +175,92 @@ export function encodeIndexedPng(
   appendAll(bytes, chunk("IEND", []));
 
   return Uint8Array.from(bytes);
+}
+
+/** The raw bytes inside a zlib stream made only of stored blocks, or null for anything else. */
+function unpackStored(zlib: Uint8Array): Uint8Array | null {
+  if (zlib.length < 2 || ((zlib[0] as number) & 0x0f) !== 8) return null;
+  const parts: Uint8Array[] = [];
+  let total = 0;
+  let offset = 2;
+  for (;;) {
+    const header = zlib[offset];
+    if (header === undefined) return null;
+    if (((header >> 1) & 3) !== 0) return null;
+    const length = (zlib[offset + 1] as number) | ((zlib[offset + 2] as number) << 8);
+    const check = (zlib[offset + 3] as number) | ((zlib[offset + 4] as number) << 8);
+    if ((length ^ 0xffff) !== check) return null;
+    const start = offset + 5;
+    if (start + length > zlib.length) return null;
+    parts.push(zlib.subarray(start, start + length));
+    total += length;
+    offset = start + length;
+    if ((header & 1) === 1) break;
+  }
+  const raw = new Uint8Array(total);
+  let at = 0;
+  for (const part of parts) {
+    raw.set(part, at);
+    at += part.length;
+  }
+  return raw;
+}
+
+async function deflate(raw: Uint8Array): Promise<Uint8Array> {
+  // A fresh ArrayBuffer, because a view over a shared buffer is not a BlobPart.
+  const copy = new Uint8Array(new ArrayBuffer(raw.length));
+  copy.set(raw);
+  const stream = new Blob([copy]).stream().pipeThrough(new CompressionStream("deflate"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/**
+ * Recompresses an indexed PNG from this encoder for the network.
+ *
+ * Stored blocks are right for a download — small files, simple code — and
+ * wrong for a request body: a 1536x1024 sheet is 1.5 MB uncompressed and a
+ * few tens of kilobytes compressed, and the chat route's body cap sits in
+ * between. `CompressionStream` is the browser's own deflate, so the encoder
+ * stays as readable as it is; anything that is not one of its PNGs, or a
+ * runtime without the API, comes back unchanged rather than wrong.
+ */
+export async function compressIndexedPng(png: Uint8Array): Promise<Uint8Array> {
+  if (typeof CompressionStream !== "function") return png;
+  if (!SIGNATURE.every((byte, index) => png[index] === byte)) return png;
+
+  const chunks: { type: string; data: Uint8Array }[] = [];
+  let offset = SIGNATURE.length;
+  while (offset + 12 <= png.length) {
+    const length = ((png[offset] as number) << 24 | (png[offset + 1] as number) << 16 | (png[offset + 2] as number) << 8 | (png[offset + 3] as number)) >>> 0;
+    const type = String.fromCharCode(png[offset + 4] as number, png[offset + 5] as number, png[offset + 6] as number, png[offset + 7] as number);
+    const start = offset + 8;
+    if (start + length + 4 > png.length) return png;
+    chunks.push({ type, data: png.subarray(start, start + length) });
+    offset = start + length + 4;
+  }
+  const idat = chunks.filter((entry) => entry.type === "IDAT");
+  if (idat.length === 0) return png;
+  const zlib = new Uint8Array(idat.reduce((sum, entry) => sum + entry.data.length, 0));
+  let at = 0;
+  for (const entry of idat) {
+    zlib.set(entry.data, at);
+    at += entry.data.length;
+  }
+  const raw = unpackStored(zlib);
+  if (raw === null) return png;
+  const compressed = await deflate(raw);
+  if (compressed.length >= zlib.length) return png;
+
+  const out: number[] = [...SIGNATURE];
+  let replaced = false;
+  for (const entry of chunks) {
+    if (entry.type === "IDAT") {
+      if (replaced) continue;
+      replaced = true;
+      appendAll(out, chunk("IDAT", Array.from(compressed)));
+    } else {
+      appendAll(out, chunk(entry.type, Array.from(entry.data)));
+    }
+  }
+  return Uint8Array.from(out);
 }

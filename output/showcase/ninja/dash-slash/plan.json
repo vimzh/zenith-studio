@@ -1,0 +1,35 @@
+{
+  "subject": "lean ninja in a black shinobi outfit with a red sash and mask, katana in the right hand",
+  "motion": "a lightning-fast dash slash with the katana",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "blue speed lines behind the ninja and a white air-cut arc from the blade",
+  "frames": 4,
+  "plan": {
+    "source": "Right-facing three-quarter guard: right foot forward, left back wide; torso low; right hand holds katana low-forward pointing right; left hand open behind; head looking right.",
+    "frames": [
+      {
+        "pose": "Anticipation: weight shifts back onto left; right heel light; torso coils slightly left; right arm draws katana back by hip, tip angling up-left; left hand comes forward; head dips, eyes right. Left foot planted.",
+        "contact": "grounded",
+        "ms": 90
+      },
+      {
+        "pose": "Key: explosive dash; both feet off ground, knees tucked; torso lunges right; right arm fully extends, katana slashes down-diagonal in front from above-right to below-right; left arm whips back; head forward.",
+        "contact": "airborne",
+        "ms": 180,
+        "effect": "Blue speed lines trailing behind torso/limbs to screen-left; big white air-cut arc in front along the katana’s down-right sweep."
+      },
+      {
+        "pose": "Follow-through: land hard on right foot, left sliding in; torso past the cut, still leaning right; right arm finishes low across front, blade pointing down-right; left hand forward to counter; head steady.",
+        "contact": "grounded",
+        "ms": 120,
+        "effect": "Short blue lines trailing behind right arm, sash, and rear leg to screen-left."
+      },
+      {
+        "pose": "Recovery: settle to wide stance; left steps back to plant, right knee bent; torso rises toward neutral; right hand returns katana to low-forward guard; left hand drifts back; head level, facing right.",
+        "contact": "grounded",
+        "ms": 160
+      }
+    ]
+  },
+  "planSeconds": 24.738918207999998
+}

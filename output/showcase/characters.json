@@ -1,0 +1,7 @@
+[
+  { "slug": "knight", "name": "Knight east", "prompt": "A stout armoured knight in blue steel plate with a red plume, holding a longsword in the right hand and a kite shield on the left arm, full body, standing in a ready stance, three-quarter view facing screen-right" },
+  { "slug": "mage", "name": "Fire mage east", "prompt": "A fire mage in a crimson hooded robe with gold trim, holding a gnarled wooden staff topped with a glowing ember crystal, full body, standing ready, three-quarter view facing screen-right" },
+  { "slug": "ninja", "name": "Ninja east", "prompt": "A lean ninja in a black shinobi outfit with a dark red sash and face mask, holding a katana low in the right hand, full body, crouched ready stance, three-quarter view facing screen-right" },
+  { "slug": "archer", "name": "Elf archer east", "prompt": "A slender elf archer in a green hooded cloak and leather armour, holding a tall recurve longbow in the left hand with a quiver of arrows on the back, full body, standing ready, three-quarter view facing screen-right" },
+  { "slug": "dragon", "name": "Dragon whelp east", "prompt": "A small chubby green dragon whelp with orange belly scales, little bat wings, a long tail and stubby legs, standing on all fours, full body, three-quarter view facing screen-right" }
+]

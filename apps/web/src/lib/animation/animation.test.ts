@@ -66,6 +66,15 @@ describe("readAnimationSummary", () => {
 });
 
 describe("checkAnimationCoherence", () => {
+  test("names boundary contacts for sprites without treating them as proven clipping", () => {
+    const inside = gridFromRows(["....", ".00.", ".00.", "...."]);
+    const touching = gridFromRows([".0..", ".00.", "...0", ".0.."]);
+    expect(checkAnimationCoherence([inside, touching], { paletteSize: 1, checkBounds: true }))
+      .toEqual([{ frame: 1, kind: "bounds", message: "Frame 1 touches the top, right, bottom canvas edge(s). Check for clipped body parts or equipment; edge contact alone cannot prove clipping." }]);
+    // Edge-filled tiles and scrolling textures legitimately reach the border.
+    expect(checkAnimationCoherence([inside, touching], { paletteSize: 1 })).toEqual([]);
+  });
+
   test("passes a clean two-frame bob", () => {
     const frames = animateProcedural(base(), "bob");
     expect(checkAnimationCoherence(frames, { paletteSize: 16 })).toEqual([]);

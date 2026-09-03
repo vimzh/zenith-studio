@@ -33,6 +33,12 @@ Context-scoped registration ([05](./05-asset-library.md), once there are enough 
 
 **14.** See the table above; full catalog in [`../tools.md` Part 2](../tools.md).
 
+The external-agent integration adds `start_tool_job` and `get_tool_job`: an
+asynchronous front door to existing paid tools, with page-session request-ID
+idempotency and pollable results. They share the regular runner, scope guards
+and transcript. They do not introduce a remote MCP server or persistent queue.
+The current end-to-end protocol is [`../agent-workflow.md`](../agent-workflow.md).
+
 ## UI introduced
 
 Agent Console panel · a WebMCP availability indicator

@@ -17,6 +17,7 @@
  */
 
 const ASSET_ROUTE = /^\/asset\/([^/]+)\/?$/;
+const PROJECT_ROUTE = /^\/project\/([^/]+)\/?$/;
 
 /** The asset id an editor route addresses, or null when the path is not one. */
 export function assetRouteId(pathname: string): string | null {
@@ -26,15 +27,22 @@ export function assetRouteId(pathname: string): string | null {
 /**
  * The route to navigate to for a requested asset, or null to stay put.
  *
- * Null when nothing was requested, when the route already shows it, and when the
- * human is not in the editor at all — which leaves someone browsing the library
- * where they are instead of yanking them into a canvas.
+ * Explicit requests also open the editor from the library. Other screens stay
+ * put, and a route/session mismatch alone never requests navigation.
  */
 export function routeForRequestedAsset(pathname: string, requestedId: string | null): string | null {
   if (requestedId === null) return null;
   const routeId = assetRouteId(pathname);
-  if (routeId === null || routeId === requestedId) return null;
-  return `/asset/${requestedId}`;
+  if ((routeId === null && pathname !== "/home" && !PROJECT_ROUTE.test(pathname)) || routeId === requestedId) return null;
+  return `/asset/${encodeURIComponent(requestedId)}`;
+}
+
+/** Explicit project requests move from library/editor/project routes, never settings. */
+export function routeForRequestedProject(pathname: string, requestedId: string | null): string | null {
+  if (requestedId === null) return null;
+  const current = PROJECT_ROUTE.exec(pathname)?.[1] ?? null;
+  if (current === requestedId || (current === null && pathname !== "/home" && assetRouteId(pathname) === null)) return null;
+  return `/project/${encodeURIComponent(requestedId)}`;
 }
 
 /**
@@ -45,11 +53,13 @@ export function routeForRequestedAsset(pathname: string, requestedId: string | n
  */
 class AssetNavigation {
   #requested: string | null = null;
+  #project: string | null = null;
   readonly #listeners = new Set<() => void>();
 
   /** Asks that the human's view move to this asset. */
   request(assetId: string): void {
     if (this.#requested === assetId) return;
+    this.#project = null;
     this.#requested = assetId;
     this.#notify();
   }
@@ -58,9 +68,22 @@ class AssetNavigation {
     return this.#requested;
   }
 
-  clear(): void {
-    if (this.#requested === null) return;
+  /** Project and asset requests share one slot: the latest explicit request wins. */
+  requestProject(projectId: string): void {
+    if (this.#project === projectId) return;
     this.#requested = null;
+    this.#project = projectId;
+    this.#notify();
+  }
+
+  peekProject(): string | null {
+    return this.#project;
+  }
+
+  clear(): void {
+    if (this.#requested === null && this.#project === null) return;
+    this.#requested = null;
+    this.#project = null;
     this.#notify();
   }
 

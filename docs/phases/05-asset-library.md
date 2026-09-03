@@ -35,7 +35,7 @@ Server persistence and sharing ([13](./13-export-polish.md)) · projects and any
 
 ## Tools introduced
 
-`list_assets` · `create_asset` · `open_asset` · `rename_asset` · `duplicate_asset` · `delete_asset` · `describe_asset`
+`list_assets` · `create_asset` · `open_asset` · `rename_asset` · `set_asset_type` (explicit classification correction; preserves artwork and history) · `duplicate_asset` · `delete_asset` · `describe_asset`
 
 ## Exit criteria
 

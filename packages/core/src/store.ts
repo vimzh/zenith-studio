@@ -21,7 +21,7 @@ import {
   type DocumentStats,
 } from "./document";
 import { cloneGrid, decodeGrid, encodeGrid, silhouette } from "./grid";
-import { isCellInPalette } from "./palette";
+import { createPalette, isCellInPalette } from "./palette";
 import {
   bucketFill,
   clearRegion,
@@ -79,6 +79,15 @@ export interface FrameHistoryEntry {
   readonly change: FrameChange;
 }
 
+/** A palette replacement that leaves every indexed cell exactly where it is. */
+export interface PaletteHistoryEntry {
+  readonly kind: "palette";
+  readonly id: string;
+  readonly label: string;
+  readonly from: Palette;
+  readonly to: Palette;
+}
+
 /**
  * Several changes undone and redone as one.
  *
@@ -102,7 +111,7 @@ export interface CompoundHistoryEntry {
  * entry recorded after a structural one is undone before it, so indices are
  * always back to what the patch expected by the time it is applied.
  */
-export type HistoryEntry = PixelHistoryEntry | FrameHistoryEntry | CompoundHistoryEntry;
+export type HistoryEntry = PixelHistoryEntry | FrameHistoryEntry | PaletteHistoryEntry | CompoundHistoryEntry;
 
 export interface AddFrameOptions {
   /** Duplicate this frame's layers and duration. Omit for a blank frame. */
@@ -126,7 +135,8 @@ export interface DocumentStoreOptions {
  */
 type TransactionStep =
   | { readonly kind: "pixels"; readonly patches: Map<string, PixelPatch> }
-  | { readonly kind: "frames"; readonly change: FrameChange };
+  | { readonly kind: "frames"; readonly change: FrameChange }
+  | { readonly kind: "palette"; readonly from: Palette; readonly to: Palette };
 
 interface OpenTransaction {
   label: string;
@@ -195,16 +205,29 @@ export class DocumentStore {
     return this.#layer;
   }
 
+  /**
+   * Selection moves the revision as well as notifying.
+   *
+   * `revision` is the identity every `useSyncExternalStore` selector caches
+   * on, and `readComposite()` with no target reads the *active* frame — so a
+   * selection that left the revision alone was a change every subscriber
+   * ignored: the timeline kept the old frame highlighted and the canvas kept
+   * painting it, while the store had already moved on.
+   */
   selectFrame(index: number): void {
     this.#resolve({ frame: index, layer: 0 });
+    if (index === this.#frame && this.#layer <= this.layerCount - 1) return;
     this.#frame = index;
     this.#layer = Math.min(this.#layer, this.layerCount - 1);
+    this.#revision += 1;
     this.#notify();
   }
 
   selectLayer(index: number): void {
     this.#resolve({ layer: index });
+    if (index === this.#layer) return;
     this.#layer = index;
+    this.#revision += 1;
     this.#notify();
   }
 
@@ -288,6 +311,23 @@ export class DocumentStore {
 
   mirror(axis: MirrorAxis, region?: Region, target?: Target): number {
     return this.#apply("Mirror", (grid) => mirror(grid, axis, region), target);
+  }
+
+  /** Replace colours without remapping indices. Refuses a palette too small for existing cells. */
+  setPalette(colors: readonly string[]): void {
+    const next = createPalette({ id: this.#document.palette.id, name: this.#document.palette.name, colors });
+    for (const frame of this.#document.frames) for (const layer of frame.layers) for (const cell of layer.grid.cells) {
+      if (!isCellInPalette(next, cell as Cell)) {
+        fail("invalid_index", `Cannot set a ${String(next.colors.length)}-colour palette: existing cell index ${String(cell)} would be invalid.`);
+      }
+    }
+    const from = this.palette;
+    if (from.colors.every((color, index) => color.hex === next.colors[index]?.hex) && from.colors.length === next.colors.length) return;
+    this.#setPalette(next);
+    if (this.#transaction !== null) this.#transaction.steps.push({ kind: "palette", from, to: next });
+    else this.#push({ kind: "palette", id: nextId("entry"), label: "Set palette", from, to: next });
+    this.#revision += 1;
+    this.#notify();
   }
 
   // ------------------------------------------------------------------ frames
@@ -634,6 +674,10 @@ export class DocumentStore {
   #entriesFor(open: OpenTransaction): HistoryEntry[] {
     const entries: HistoryEntry[] = [];
     for (const step of open.steps) {
+      if (step.kind === "palette") {
+        entries.push({ kind: "palette", id: nextId("entry"), label: open.label, from: step.from, to: step.to });
+        continue;
+      }
       if (step.kind === "frames") {
         entries.push({ kind: "frames", id: nextId("entry"), label: open.label, change: step.change });
         continue;
@@ -663,6 +707,10 @@ export class DocumentStore {
       for (let i = entry.patches.length - 1; i >= 0; i -= 1) {
         this.#write(entry.patches[i] as PixelPatch, "from");
       }
+      return;
+    }
+    if (entry.kind === "palette") {
+      this.#setPalette(entry.from);
       return;
     }
 
@@ -701,6 +749,10 @@ export class DocumentStore {
       for (const patch of entry.patches) this.#write(patch, "to");
       return;
     }
+    if (entry.kind === "palette") {
+      this.#setPalette(entry.to);
+      return;
+    }
 
     const frames = this.#frames;
     const change = entry.change;
@@ -733,6 +785,13 @@ export class DocumentStore {
     const frame = this.#document.frames[patch.frame] as Frame;
     const layer = frame.layers[patch.layer] as Layer;
     layer.grid.cells[patch.offset] = patch[direction];
+  }
+
+  #setPalette(palette: Palette): void {
+    (this.#document as { palette: Palette }).palette = {
+      ...palette,
+      colors: palette.colors.map((color) => ({ ...color })),
+    };
   }
 
   #resolve(target?: Target): ResolvedTarget {

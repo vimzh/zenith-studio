@@ -1,0 +1,37 @@
+{
+  "subject": "fire mage in a crimson hooded robe holding a gnarled staff topped with an ember crystal",
+  "motion": "slamming the staff down to erupt flames from the ground",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "orange flames bursting up from the ground in front of the mage",
+  "frames": 4,
+  "plan": {
+    "source": "Mage in crimson hood faces right three-quarter; left hand holds an upright gnarled staff with ember crystal, right arm extended pointing; right foot forward, left back, relaxed stance.",
+    "frames": [
+      {
+        "pose": "Anticipation: torso leans back; left hand lifts staff behind left shoulder, top angled back; right hand retracts to chest; knees dip; hips shift over left leg; head tilts to ground ahead; both feet planted.",
+        "contact": "grounded",
+        "ms": 80,
+        "effect": "Small ember sparkles gather at the crystal; faint upward trail from the lifted staff."
+      },
+      {
+        "pose": "Key: torso snaps forward; left arm slams staff down, tip hitting ground before right toe; right arm swings back; deep knee bend, weight over right; head at impact; both feet planted.",
+        "contact": "grounded",
+        "ms": 200,
+        "effect": "Bright arc along the staff’s downswing; ground impact flare and tall orange flames burst up in front of the mage."
+      },
+      {
+        "pose": "Follow-through: torso pitched forward; left hand pins staff tip to ground ahead; right arm thrown back for balance; knees still bent; head follows flames; both feet planted.",
+        "contact": "grounded",
+        "ms": 160,
+        "effect": "Flame column peaks in front, tapering upward; ember sparks trail above the burst."
+      },
+      {
+        "pose": "Recovery: torso straightens; left hand slides staff upright beside left hip; right arm comes forward, palm open; knees easing to neutral; head lifts; both feet planted.",
+        "contact": "grounded",
+        "ms": 100,
+        "effect": "Low licking flames at the impact spot in front fading; a few drifting embers remain."
+      }
+    ]
+  },
+  "planSeconds": 18.162764458
+}

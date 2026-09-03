@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { assetNavigation, routeForRequestedAsset, useRequestedAsset } from "@/lib/webmcp";
+import { routeForRequestedProject } from "@/lib/webmcp/navigation";
+import { useRequestedProject } from "@/lib/webmcp/use-webmcp";
 
 /**
  * Follows the agent when it opens a different asset.
@@ -15,15 +17,18 @@ export function AgentNavigation() {
   const router = useRouter();
   const pathname = usePathname();
   const requested = useRequestedAsset();
+  const requestedProject = useRequestedProject();
 
   useEffect(() => {
-    if (requested === null) return;
-    const route = routeForRequestedAsset(pathname, requested);
+    if (requested === null && requestedProject === null) return;
+    const route = requestedProject === null
+      ? routeForRequestedAsset(pathname, requested)
+      : routeForRequestedProject(pathname, requestedProject);
     // Cleared either way: a request that cannot move the view is still spent,
     // and leaving it pending would fire it at the next unrelated navigation.
     assetNavigation.clear();
     if (route !== null) router.push(route);
-  }, [requested, pathname, router]);
+  }, [requested, requestedProject, pathname, router]);
 
   return null;
 }

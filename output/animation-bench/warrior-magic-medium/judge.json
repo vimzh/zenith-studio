@@ -1,0 +1,57 @@
+[
+  {
+    "pass": 1,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": false,
+        "problems": [
+          "Purple trail is clipped at the top edge."
+        ]
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  },
+  {
+    "pass": 2,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": false,
+        "problems": [
+          "White air-cut arc is present; this frame should have no air-cut.",
+          "Stage reads as another slash moment rather than a low follow-through."
+        ]
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  }
+]

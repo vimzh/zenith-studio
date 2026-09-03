@@ -77,11 +77,11 @@ describe("packSpritesheet", () => {
 
   test("carries per-frame duration through to the atlas", () => {
     const packed = packSpritesheet([
-      { name: "a", grid: gridFromRows(["0"]), durationMs: 250 },
+      { name: "a", grid: gridFromRows(["0"]), durationMs: 80 },
       { name: "b", grid: gridFromRows(["1"]) },
     ]);
-    expect(packed.atlas.frames[0]?.duration).toBe(250);
-    expect(packed.atlas.frames[1]?.duration).toBe(100);
+    expect(packed.atlas.frames[0]?.duration).toBe(80);
+    expect(packed.atlas.frames[1]?.duration).toBe(250);
   });
 
   test("refuses frames that disagree on size, naming the offender", () => {

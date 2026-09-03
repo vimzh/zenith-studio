@@ -1,0 +1,34 @@
+{
+  "subject": "stout armoured knight in blue plate with a red plume, longsword in the right hand, kite shield on the left arm",
+  "motion": "a shield bash: lunging forward and slamming the shield",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "a small white impact burst where the shield strikes",
+  "frames": 4,
+  "plan": {
+    "source": "Knight faces right in three-quarter view; left arm holds a forward kite shield, right hand hangs a longsword low to the right; feet staggered with right forward, weight centered.",
+    "frames": [
+      {
+        "pose": "Anticipation: torso leans back/left; shield draws in toward chest, angled back; sword hand pulls slightly rear/down; knees dip; left/back foot planted, right/front heel light; head tilts back, eyes right.",
+        "contact": "grounded",
+        "ms": 100
+      },
+      {
+        "pose": "Key: lunge forward/right; shield arm fully drives out, rim leading; sword arm swings back for counterbalance; right/front foot steps and plants, left heel up; head tucked behind shield.",
+        "contact": "grounded",
+        "ms": 180,
+        "effect": "Small white impact burst at shield front rim at screen-right; thin white arc tracing shield sweep from back-left to front-right."
+      },
+      {
+        "pose": "Follow-through: torso passes then checks; shield slightly past target, angled outward; sword swings forward to low across; weight splits; both feet planted, left heel settling; head peeks around shield.",
+        "contact": "grounded",
+        "ms": 140
+      },
+      {
+        "pose": "Recovery: torso straightens toward ready; shield returns in front near start height; sword settles low forward; right foot slides back toward start, both planted; head upright facing right.",
+        "contact": "grounded",
+        "ms": 100
+      }
+    ]
+  },
+  "planSeconds": 21.8329335
+}

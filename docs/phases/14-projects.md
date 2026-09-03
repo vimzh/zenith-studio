@@ -71,6 +71,11 @@ takes it without being asked; a named canvas preset is still an explicit size
 for that one asset and outranks it. The style panel can retune a single type
 afterwards.
 
+Assets **duplicate** from the explorer — the copy lands beside the original,
+opens, and goes straight into its name field, which is how a chest becomes three
+chests. **Folders delete** too, refusing while anything is inside them and
+saying what is in the way rather than doing nothing.
+
 An asset's **type can be changed** from the Asset panel. Every generative entry
 point defaults to `tile`, so a character generated from a prompt arrived typed
 as one — and Directions, Text animation and Skeleton are character-only panels,
@@ -105,6 +110,15 @@ Project CRUD · project switcher · optional project placement for assets · a f
 ## Tools introduced
 
 `list_projects` · `create_project` · `open_project` · `get_style_profile` · `set_style_profile` · `add_style_reference` · `conform_to_style` · `check_style_consistency` · `export_project`
+
+External-agent project I/O also exposes `list_project_contents`, `create_folder`,
+`move_asset` (folder placement, not the retired workspace coordinate tool),
+`rename_project`, `import_project`, `get_storage_status`, and `flush_storage`.
+Project import validates all documents, hierarchy, placements and style references
+before adding fresh ids; it never overwrites existing assets. Import success is
+in-memory, with local persistence confirmed separately by `flush_storage`.
+Explicit create/open/import project requests navigate the human's project view;
+opening an asset from that view likewise requests its editor route.
 
 ## Exit criteria
 

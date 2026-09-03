@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createRaster } from "@/lib/pixelize";
 import { session } from "./session";
+import { projects } from "./projects";
 import { applySkeletonTemplate, buildCharacterFromReference, generateDirections, generateTileset } from "./generators";
 
 /**
@@ -38,6 +39,73 @@ function paintedTile(name: string): string {
 }
 
 describe("generators leave the active asset where they found it", () => {
+  test("existing sibling directions supply exact mirrors with their own palette", () => {
+    reset();
+    const projectId = projects.createProject("Sibling directions");
+    const north = session.create({ name: "Hero north", type: "character", preset: "tile-32" });
+    const south = session.create({ name: "Hero south", type: "character", preset: "tile-32" });
+    const east = session.create({ name: "Hero east", type: "character", width: 32, height: 32, palette: ["#0000ff", "#ff0000"] });
+    session.get(east)?.setPixels([{ x: 1, y: 2, index: 1 }]);
+    for (const id of [north, south, east]) projects.place(id, projectId);
+    session.open(north);
+    expect(generateDirections(north, "cardinal4")).toContain("Created 1 directions");
+    const west = session.list().find((asset) => asset.name === "Hero west");
+    expect(west).toBeDefined();
+    expect(session.get(west!.id)?.palette.colors.map((color) => color.hex)).toEqual(["#0000ff", "#ff0000"]);
+    expect(session.get(west!.id)?.colorAt(30, 2)).toBe(1);
+    expect(session.list()).toHaveLength(4);
+    expect(session.activeId).toBe(north);
+  });
+
+  test("repeating a free mirror does not duplicate an existing direction", () => {
+    reset();
+    const source = session.create({ name: "Hero east", type: "character", preset: "tile-32" });
+    generateDirections(source, "side2");
+    expect(generateDirections(source, "side2")).toContain("Created 0 directions");
+    expect(session.list()).toHaveLength(2);
+  });
+
+  test("same-named sibling directions in another project cannot supply a mirror", () => {
+    reset();
+    const other = projects.createProject("Other project");
+    const east = session.create({ name: "Hero east", type: "character", preset: "tile-32" });
+    projects.place(east, other);
+    const current = projects.createProject("Current project");
+    const north = session.create({ name: "Hero north", type: "character", preset: "tile-32" });
+    projects.place(north, current);
+    expect(generateDirections(north, "cardinal4")).toContain("Created 0 directions");
+    expect(session.list()).toHaveLength(2);
+  });
+
+  test("a west-facing sprite mirrors east under the same name, project, and folder", () => {
+    reset();
+    const projectId = projects.createProject("Directional game");
+    const folderId = projects.createFolder(projectId, "Hero");
+    const source = session.create({ name: "Hero west", type: "character", preset: "tile-32" });
+    projects.place(source, projectId, folderId);
+    session.get(source)?.setPixels([{ x: 1, y: 2, index: 3 }]);
+    expect(generateDirections(source, "side2")).toContain("Created 1 directions");
+    const east = session.list().find((asset) => asset.name === "Hero east");
+    expect(east).toBeDefined();
+    expect(projects.placementOf(east!.id)).toEqual({ projectId, folderId });
+    expect(session.get(east!.id)?.colorAt(30, 2)).toBe(3);
+    expect(session.activeId).toBe(source);
+  });
+
+  test("an east-facing cardinal source unlocks its exact west mirror", () => {
+    reset();
+    const source = session.create({ name: "Hero east", type: "character", preset: "tile-32" });
+    expect(generateDirections(source, "cardinal4")).toContain("Created 1 directions; 2 need a model");
+    expect(session.list().some((asset) => asset.name === "Hero west")).toBe(true);
+  });
+
+  test("a south-facing source cannot be mislabeled as an east-facing side sprite", () => {
+    reset();
+    const source = session.create({ name: "Hero south", type: "character", preset: "tile-32" });
+    expect(generateDirections(source, "side2")).toContain("Created 0 directions; 2 need a model");
+    expect(session.list()).toHaveLength(1);
+  });
+
   test("generate_tileset creates the sheet without stealing focus", () => {
     reset();
     const tile = paintedTile("terrain");
@@ -127,6 +195,7 @@ describe("local skeleton animation", () => {
 
     expect(applySkeletonTemplate(store, "walk", 4)).toContain("No prompt or model call");
     expect(store.frameCount).toBe(4);
+    expect(store.snapshot().frames.map((frame) => frame.durationMs)).toEqual([250, 250, 250, 250]);
     expect(store.history()).toEqual(["Animate with skeleton: walk"]);
     expect(Array.from({ length: 4 }, (_, frame) => [...store.readComposite(frame).cells].every((cell) => cell === -1 || cell === 1))).toEqual([true, true, true, true]);
     expect(store.undo()).toBe("Animate with skeleton: walk");

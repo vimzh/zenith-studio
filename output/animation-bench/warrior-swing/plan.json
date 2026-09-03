@@ -1,0 +1,24 @@
+{
+  "subject": "Slab-sword warrior",
+  "motion": "swing",
+  "frames": 4,
+  "plan": [
+    {
+      "pose": "Anticipation: Torso leans slightly forward and left, weight over lead leg. Both hands grip hilt; arms press sword forward and down before him at hip height, tip toward screen-left. Head forward, chin down. Left foot planted flat. Right foot back, knee bent, heel lifted, toe planted for spring. Blade stays within canvas.",
+      "contact": "grounded"
+    },
+    {
+      "pose": "Key wind-up: Torso arches back, shoulders open right; weight shifts to right leg. Hands raise hilt above/behind head; elbows flexed out. Enormous slab blade twice his height angles back-right overhead, kept within canvas. Head looks up-left under brow. Left foot planted and braced; right foot firm on ball.",
+      "contact": "grounded"
+    },
+    {
+      "pose": "Slash: Torso drives forward and down-left, hips whip left. Both hands pull-and-press hilt across; blade sweeps from high-right to low-left before him, tip passing near left shin. Head follows target left. Left foot stays planted and digs in. Right foot pivots on toe, sliding slightly forward; heel high. Blade within canvas.",
+      "contact": "grounded"
+    },
+    {
+      "pose": "Follow-through: Torso low and twisted left, then beginning to rise to center. Arms extend down-left with hilt just past left knee; blade trailing low ahead of lead foot. Head untucks toward level. Left foot still planted; right foot settles under hip on ball, starting to square. Hands keep grip as blade returns toward ready, within canvas.",
+      "contact": "grounded"
+    }
+  ],
+  "planSeconds": 0.00034550000000000124
+}

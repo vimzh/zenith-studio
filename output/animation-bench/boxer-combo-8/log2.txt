@@ -1,0 +1,37 @@
+128x128 source, 8 frames -> 3x2@4 (1536x1024) + 2x2@4 (1024x1024); effects: a short white air-cut streak behind whichever glove is at full extension
+planned 8 poses in 0.0s; source read as: Boxer in three-quarter guard facing right, left foot forward, weight centered, gloves up near chin with left slightly ahead, elbows in, knees soft.
+  1. [grounded, 60ms] Small dip and slight draw of left shoulder; weight shifts to right leg; left glove tight to cheek, right a touch higher; hips preload left; left knee bends; left foot planted, right heel light.
+  2. [grounded, 100ms] Snap left jab to full reach; torso snaps forward; right glove at cheek; chin tucked; hips square; left foot planted, right heel lifted slightly. | effect: short white streak behind extended left glove, arcing back toward his left shoulder
+  3. [grounded, 60ms] Retract left to guard; slight rebound back; torso straightens; right still high; left foot planted, right heel lowering.
+  4. [grounded, 60ms] Wind for cross: rotate hips, right shoulder coils back; left glove screens forward; weight shifts to left leg; left foot planted, right on ball ready to pivot.
+  5. [grounded, 120ms] Drive right cross full extension; hips rotate through, slight forward lean; left glove tight to cheek; chin down; left foot planted, right ball pivots outward. | effect: short white streak behind extended right glove, curving back toward his right shoulder
+  6. [grounded, 60ms] Begin cross retraction across center; torso decelerates; left hand edges forward to cover; weight recenters; left foot planted, right heel starts to settle.
+  7. [grounded, 80ms] Settle to guard; both gloves return near chin; slight upward bounce; torso upright; knees soft; left foot planted, right foot flat again.
+  8. [grounded, 60ms] Micro drop to match rest; elbows in; head level; stance squared to flow into idle; left foot planted, right relaxed under hip.
+sheet 1 reused from disk
+sheet 2 reused from disk
+  baseline 456px, tolerance down 102px / up 41px, shifts -1, -1, 0, 0, 0
+  frame 5: empty cell
+  baseline 456px, tolerance down 102px / up 41px, shifts 5, 15, 10
+palette: added nothing; unmatched none
+judged in 13.3s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: REJECTED — Unplanned white streak effect appears despite no glove at full extension.
+  frame 6: REJECTED — Unplanned white streak effect appears during retraction.
+  frame 7: ok
+  frame 8: ok
+1 sheet(s) generated concurrently in 152.4s
+  baseline 456px, tolerance down 102px / up 41px, shifts 3, 11, 11
+judged in 11.4s
+  after repair, frame 1: ok
+  after repair, frame 2: ok
+  after repair, frame 3: ok
+  after repair, frame 4: ok
+  after repair, frame 5: ok
+  after repair, frame 6: ok
+  after repair, frame 7: ok
+  after repair, frame 8: ok
+wrote 8 frames to ../../output/animation-bench/boxer-combo-8; holds 60, 100, 60, 60, 120, 60, 80, 60ms; bottom rows 113, 113, 113, 113, 113, 113, 113, 113, 113; sheets 3; sheet seconds 152
+exit 0

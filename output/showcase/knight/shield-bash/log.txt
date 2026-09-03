@@ -1,0 +1,24 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: a small white impact burst where the shield strikes
+planned 4 poses in 21.8s; source read as: Knight faces right in three-quarter view; left arm holds a forward kite shield, right hand hangs a longsword low to the right; feet staggered with right forward, weight centered.
+  1. [grounded, 100ms] Anticipation: torso leans back/left; shield draws in toward chest, angled back; sword hand pulls slightly rear/down; knees dip; left/back foot planted, right/front heel light; head tilts back, eyes right.
+  2. [grounded, 180ms] Key: lunge forward/right; shield arm fully drives out, rim leading; sword arm swings back for counterbalance; right/front foot steps and plants, left heel up; head tucked behind shield. | effect: Small white impact burst at shield front rim at screen-right; thin white arc tracing shield sweep from back-left to front-right.
+  3. [grounded, 140ms] Follow-through: torso passes then checks; shield slightly past target, angled outward; sword swings forward to low across; weight splits; both feet planted, left heel settling; head peeks around shield.
+  4. [grounded, 100ms] Recovery: torso straightens toward ready; shield returns in front near start height; sword settles low forward; right foot slides back toward start, both planted; head upright facing right.
+1 sheet(s) generated concurrently in 113.7s
+  baseline 512px, tolerance down 102px / up 41px, shifts 14, 15, 19, 19
+palette: folded #04051b into #000117 (0.036)
+palette: added #2d3234; unmatched none
+judged in 10.9s
+  frame 1: ok
+  frame 2: REJECTED — Effect arc is too thick and oversized. Impact burst is too large.
+  frame 3: REJECTED — Stage shows recovery rather than follow-through.
+  frame 4: ok
+1 sheet(s) generated concurrently in 157.3s
+  baseline 512px, tolerance down 102px / up 41px, shifts 52, 82
+judged in 15.1s
+  after repair, frame 1: ok
+  after repair, frame 2: ok
+  after repair, frame 3: ok
+  after repair, frame 4: ok
+wrote 4 frames to ../../output/showcase/knight/shield-bash; holds 100, 180, 140, 100ms; bottom rows 127, 127, 127, 127, 127; sheets 2; sheet seconds 114, 157
+exit 0, wall 320s

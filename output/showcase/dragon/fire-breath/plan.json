@@ -1,0 +1,37 @@
+{
+  "subject": "small chubby green dragon whelp with an orange belly, little bat wings and a long tail, standing on all fours",
+  "motion": "breathing a cone of fire",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "a cone of orange and yellow fire from the mouth",
+  "frames": 4,
+  "plan": {
+    "source": "Small dragon whelp on all fours facing right; head high, mouth closed; near forepaw slightly ahead; far wing half-open; tail curled behind. No items held.",
+    "frames": [
+      {
+        "pose": "Anticipation: torso rocks back, chest dips; head tucks, jaw parts; shoulders draw back; forepaws press; hindlegs crouch; wing tucks slightly; tail coils tighter behind.",
+        "contact": "grounded",
+        "ms": 90,
+        "effect": "Small orange/yellow glow gathers at the mouth."
+      },
+      {
+        "pose": "Key: sharp lunge forward; chest up; head thrust right, jaw wide; forepaws braced straight; hips drive; wing flares; tail whips opposite.",
+        "contact": "grounded",
+        "ms": 180,
+        "effect": "Broad cone of orange/yellow fire blasts from mouth forward-right."
+      },
+      {
+        "pose": "Follow-through: neck still extended but lowering; jaw open; torso settles forward; forepaws bend; wing easing inward; tail continues swing.",
+        "contact": "grounded",
+        "ms": 90,
+        "effect": "Longer cone from mouth, tapering with a few orange/yellow embers along it."
+      },
+      {
+        "pose": "Recovery: torso rocks back toward neutral; head lifts, jaw closing; forepaws relax; hindlegs straighten; wing folds toward half-open; tail curls back.",
+        "contact": "grounded",
+        "ms": 160,
+        "effect": "Cone ceases; tiny orange/yellow puff and ember just before the mouth."
+      }
+    ]
+  },
+  "planSeconds": 24.468566625
+}

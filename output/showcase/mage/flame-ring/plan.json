@@ -1,0 +1,37 @@
+{
+  "subject": "fire mage in a crimson hooded robe holding a gnarled staff topped with an ember crystal",
+  "motion": "a defensive flame shield: sweeping the staff in a full circle",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "a ring of orange fire tracing the staff's circle",
+  "frames": 4,
+  "plan": {
+    "source": "Three-quarter facing right; left hand holds staff upright at screen-left, right hand extends to screen-right as if casting; hooded head turned right; feet wide, left forward, right back, both planted; relaxed weight centered.",
+    "frames": [
+      {
+        "pose": "Anticipation: torso leans back-right, hips dip; left hand draws staff back across body toward rear-right, tip low; right hand tucks near chest; head glances right; both feet planted, knees bent.",
+        "contact": "grounded",
+        "ms": 80,
+        "effect": "Small embers gather at crystal; faint spark trail starts behind tip low-right."
+      },
+      {
+        "pose": "Key: sharp twist left; staff sweeps fast across front, mid-height to high-left; left arm extended, right arm swings back; torso forward-left, head follows arc; left foot braced, right planted.",
+        "contact": "grounded",
+        "ms": 180,
+        "effect": "Bright flame arc from low-right across front to high-left; thick leading arc with short trailing fire."
+      },
+      {
+        "pose": "Follow-through: staff continues overhead to back-right; left elbow bends, tip passing above hood; torso counter-rotates, right hand opens outward; weight shifts to right leg, left planted.",
+        "contact": "grounded",
+        "ms": 140,
+        "effect": "Flame trail curves overhead to back-right, nearly closing the ring; sparks shed along the path."
+      },
+      {
+        "pose": "Settle: staff comes down to near-upright at screen-left, slightly forward; torso untwists toward neutral; right hand re-extends forward; head centers; both feet reset, left leading.",
+        "contact": "grounded",
+        "ms": 120,
+        "effect": "Fading arc completes low-left segment to close the circle; thin lingering ring dissipates."
+      }
+    ]
+  },
+  "planSeconds": 20.568662290999995
+}

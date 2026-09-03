@@ -172,6 +172,16 @@ describe("engine bundles", () => {
     const bundle = exportForEngine("phaser", { name: "hero", atlas: atlas() });
     const snippet = bundle.files.find((file) => file.path.endsWith(".js"));
     expect(snippet?.contents).toContain("key: 'walk'");
+    expect(snippet?.contents).toContain("frameRate: 10");
+  });
+
+  test("new spritesheet animations export at 4 fps", () => {
+    const generated = packSpritesheet([
+      { name: "idle0", grid: gridFromRows(["0"]), tag: "idle" },
+      { name: "idle1", grid: gridFromRows(["1"]), tag: "idle" },
+    ]).atlas;
+    const bundle = exportForEngine("phaser", { name: "hero", atlas: generated });
+    expect(bundle.files.find((file) => file.path.endsWith(".js"))?.contents).toContain("frameRate: 4");
   });
 
   test("LOVE applies nearest filtering, without which it blurs everything", () => {

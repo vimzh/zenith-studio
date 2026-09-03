@@ -25,7 +25,7 @@ import {
   type PixelDocument,
 } from "./types";
 
-export const DEFAULT_FRAME_DURATION_MS = 100;
+export const DEFAULT_FRAME_DURATION_MS = 250;
 
 let counter = 0;
 const SESSION = Math.random().toString(36).slice(2, 8);

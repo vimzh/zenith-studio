@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Eraser, Hand, PaintBucket, Pencil, Pipette, SquareDashed } from "lucide-react";
+import { TRANSPARENT, type Cell } from "@zenith/core";
 
 /**
  * The editor's tools.
@@ -14,6 +15,11 @@ import { Eraser, Hand, PaintBucket, Pencil, Pipette, SquareDashed } from "lucide
  */
 
 export type ToolId = "pencil" | "eraser" | "bucket" | "eyedropper" | "select" | "pan";
+
+/** Palette swaps keep the workspace mounted; its old brush index may no longer exist. */
+export function clampPaletteIndex(index: Cell, paletteSize: number): Cell {
+  return index === TRANSPARENT ? TRANSPARENT : Math.min(index, paletteSize - 1) as Cell;
+}
 
 export interface ToolDefinition {
   readonly id: ToolId;

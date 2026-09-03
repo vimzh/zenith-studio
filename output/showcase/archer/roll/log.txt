@@ -1,0 +1,23 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: a small dust cloud along the roll
+planned 4 poses in 19.2s; source read as: Three-quarter right; standing relaxed. Left hand holds a tall bow near vertical in front, right arm bent back by the quiver, left leg forward, right back, head looking right.
+  1. [grounded, 80ms] Anticipation: torso dips and shifts back; left foot planted, right toe slides slightly back. Left arm pulls bow in, tilting it back; right hand drops from quiver across ribs; head lowers. | effect: Small dust scuff at right heel.
+  2. [airborne, 160ms] Key: dive into roll; both feet off. Torso pitched forward-right, head tucked; left arm clamps bow across chest near horizontal; right arm wraps over it to protect. | effect: Puff at takeoff under left toe trailing rightward.
+  3. [airborne, 140ms] Mid-roll: inverted tuck; shoulders low near ground, hips up; both feet tucked. Bow kept tight and parallel to ground in left; right forearm bracing; head turns toward landing. | effect: Low dust arc along ground under shoulders, trailing right.
+  4. [grounded, 140ms] Recovery: rise from roll to low crouch facing right; left foot planted forward, right knee under on toe; torso lifting, head up. Left brings bow back toward vertical ahead; right hand lifts toward quiver. | effect: Small settling dust puff behind hips/right toe.
+1 sheet(s) generated concurrently in 109.9s
+  baseline 512px, tolerance down 102px / up 41px, shifts 18, 0, 0, 62
+palette: added nothing; unmatched none
+judged in 12.5s
+  frame 1: REJECTED — Planned dust scuff at right heel is missing.
+  frame 2: ok
+  frame 3: ok
+  frame 4: REJECTED — Settling dust puff is placed left of the character, not behind hips/right toe.
+1 sheet(s) generated concurrently in 156.7s
+  baseline 512px, tolerance down 102px / up 41px, shifts 37, 71
+judged in 17.3s
+  after repair, frame 1: still rejected — Planned dust scuff at right heel missing.
+  after repair, frame 2: ok
+  after repair, frame 3: ok
+  after repair, frame 4: ok
+wrote 4 frames to ../../output/showcase/archer/roll; holds 80, 160, 140, 140ms; bottom rows 127, 126, 121, 110, 127; sheets 2; sheet seconds 110, 157
+exit 0, wall 317s

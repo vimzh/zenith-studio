@@ -1,0 +1,50 @@
+[
+  {
+    "pass": 1,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  },
+  {
+    "pass": 2,
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": false,
+        "problems": [
+          "Stage mismatch: shows an upright hold with continuing large flames, not recovery.",
+          "Effects mismatch: tall flame column persists instead of low fading flames with a few embers."
+        ]
+      }
+    ]
+  }
+]

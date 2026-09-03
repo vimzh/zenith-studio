@@ -1,6 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import app from "../src/index";
-import { buildDerivePrompt, buildPrompt } from "../src/routes/generate";
+import { createPalette, createStyleProfile, styleBrief } from "@zenith/core";
+import {
+  buildAnimationSheetPrompt,
+  buildDerivePrompt,
+  buildPrompt,
+  MAX_EFFECTS_LENGTH,
+  MAX_POSE_LENGTH,
+  parseAnimationSheet,
+} from "../src/routes/generate";
 
 /**
  * These run with no OPENAI_API_KEY, so nothing reaches the model.
@@ -17,10 +25,13 @@ afterAll(() => {
   if (configuredKey !== undefined) process.env.OPENAI_API_KEY = configuredKey;
 });
 
+// Validation cases use separate clients so they do not consume each other's rate budget.
+let validationClient = 0;
+
 async function post(body: unknown): Promise<Response> {
   return await app.request("/v1/generate", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-forwarded-for": `validation-${++validationClient}` },
     body: JSON.stringify(body),
   });
 }
@@ -38,7 +49,7 @@ async function postDerive(
   if (kind !== undefined) form.set("kind", kind);
   if (mode !== undefined) form.set("mode", mode);
   if (mask !== undefined) form.set("mask", mask);
-  return await app.request("/v1/derive", { method: "POST", body: form });
+  return await app.request("/v1/derive", { method: "POST", headers: { "x-forwarded-for": `validation-${++validationClient}` }, body: form });
 }
 
 async function errorOf(
@@ -130,8 +141,33 @@ describe("POST /v1/generate", () => {
   });
 
   test("rejects an over-long prompt", async () => {
-    const error = await errorOf(await post({ prompt: "x".repeat(1001) }));
-    expect(error.message).toContain("1000 characters");
+    const response = await post({ prompt: "x".repeat(16001) });
+    expect(response.status).toBe(400);
+    const error = await errorOf(response);
+    expect(error.message).toContain("16000 characters");
+    expect(error.message).toContain("16001");
+  });
+
+  test("accepts 16000 characters including the composed project brief", async () => {
+    const response = await post({ prompt: "x".repeat(16000) });
+    expect(response.status).toBe(503);
+    expect((await errorOf(response)).code).toBe("generation_unconfigured");
+  });
+
+  test("accepts the Moss Knight prompt plus the original project style without shortening it", async () => {
+    const prompt = "A single 64×64 pixel-art adventurer sprite: a small knight with a moss-green helmet, bright red scarf, brown boots, and a short steel sword. Full body in side profile facing RIGHT (east). Readable human proportions, clear separation between arms and legs, a recognizable face and hands, compact limited palette, clean solid pixel clusters and crisp dark outline. Transparent background. Keep the entire character, boots, scarf, and short sword inside the canvas with a small transparent margin. No scenery, text, shadows on a floor, extra characters or additional views.";
+    const profile = createStyleProfile(createPalette({ colors: ["#171c17", "#5c703d", "#ef534f"] }), {
+      canvasSizes: { character: 64, tile: 32, texture: 32, item: 16, ui: 16 },
+      proportions: "semi-chibi",
+      notes: "64×64 readable pixel-art fantasy characters; moss-green helmet, bright red scarf, brown boots, short steel sword. Full-body side view facing right, separated limbs, transparent background, full sprite inside the canvas.",
+    });
+    const conditioned = `${prompt}. ${styleBrief(profile, "character", { lockPalette: false })}`;
+    expect(prompt.length).toBeLessThan(1000);
+    expect(conditioned.length).toBeGreaterThan(1000);
+    const response = await post({ prompt: conditioned, kind: "sprite", cells: 64 });
+    expect(response.status).toBe(503);
+    expect((await errorOf(response)).code).toBe("generation_unconfigured");
+    expect(buildPrompt({ prompt: conditioned, kind: "sprite", cells: 64 })).toContain(conditioned);
   });
 
   /** Unvalidated, this went straight to a paid API and failed upstream. */
@@ -203,6 +239,17 @@ describe("POST /v1/derive", () => {
 
   const png = pngFile();
 
+  test("accepts 16000-character edits and rejects 16001 before checking the key", async () => {
+    const accepted = await postDerive("x".repeat(16000), png);
+    expect(accepted.status).toBe(503);
+    expect((await errorOf(accepted)).code).toBe("generation_unconfigured");
+    const rejected = await postDerive("x".repeat(16001), png);
+    expect(rejected.status).toBe(400);
+    const error = await errorOf(rejected);
+    expect(error.message).toContain("16000 characters");
+    expect(error.message).toContain("16001");
+  });
+
   test("rejects missing variation inputs before checking the key", async () => {
     expect((await errorOf(await postDerive(undefined, png))).message).toContain(
       "instruction",
@@ -226,6 +273,76 @@ describe("POST /v1/derive", () => {
     );
     expect(response.status).toBe(503);
     expect((await errorOf(response)).code).toBe("generation_unconfigured");
+  });
+
+  async function postAnimate(fields: Record<string, string>, source: File = pngFile(1024, 1024)): Promise<Response> {
+    const form = new FormData();
+    form.set("instruction", "a quick jab");
+    form.set("kind", "sprite");
+    form.set("mode", "animate");
+    form.set("source", source);
+    for (const [key, value] of Object.entries(fields)) form.set(key, value);
+    return await app.request("/v1/derive", { method: "POST", body: form });
+  }
+
+  test("an animation sheet must name its layout and poses before the key is checked", async () => {
+    expect((await errorOf(await postAnimate({}))).message).toContain('"columns"');
+    expect((await errorOf(await postAnimate({ columns: "2" }))).message).toContain('"rows"');
+    expect((await errorOf(await postAnimate({ columns: "2", rows: "2" }))).message).toContain('"poses"');
+    expect((await errorOf(await postAnimate({ columns: "2", rows: "2", poses: "not json" }))).message).toContain('"poses"');
+    expect((await errorOf(await postAnimate({ columns: "5", rows: "2", poses: '["a"]' }))).message).toContain("between 1 and 4");
+    expect((await errorOf(await postAnimate({ columns: "2", rows: "2", poses: '["a", ""]' }))).message).toContain("Pose 2");
+  });
+
+  test("an animation sheet refuses more frames than it has cells beside the source", async () => {
+    const response = await postAnimate({ columns: "2", rows: "2", poses: JSON.stringify(["a", "b", "c", "d"]) });
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).message).toContain("holds 3 frames");
+  });
+
+  test("an animation sheet refuses a pose over the cap rather than cutting it", async () => {
+    const response = await postAnimate({ columns: "2", rows: "2", poses: JSON.stringify(["a", "x".repeat(MAX_POSE_LENGTH + 1)]) });
+    expect(response.status).toBe(400);
+    const { message } = await errorOf(response);
+    expect(message).toContain("Pose 2");
+    expect(message).toContain(String(MAX_POSE_LENGTH));
+  });
+
+  test("an animation sheet must be exactly a size the model returns", async () => {
+    const response = await postAnimate({ columns: "2", rows: "2", poses: '["a"]' }, pngFile(1000, 1000));
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).message).toContain("1024x1024, 1024x1536, 1536x1024");
+  });
+
+  test("a well-formed animation sheet at every model size reaches server configuration", async () => {
+    for (const [width, height] of [[1024, 1024], [1536, 1024], [1024, 1536]] as const) {
+      const response = await postAnimate(
+        { columns: "3", rows: "2", poses: JSON.stringify(["a", "b", "c", "d", "e"]) },
+        pngFile(width, height),
+      );
+      expect(response.status).toBe(503);
+      expect((await errorOf(response)).code).toBe("generation_unconfigured");
+    }
+  });
+
+  test("parseAnimationSheet reads the layout the browser sends, with effects only when given", () => {
+    const form = new FormData();
+    form.set("columns", "3");
+    form.set("rows", "2");
+    form.set("poses", JSON.stringify(["a", "b"]));
+    expect(parseAnimationSheet(form)).toEqual({ columns: 3, rows: 2, poses: ["a", "b"] });
+    form.set("effects", "  a purple trail  ");
+    expect(parseAnimationSheet(form)).toEqual({ columns: 3, rows: 2, poses: ["a", "b"], effects: "a purple trail" });
+    form.set("effects", "   ");
+    expect(parseAnimationSheet(form)).toEqual({ columns: 3, rows: 2, poses: ["a", "b"] });
+  });
+
+  test("an animation sheet refuses an effects brief over the cap", async () => {
+    const response = await postAnimate({ columns: "2", rows: "2", poses: '["a"]', effects: "x".repeat(MAX_EFFECTS_LENGTH + 1) });
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).message).toContain(String(MAX_EFFECTS_LENGTH));
+    const accepted = await postAnimate({ columns: "2", rows: "2", poses: '["a"]', effects: "a purple trail" });
+    expect(accepted.status).toBe(503);
   });
 
   test("rejects an unknown asset kind before checking the key", async () => {
@@ -319,5 +436,74 @@ describe("POST /v1/derive", () => {
     expect(inpaint).not.toContain("Change ONLY the camera angle");
     expect(inpaint).not.toContain("Edit the supplied pixel-art asset");
     expect(inpaint).not.toContain("seamless square");
+    expect(inpaint).toContain("complete edited canvas");
+    expect(inpaint).toContain("not an isolated replacement fragment");
+    expect(inpaint).toContain("do not erase body parts");
+  });
+
+  test("rotation and posing permit the silhouette to change instead of preserving its projection", () => {
+    for (const mode of ["rotate", "pose"] as const) {
+      const prompt = buildDerivePrompt("face east", "sprite", mode);
+      expect(prompt).not.toContain("Keep the same functional silhouette");
+      expect(prompt).toContain("anatomically connected");
+    }
+  });
+
+  test("an animation sheet places every frame in a numbered cell beside an unchanged source", () => {
+    const prompt = buildDerivePrompt("a quick jab", "sprite", "animate", {
+      columns: 3,
+      rows: 2,
+      poses: ["guard tightens", " fist extends ", "arm retracts"],
+    });
+    expect(prompt).toContain("3 columns by 2 rows");
+    expect(prompt).toContain("Keep cell 1 exactly as it is");
+    expect(prompt).toContain("one animation: a quick jab.");
+    expect(prompt).toContain("Cell 2, frame 1: guard tightens");
+    expect(prompt).toContain("Cell 3, frame 2: fist extends");
+    expect(prompt).toContain("Cell 4, frame 3: arm retracts");
+    expect(prompt).toContain("Every cell from 2 to 4 must contain its frame; none of them may be left empty");
+    expect(prompt).toContain("Leave every remaining cell completely empty and transparent");
+    expect(prompt).toContain("one shared ground line");
+    expect(prompt).toContain("No cell borders, grid lines, labels, numbers");
+    expect(prompt).toBe(buildAnimationSheetPrompt("a quick jab", { columns: 3, rows: 2, poses: ["guard tightens", " fist extends ", "arm retracts"] }));
+  });
+
+  test("an animation sheet never asks to preserve the pose or silhouette every cell must change", () => {
+    const prompt = buildAnimationSheetPrompt("swing", { columns: 2, rows: 2, poses: ["a"] });
+    expect(prompt).not.toContain("Preserve the subject's identity, camera angle");
+    expect(prompt).not.toContain("Change ONLY the subject's pose");
+    expect(prompt).not.toContain("Keep the same functional silhouette");
+    expect(prompt).not.toContain("canvas occupancy");
+    expect(prompt).not.toContain("Edit the supplied pixel-art asset");
+    expect(prompt).toContain("visibly different from the frame before it");
+  });
+
+  test("effects are forbidden outright unless requested, and the ban never names a requested effect", () => {
+    const plain = buildAnimationSheetPrompt("slash", { columns: 2, rows: 2, poses: ["a"] });
+    expect(plain).toContain("No effects of any kind: no motion lines, trails, glows");
+    expect(plain).not.toContain("Requested effects");
+
+    const magic = buildAnimationSheetPrompt("slash", { columns: 2, rows: 2, poses: ["a Effect: purple trail"], effects: "a purple magic trail behind the blade" });
+    expect(magic).toContain("Requested effects: a purple magic trail behind the blade");
+    expect(magic).toContain("only in a frame whose line asks for it");
+    expect(magic).toContain("never covering the character's face");
+    expect(magic).not.toContain("No effects of any kind");
+    expect(magic).not.toContain("motion lines");
+    expect(magic).not.toContain("trails, glows");
+  });
+
+  test("animate mode without a sheet is a programming error, not a silent variation", () => {
+    expect(() => buildDerivePrompt("swing", "sprite", "animate")).toThrow("sheet");
+  });
+
+  test("animation poses keep source registration without fixing occupancy or re-centring", () => {
+    const prompt = buildDerivePrompt("swing a sword then jump", "sprite", "pose");
+    expect(prompt).not.toContain("Keep the subject centred");
+    expect(prompt).not.toContain("canvas occupancy");
+    expect(prompt).toContain("per-part proportions");
+    expect(prompt).toContain("grounded contact points");
+    expect(prompt).toContain("unless the motion explicitly requires a jump or airborne pose");
+    expect(prompt).toContain("do not re-centre, crop, or rescale");
+    expect(prompt).toContain("small transparent margin");
   });
 });

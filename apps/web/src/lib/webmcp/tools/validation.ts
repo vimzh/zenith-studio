@@ -23,7 +23,7 @@ export const checkSeamlessTilingTool: ToolDefinition = {
   scope: "tile",
   name: "check_seamless_tiling",
   description:
-    "Check whether the currently open asset repeats without a visible seam, and report the exact coordinates of every mismatch. The test is not whether opposite edges are identical — almost no hand-drawn tile passes that. A seam pairing is acceptable when the same pairing of colours already occurs somewhere inside the tile: mortar beside stone at the seam is invisible if mortar sits beside stone throughout, and glaring if it appears nowhere else. Each failure names both pixels, so fix those coordinates with set_pixels and call this again to confirm. The verdict is graded — seamless, minor, or seam — because a handful of mismatches is normal on a busy 16-colour tile while a real seam fails most of an edge; the thresholds come from measuring textures that tile by construction against ones that visibly do not. Note that a good score means little on a noisy or dithered texture: noise tiles trivially, so seam quality and whether the art reads as pixel art are close to independent questions. Coordinates are asset-local: (0,0) is the top-left pixel, x increases right, y increases down.",
+    "Check the open tile/texture for seam colour pairings absent from its interior, not identical opposite edges. Returns seamless/minor/seam and exact mismatch pixels; fix with set_pixels then recheck. Noise/dither can pass without readable art. Asset-local (0,0) top-left, x right, y down.",
   readOnly: true,
   inputSchema: { type: "object", properties: {} },
   example: {},

@@ -1,0 +1,17 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: a purple energy arc following the tail
+planned 4 poses in 22.3s; source read as: Small chubby dragon on all fours, three-quarter facing right; head up; one wing half-open; tail curled high behind; forepaws empty.
+  1. [grounded, 80ms] Crouch back and left; head dips; shoulders twist left; wings tuck; tail coils high to left to load; front paws brace, rear-right and front-right planted, rear-left slides back. | effect: Tiny purple sparkles gather at tail base.
+  2. [grounded, 200ms] Snap spin right; hips drive; tail fully extended sweeping low left-to-right; head down; wings tight; front paws dug in, rear-right pivot planted, rear-left heel up. | effect: Thick purple energy arc trails the tail along the sweep, widest at mid-arc.
+  3. [grounded, 120ms] Over-rotate; chest leans right; head rebounds up; wings flare; tail passes through and starts curling on the right; front-right braced, rear-right planted, others sliding. | effect: Thinner fading purple arc continuing past the tail tip with short wisps.
+  4. [grounded, 140ms] Settle to center; head level; wings partly fold; tail rises behind curling back toward rest; paws step back under body, all four planted evenly. | effect: Few faint purple motes trailing from the tail tip.
+1 sheet(s) generated concurrently in 112.1s
+  baseline 512px, tolerance down 102px / up 41px, shifts 63, 25, 61, 47
+palette: folded #195a1b into #246a22 (0.053), #023118 into #032317 (0.053)
+palette: added #f6b5fd, #8d0dd5; unmatched #d273f0, #b93bf0, #e9a2f3, #4e3c78
+judged in 7.2s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+wrote 4 frames to ../../output/showcase/dragon/tail-whip; holds 80, 200, 120, 140ms; bottom rows 127, 127, 127, 127, 127; sheets 1; sheet seconds 112
+exit 0, wall 142s

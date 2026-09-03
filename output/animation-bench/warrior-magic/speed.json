@@ -1,0 +1,227 @@
+{
+  "default": {
+    "planSeconds": 69.021199583,
+    "judgeSeconds": 28.054208416999987,
+    "plan": {
+      "source": "Facing screen-left in a low three-quarter stance: left foot forward planted, right back on the ball; torso crouched; right hand grips by the guard and left hand at the pommel, holding the enormous greatsword raised and angled up-left; head forward.",
+      "frames": [
+        {
+          "pose": "Anticipation: torso dips and shifts slightly forward-left; left foot stays planted, right heel lifts to coil; same grip (right by guard, left at pommel) as the blade lowers a touch toward down-left in front; elbows bend; head tucks.",
+          "contact": "grounded",
+          "ms": 90
+        },
+        {
+          "pose": "Wind-up overhead: hips roll back, chest leans right; left foot still planted, right toes pivot out; arms drive up with right by guard, left at pommel, setting the blade high behind/above the head, tip nearly vertical; head tilts left under it.",
+          "contact": "grounded",
+          "ms": 140
+        },
+        {
+          "pose": "Impact slash: weight snaps onto the left leg; torso twists hard left; left foot planted, right steps in on the ball; arms extend as the blade sweeps from over-head right to down-left past the lead thigh; head looks along the cut.",
+          "contact": "grounded",
+          "ms": 160,
+          "effect": "White air-cut arc ahead of the edge from above-right of the head to low-left before the lead knee; bright purple trail lagging behind along the same diagonal, tapering upward."
+        },
+        {
+          "pose": "Follow-through and recover: hips sink and rotate past target; blade finishes low-left near shin, then starts rising toward the high-left ready; left foot still planted, right slides in to regain stance; elbows bend; head re-centers.",
+          "contact": "grounded",
+          "ms": 170,
+          "effect": "Short fading purple trail lingering near the ground just behind the blade tip along the end of the cut; no new air-cut."
+        }
+      ]
+    },
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  },
+  "low": {
+    "planSeconds": 24.881593915999996,
+    "judgeSeconds": 10.364548499999989,
+    "plan": {
+      "source": "Wide crouch facing left; left foot forward planted, right back; torso slightly right; both hands on hilt, right near guard by cheek, left at pommel by hip; enormous blade angled up-left.",
+      "frames": [
+        {
+          "pose": "Anticipation: sink and draw back; torso rocks right, elbows bend in; hilt closer to chest; left foot planted, right heel pivots in; head tucked, eyes left; blade dips slightly back-right.",
+          "contact": "grounded",
+          "ms": 100,
+          "effect": "Short purple trail lagging from tip along a small arc from up-left toward back-right."
+        },
+        {
+          "pose": "Wind-up: deep coil; hands raise hilt above/right of head, tip behind; torso twisted right over rear leg; left foot planted, right on ball; head under blade, eyes left.",
+          "contact": "grounded",
+          "ms": 140,
+          "effect": "Longer purple trail arcing behind the rising tip from back-right to overhead."
+        },
+        {
+          "pose": "Slash: explode forward; arms extend, blade sweeps high-right to low-left; hips/shoulders uncoil; weight to left leg; right foot pivots hard; head drives with strike.",
+          "contact": "grounded",
+          "ms": 180,
+          "effect": "Bright white air-cut crescent along the fast diagonal to low-left; purple trail lagging behind the blade on the same arc."
+        },
+        {
+          "pose": "Follow-through: blade low-left past lead knee; wrists lowered outside thigh; torso over front leg then beginning to rise; left foot planted, right re-centers on ball; head forward-left.",
+          "contact": "grounded",
+          "ms": 100,
+          "effect": "Short fading purple trail near the low-left end of the swing path."
+        }
+      ]
+    },
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": true,
+        "problems": []
+      }
+    ]
+  },
+  "minimal": {
+    "planSeconds": 5.368696082999988,
+    "judgeSeconds": 2.3922060000000056,
+    "plan": {
+      "source": "Three-quarter facing left, knees bent; left foot forward, right back; torso slightly leaned right; both hands grip the enormous greatsword near the right shoulder, blade angled up-left; head facing left, ready stance.",
+      "frames": [
+        {
+          "pose": "Anticipation: shift weight slightly back to right leg; torso leans right; hands draw sword a touch down and right; left knee dips, right knee bends deeper; head tucks, eyes on left.",
+          "contact": "grounded",
+          "ms": 90,
+          "effect": "Faint short purple trail behind blade tip drifting up-left from the minor dip."
+        },
+        {
+          "pose": "Explosive lift: drive up; sword raised overhead behind head, elbows high; torso coils left, hips load; left foot plants harder, right toes dig; head tilts up-left.",
+          "contact": "grounded",
+          "ms": 100,
+          "effect": "Bright purple trail arcing from prior up-left to above head, lagging the lift."
+        },
+        {
+          "pose": "Key slash: full diagonal down-right to low left; torso snaps forward-left; arms extend, blade passes left hip; left foot slides half-step forward, right stays; head follows through.",
+          "contact": "grounded",
+          "ms": 180,
+          "effect": "White air-cut arc from above-right to low-left crossing screen-left; thick purple trail closely chasing blade path."
+        },
+        {
+          "pose": "Follow-through: blade low-left behind lead leg, tip near ground; wrists relax; torso dips forward then begins to rise; weight shifts back centered; head levels, eyes left, preparing return.",
+          "contact": "grounded",
+          "ms": 140,
+          "effect": "Diminishing purple trail pooling low-left along blade’s path; no new air-cut."
+        }
+      ]
+    },
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": false,
+        "problems": [
+          "Stage mismatch: pose reads as new anticipation with blade overhead right, not recovery up-left",
+          "Effect placement wrong: purple trail arcs above-right, not rising from low-left to up-left",
+          "White air-cut appears at the blade tip, which should be absent in recovery"
+        ]
+      }
+    ]
+  },
+  "mini": {
+    "planSeconds": 8.760951,
+    "judgeSeconds": 6.497039874999988,
+    "plan": {
+      "source": "Three-quarter view facing screen-left, crouched, legs wide, both hands on the greatsword near the right shoulder, blade angled up and back over the right shoulder.",
+      "frames": [
+        {
+          "pose": "Anticipation: torso leans slightly back, hips shift weight onto rear (right) leg, left foot toe lifts; both hands pull the hilt down and back a little toward right hip, blade tilts slightly lower behind head, head looks along blade.",
+          "contact": "grounded",
+          "ms": 80,
+          "effect": "faint short purple trail hugging the blade's back edge near the tip (lagging pull); tiny purple sparkles at the hilt."
+        },
+        {
+          "pose": "Wind-up extreme: strong silhouette overhead; knees bend deeper, hips rotate left, both arms fully raised so blade vertical behind head with tip high left of frame, torso coiled, head tucked under blade line, feet planted (left toe forward, right braced).",
+          "contact": "grounded",
+          "ms": 180,
+          "effect": "thicker purple trail arcing from hilt up along the blade to the tip, sparkles concentrated at hilt and lower blade; no air-cut yet."
+        },
+        {
+          "pose": "Passing slash: torso uncoils and leans forward, arms drive the blade down diagonally toward lower front-left, left leg absorbs weight stepping slightly forward, right foot pivots; blade mid-swing cutting across screen-left low.",
+          "contact": "grounded",
+          "ms": 120,
+          "effect": "bright purple trail streak follows the blade's entire moving edge toward lower-left; sharp white air-cut arc appears ahead of blade tip along its diagonal path; lingering sparkles at hilt."
+        },
+        {
+          "pose": "Follow-through and return: blade finishes low and forward-left across body; torso leans forward then re-centers, arms extended low then pull back slightly, hips settle back to balanced ready, feet return to original wide stance with both planted.",
+          "contact": "grounded",
+          "ms": 120,
+          "effect": "fading purple trail along final low arc of the blade; small residual sparkles at the slash line near blade tip; no air-cut."
+        }
+      ]
+    },
+    "verdicts": [
+      {
+        "frame": 1,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 2,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 3,
+        "ok": true,
+        "problems": []
+      },
+      {
+        "frame": 4,
+        "ok": false,
+        "problems": [
+          "Recovery stage shows the blade lifted to the right instead of being lifted up-left toward the ready position.",
+          "Purple trail is on the right and rising up-right instead of from low-left toward up-left along the outer left edge."
+        ]
+      }
+    ]
+  }
+}

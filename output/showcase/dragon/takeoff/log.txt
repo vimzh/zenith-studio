@@ -1,0 +1,18 @@
+128x128 source, 5 frames -> 3x2@4 (1536x1024); effects: small dust swirls under the wings
+planned 5 poses in 21.8s; source read as: Dragon whelp stands three-quarter facing right, head up, wings relaxed half-open, long tail curled behind, all four paws planted.
+  1. [grounded, 100ms] Anticipation: torso sinks back, head dips; front paws spread and brace, hind paws firm; wings lift high behind; tail lowers for balance. | effect: Small dust swirls gather on ground under each wing base.
+  2. [grounded, 110ms] Push: chest rises; front paws lift; hind paws on toes driving; wings slam halfway down; head up; tail flicks up. | effect: Air-cut arcs along both wingtips; dust swirls puff outward under wings.
+  3. [airborne, 150ms] Key: both paws tucked as body lifts; wings at full downstroke wide; head proud; tail trailing down-right curve. | effect: Dust swirls linger under wings on ground; short trails behind wingtips.
+  4. [airborne, 100ms] Hover settle: wings sweep up past mid; body slightly lower; forelegs extend, hind legs relaxed; head steady; tail curls. | effect: Faint dust swirls fade under wings.
+  5. [grounded, 120ms] Recovery: descend to touch; hind paws land first, fronts reaching; wings midway up starting to fold; head levels; tail drops. | effect: Small dust puffs under wings on touchdown.
+1 sheet(s) generated concurrently in 112.2s
+  baseline 512px, tolerance down 102px / up 41px, shifts 19, 27, 0, 0, 36
+palette: added nothing; unmatched none
+judged in 10.8s
+  frame 1: ok
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+  frame 5: ok
+wrote 5 frames to ../../output/showcase/dragon/takeoff; holds 100, 110, 150, 100, 120ms; bottom rows 127, 127, 127, 116, 116, 127; sheets 1; sheet seconds 112
+exit 0, wall 146s

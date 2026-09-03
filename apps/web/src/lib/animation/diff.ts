@@ -111,24 +111,38 @@ function countOpaque(grid: Grid): number {
 
 export interface CoherenceProblem {
   readonly frame: number;
-  readonly kind: "palette" | "silhouette" | "loop";
+  readonly kind: "palette" | "silhouette" | "loop" | "bounds";
   readonly message: string;
 }
 
 /**
- * Flags the three ways a generated cycle usually goes wrong.
+ * Mechanical checks, not a guarantee of visually coherent motion.
  *
  * Reports frame indices, never a boolean — the point is that an agent can fix
  * the named frame and re-check, the same loop `check_seamless_tiling` supports.
  */
 export function checkAnimationCoherence(
   frames: readonly Grid[],
-  options: { paletteSize: number; loop?: boolean; maxAreaJump?: number } = { paletteSize: 16 }
+  options: { paletteSize: number; loop?: boolean; maxAreaJump?: number; checkBounds?: boolean } = { paletteSize: 16 }
 ): CoherenceProblem[] {
   const problems: CoherenceProblem[] = [];
   const maxAreaJump = options.maxAreaJump ?? 0.4;
 
   frames.forEach((grid, index) => {
+    if (options.checkBounds) {
+      const opaque = (x: number, y: number) => grid.cells[y * grid.width + x] !== TRANSPARENT;
+      const edges = [
+        ["top", Array.from({ length: grid.width }, (_, x) => opaque(x, 0)).some(Boolean)],
+        ["right", Array.from({ length: grid.height }, (_, y) => opaque(grid.width - 1, y)).some(Boolean)],
+        ["bottom", Array.from({ length: grid.width }, (_, x) => opaque(x, grid.height - 1)).some(Boolean)],
+        ["left", Array.from({ length: grid.height }, (_, y) => opaque(0, y)).some(Boolean)],
+      ].filter(([, touching]) => touching).map(([edge]) => edge);
+      if (edges.length > 0) problems.push({
+        frame: index,
+        kind: "bounds",
+        message: `Frame ${String(index)} touches the ${edges.join(", ")} canvas edge(s). Check for clipped body parts or equipment; edge contact alone cannot prove clipping.`,
+      });
+    }
     for (const cell of grid.cells) {
       if (cell !== TRANSPARENT && (cell < 0 || cell >= options.paletteSize)) {
         problems.push({

@@ -3,6 +3,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppChrome } from "@/components/app/app-chrome";
 import { SidebarProfileCard, loadProfileUser } from "@/components/home/sidebar-profile-card";
 import { WebMCPTools } from "@/components/agent/webmcp-tools";
+import { AgentNavigation } from "@/components/agent/agent-navigation";
 
 /**
  * The app chrome.
@@ -22,6 +23,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <WebMCPTools />
+      <AgentNavigation />
       <AppChrome profile={<SidebarProfileCard user={user} />}>{children}</AppChrome>
     </SidebarProvider>
   );

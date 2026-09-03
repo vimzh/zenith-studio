@@ -22,10 +22,26 @@ const DEFAULT_MODEL = 'gpt-5'
 const MAX_MESSAGES = 60
 const MAX_BODY_CHARS = 400_000
 
+/**
+ * How hard the model thinks, and how much it says.
+ *
+ * Exposed because the two callers want opposite things. The assistant loop
+ * wants the default: a tool-using conversation is where reasoning earns its
+ * time. Pose planning and frame judging want `low`: structured, single-turn,
+ * and measured at roughly a minute per call at the default, most of it spent
+ * reasoning about a four-line JSON answer.
+ */
+export const REASONING_EFFORTS = ['minimal', 'low', 'medium', 'high'] as const
+export const VERBOSITIES = ['low', 'medium', 'high'] as const
+export type ReasoningEffort = (typeof REASONING_EFFORTS)[number]
+export type Verbosity = (typeof VERBOSITIES)[number]
+
 export interface ChatRequestBody {
   messages: unknown
   tools?: unknown
   model?: string
+  reasoning?: ReasoningEffort
+  verbosity?: Verbosity
 }
 
 function badRequest(message: string) {
@@ -58,6 +74,12 @@ function validate(body: ChatRequestBody): string | null {
   }
   if (body.model !== undefined && typeof body.model !== 'string') {
     return '"model" must be a string.'
+  }
+  if (body.reasoning !== undefined && !REASONING_EFFORTS.includes(body.reasoning)) {
+    return `"reasoning" must be one of ${REASONING_EFFORTS.join(', ')}.`
+  }
+  if (body.verbosity !== undefined && !VERBOSITIES.includes(body.verbosity)) {
+    return `"verbosity" must be one of ${VERBOSITIES.join(', ')}.`
   }
   return null
 }
@@ -112,6 +134,8 @@ export function createChatRoute(): Hono {
         ...(Array.isArray(body.tools) && body.tools.length > 0
           ? { tools: body.tools as never, tool_choice: 'auto' as const }
           : {}),
+        ...(body.reasoning === undefined ? {} : { reasoning_effort: body.reasoning }),
+        ...(body.verbosity === undefined ? {} : { verbosity: body.verbosity }),
       })
 
       const choice = completion.choices[0]

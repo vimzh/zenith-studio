@@ -78,9 +78,22 @@ describe("toolsForContext", () => {
       toolsForContext(EMPTY_SCOPE).map((tool) => tool.name),
     );
     const expected = new Set(
-      TOOLS.filter((tool) => tool.scope === "always").map((tool) => tool.name),
+      TOOLS.filter(
+        (tool) => tool.scope === "always" || tool.scope === "library",
+      ).map((tool) => tool.name),
     );
     expect(offered).toEqual(expected);
+    // `library` is the mirror of `editor`: structural work on projects and
+    // folders, offered here and nowhere else. It exists so the editor's
+    // discovery payload does not carry tools an agent mid-stroke cannot use.
+    const editor = new Set(toolsForContext(context()).map((tool) => tool.name));
+    for (const name of ["delete_project", "rename_folder", "delete_folder", "undo_delete"]) {
+      expect({ name, library: offered.has(name), editor: editor.has(name) }).toEqual({
+        name,
+        library: true,
+        editor: false,
+      });
+    }
     // Making a first asset must be reachable with nothing open, or the library
     // is a dead end for an agent.
     expect(offered.has("create_asset")).toBe(true);
@@ -91,6 +104,24 @@ describe("toolsForContext", () => {
     const library = toolsForContext(EMPTY_SCOPE).length;
     const editor = toolsForContext(context()).length;
     expect(editor).toBeGreaterThan(library);
+  });
+
+  test("an animated character adds only animation tools and keeps registration identities stable", () => {
+    const still = toolsForContext(context({ assetType: "character" }));
+    const existing = new Map(still.map((tool) => [tool.name, tool]));
+    const animated = toolsForContext(context({ assetType: "character", frameCount: 3 }));
+    expect(animated.filter((tool) => !existing.has(tool.name)).map((tool) => tool.name)).toEqual([
+      "read_frames_diff",
+      "read_animation_summary",
+      "check_animation_coherence",
+      "interpolate_frames",
+    ]);
+    expect(new Set(animated.map((tool) => tool.name)).size).toBe(animated.length);
+    // RegisteredTool effects depend on definition identity. Rebuilding these
+    // objects on a frame change would re-register the entire existing surface.
+    for (const tool of still) expect(animated.find((entry) => entry.name === tool.name)).toBe(tool);
+    const nextFrame = toolsForContext(context({ assetType: "character", frameCount: 4 }));
+    for (const [index, tool] of animated.entries()) expect(nextFrame[index]).toBe(tool);
   });
 
   test("a tile is not offered character tools, and vice versa", () => {

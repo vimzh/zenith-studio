@@ -33,7 +33,7 @@ export const readFramesDiffTool: ToolDefinition = {
   scope: "animation",
   name: "read_frames_diff",
   description:
-    "Report only the pixels that differ between two frames of the currently open asset, as a list of (x, y) positions with the value before and after. Origin (0,0) is the top-left, x increases right, y increases down. This is the tool to reach for when working across frames: a typical animation frame pair differs by 5-15% of its pixels, so a diff costs a fraction of reading either frame in full. To author an in-between, diff the frames either side of it and move the changed pixels halfway.",
+    "Read only changed pixels between two open-asset frames, with before/after indices and (x,y). Origin (0,0) is top-left; +x right, +y down. Usually smaller than full reads; useful for in-betweens.",
   readOnly: true,
   inputSchema: {
     type: "object",
@@ -85,7 +85,7 @@ export const readAnimationSummaryTool: ToolDefinition = {
   scope: "animation",
   name: "read_animation_summary",
   description:
-    "Summarise the motion of the currently open asset without reading any frame in full: for each frame, how many pixels are opaque, where their centre of mass sits, how many pixels changed from the previous frame, and how far the centre moved. Use it first when you need to understand an existing animation — a steady centroid drift reads as walking, a vertical oscillation as a bob, and a large silhouette jump usually means a mistake.",
+    "Summarise each open-asset frame's opaque-pixel count, centre of mass, changed pixels and centroid displacement from the previous frame. Use before full reads to identify motion or silhouette jumps.",
   readOnly: true,
   inputSchema: { type: "object", properties: {} },
   example: {},
@@ -111,7 +111,7 @@ export const checkAnimationCoherenceTool: ToolDefinition = {
   scope: "animation",
   name: "check_animation_coherence",
   description:
-    "Check the currently open asset's frames for the mistakes that make an animation read as broken, and report the frame index of each: cells outside the palette, sudden jumps in the opaque area between neighbouring frames, and a looping cycle whose last frame repeats its first — which holds the pose twice and makes the loop stutter. Returns frame indices, never a bare verdict, so you can fix exactly those frames and check again.",
+    "Check open frames for off-palette pixels, opaque-area jumps and identical loop endpoints; flag character edge contacts. Reports frame indices. Not proof of anatomy, grounded contact, registration or smoothness: review playback.",
   readOnly: true,
   inputSchema: {
     type: "object",
@@ -123,13 +123,13 @@ export const checkAnimationCoherenceTool: ToolDefinition = {
       max_area_jump: {
         type: "number",
         description:
-          "Largest acceptable change in opaque area between neighbouring frames, 0-1. Defaults to 0.5.",
+          "Largest acceptable change in opaque area between neighbouring frames, 0-1. Defaults to 0.4.",
       },
     },
   },
   example: {},
   execute: (args) => {
-    const { name, store } = requireActiveAsset();
+    const { name, store, type } = requireActiveAsset();
     const loop = args["loop"] === undefined ? true : args["loop"] === true;
     const maxAreaJump = typeof args["max_area_jump"] === "number" ? args["max_area_jump"] : undefined;
 
@@ -138,6 +138,7 @@ export const checkAnimationCoherenceTool: ToolDefinition = {
       problems = checkAnimationCoherence(framesOf(store), {
         paletteSize: store.palette.colors.length,
         loop,
+        checkBounds: type === "character",
         ...(maxAreaJump === undefined ? {} : { maxAreaJump }),
       });
     } catch (error) {
@@ -145,7 +146,7 @@ export const checkAnimationCoherenceTool: ToolDefinition = {
     }
 
     if (problems.length === 0) {
-      return `'${name}' is coherent across ${String(store.frameCount)} frame(s): every cell is in palette, no silhouette pops, and the loop does not stutter.`;
+      return `'${name}' passed automatic checks across ${String(store.frameCount)} frame(s): palette, area changes${loop ? ", duplicate loop endpoint" : ""}${type === "character" ? ", canvas-edge contacts" : ""}. This does not verify anatomy, foot contact, registration or smooth motion; review playback.`;
     }
     const lines = problems.map((problem) => `  frame ${String(problem.frame)}  [${problem.kind}]  ${problem.message}`);
     return `'${name}' has ${String(problems.length)} coherence problem(s):\n${lines.join("\n")}\nFix those frames and call check_animation_coherence again.`;
@@ -157,7 +158,7 @@ const PRESETS: readonly ProceduralPreset[] = ["bob", "blink", "flicker", "pulse"
 export const animateProceduralTool: ToolDefinition = {
   name: "animate_procedural",
   description:
-    "Build an animation cycle from the selected frame by transforming it deterministically, appending the new frames to the asset. Presets: bob (vertical oscillation), sway (horizontal), pulse (brightness up and down the palette ramp), flicker (irregular brightness), blink (highlight indices dim briefly), scroll (wraps, so a seamless tile stays seamless while it moves). This is instant and exact — prefer it over asking a model to draw a cycle whenever the motion is one of these. The whole cycle is one undo step for the human.",
+    "Append a free, deterministic cycle from the selected frame; one undo. bob: vertical; sway: horizontal; pulse: palette brightness; flicker: irregular brightness; blink: dim highlights; scroll: seamless wrap. Prefer over model poses when suitable.",
   inputSchema: {
     type: "object",
     properties: {
@@ -229,7 +230,7 @@ export const interpolateFramesTool: ToolDefinition = {
   scope: "animation",
   name: "interpolate_frames",
   description:
-    "Insert in-between frames between two existing frames of the currently open asset, by moving pixel positions rather than blending colours. Blending would invent colours: the average of palette index 3 and index 9 is index 6, which is usually an unrelated hue. Use it to smooth a cycle you have blocked out with key poses. The inserted frames go directly after from_index.",
+    "Insert in-betweens after from_index between two open-asset keyframes. Moves pixel positions without blending colours or inventing palette entries; use to smooth a blocked-out cycle.",
   inputSchema: {
     type: "object",
     properties: {

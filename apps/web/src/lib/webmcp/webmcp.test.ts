@@ -11,6 +11,9 @@ import * as viewportTools from "./tools/viewport";
 import * as historyTools from "./tools/history";
 import * as validationTools from "./tools/validation";
 import * as inpaintTools from "./tools/inpaint";
+import * as exportTools from "./tools/export";
+import * as projectIoTools from "./tools/project-io";
+import { listExportFiles, releaseExportFile, retainExportFiles } from "./artifacts";
 import {
   TOOLS,
   TOOL_GROUPS,
@@ -53,6 +56,7 @@ async function callExpectingError(
 }
 
 function resetSession(): void {
+  for (const file of listExportFiles()) releaseExportFile(file.artifact_id);
   for (const asset of session.list()) session.close(asset.id);
   transcript.clear();
   assetNavigation.clear();
@@ -242,6 +246,14 @@ describe("the tool surface", () => {
       "conform_to_style",
       "draw_from_prompt",
       "export_project",
+      "start_tool_job",
+      "get_tool_job",
+      "list_exports",
+      "read_export",
+      "release_export",
+      "import_project",
+      "get_storage_status",
+      "flush_storage",
     ]) {
       expect({ name, present: findTool(name) !== undefined }).toEqual({
         name,
@@ -267,11 +279,19 @@ describe("the tool surface", () => {
       // channel — neither of which a fixture can stand in for, and neither of
       // which the `network` flag describes.
       if (
-        /^(export_|generate_asset|generate_variation_set|generate_texture|generate_isometric_tile|generate_direction_set|rotate_character|select_direction|derive_variant|pixelize|get_viewport|focus_viewport|import_image|build_character_from_reference|assemble_map)/.test(
+        /^(export_|flush_storage|get_tool_job|generate_asset|generate_variation_set|generate_texture|generate_isometric_tile|generate_direction_set|rotate_character|select_direction|derive_variant|pixelize|get_viewport|focus_viewport|import_image|build_character_from_reference|assemble_map)/.test(
           tool.name,
         )
       )
         continue;
+
+      // A different reason, worth separating: these three are *correct* to fail
+      // in a fresh fixture. undo_delete has nothing to restore until something
+      // is deleted, delete_folder names a folder that does not exist yet, and
+      // delete_project would remove the fixture the remaining examples run
+      // against. Their refusals are asserted directly in project-tools.test.ts,
+      // where the state they need can be built first.
+      if (/^(undo_delete|delete_folder|delete_project)$/.test(tool.name)) continue;
 
       resetSession();
       // Projects are a second singleton and leak across the loop exactly as the
@@ -280,6 +300,9 @@ describe("the tool surface", () => {
       // it rather than on a fixture of their own.
       for (const project of projects.listProjects()) projects.deleteProject(project.id);
       const projectId = projects.createProject("example-fixture-project");
+      // A folder too, so any tool taking folder_id gets a live one substituted
+      // rather than an id that cannot exist in a fresh fixture.
+      const folderId = projects.createFolder(projectId, "example-fixture-folder");
       const id = session.create({
         name: "example-fixture",
         type: "tile",
@@ -299,6 +322,9 @@ describe("the tool surface", () => {
       const args: Record<string, unknown> = { ...example };
       if ("asset_id" in args) args["asset_id"] = id;
       if ("project_id" in args) args["project_id"] = projects.activeProjectId;
+
+      if ("folder_id" in args) args["folder_id"] = folderId;
+      if ("artifact_id" in args) args["artifact_id"] = retainExportFiles([{ filename: "fixture.txt", blob: new Blob(["example"]) }])[0]?.artifact_id;
 
       const outcome = await runTool(tool as ToolDefinition, args, "console");
       expect({
@@ -499,7 +525,7 @@ describe("editing", () => {
     expect(asTile).not.toContain("estimate_skeleton");
     expect(asTile).toContain("check_seamless_tiling");
 
-    expect(session.setType(id, "character")).toBe(true);
+    expect(await call("set_asset_type", { type: "character" })).toContain("character");
     expect(session.list().find((asset) => asset.id === id)?.type).toBe("character");
     // Metadata, not a document rebuild: the art and its history survive.
     expect(session.active?.encode(0)).toBe(before as string);
@@ -507,6 +533,18 @@ describe("editing", () => {
     const asCharacter = toolsForContext({ assetId: id, assetType: "character", frameCount: 1 }).map((t) => t.name);
     expect(asCharacter).toContain("estimate_skeleton");
     expect(asCharacter).not.toContain("check_seamless_tiling");
+  });
+
+  test("set_asset_type validates the type and supports an unchanged type", async () => {
+    const id = session.create({ name: "hero", type: "character", preset: "tile-32" });
+    const revision = session.revision;
+    expect(await call("set_asset_type", { type: "character" })).toContain("already");
+    expect(session.revision).toBe(revision);
+    expect(await callExpectingError("set_asset_type", { type: "merchant" })).toContain("type");
+    expect(session.list().find((asset) => asset.id === id)?.type).toBe("character");
+    expect(await callExpectingError("set_asset_type")).toContain("type");
+    resetSession();
+    expect(await callExpectingError("set_asset_type", { type: "character" })).toContain("No asset is open");
   });
 
   /**
@@ -778,11 +816,14 @@ describe("check_seamless_tiling", () => {
 });
 
 describe("export_png", () => {
-  test("fails with an actionable message where there is no canvas", async () => {
+  test("provides complete agent-readable bytes without a DOM canvas", async () => {
     session.create({ name: "tile", preset: "tile-32" });
-    // Bun's test runtime has no DOM; a browser is where this tool belongs.
-    const message = await callExpectingError("export_png", { scale: 1 });
-    expect(message).toMatch(/PNG export failed|is not defined/);
+    const manifest = JSON.parse(await call("export_png", { scale: 1 }));
+    expect(manifest.delivery).toBe("artifact");
+    expect(manifest.files[0].mime_type).toBe("image/png");
+    const chunk = JSON.parse(await call("read_export", { artifact_id: manifest.files[0].artifact_id }));
+    expect(chunk.eof).toBe(true);
+    expect(Buffer.from(chunk.data, "base64").subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
   });
 
   test("rejects a non-integer scale before touching the canvas", async () => {
@@ -852,8 +893,8 @@ describe("route and session agreement", () => {
     );
   });
 
-  test("leaves the library alone rather than yanking the human into the editor", () => {
-    expect(routeForRequestedAsset("/home", "asset_002")).toBeNull();
+  test("opens an explicitly requested asset from the library but leaves settings alone", () => {
+    expect(routeForRequestedAsset("/home", "asset_002")).toBe("/asset/asset_002");
     expect(routeForRequestedAsset("/settings", "asset_002")).toBeNull();
   });
 
@@ -935,6 +976,8 @@ const TOOL_MODULES: Record<string, Record<string, unknown>> = {
   history: historyTools,
   validation: validationTools,
   inpaint: inpaintTools,
+  export: exportTools,
+  projectIo: projectIoTools,
 };
 
 function isToolDefinition(value: unknown): value is ToolDefinition {

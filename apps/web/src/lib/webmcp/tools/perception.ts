@@ -43,7 +43,7 @@ function header(): string {
 export const readCanvas: ToolDefinition = {
   name: "read_canvas",
   description:
-    "Read the currently open asset's artwork as an indexed character grid: one character per pixel, '0'-'9' and 'A'-'F' for palette indices 0-15, '.' for transparent. Rows run top to bottom, characters left to right, origin (0,0) at the top-left. The header restates the asset, frame, size and palette. Call this before any edit so you are working from what is actually on the canvas, and again afterwards to confirm the result.",
+    "Read the open artwork: 0–9/A–F = palette indices 0–15; '.' = transparent. (0,0) is top-left; rows down, columns right. Header: asset, frame, size, palette. Read before editing and after to verify.",
   readOnly: true,
   inputSchema: { type: "object", properties: {} },
   example: {},
@@ -56,7 +56,7 @@ export const readCanvas: ToolDefinition = {
 export const getPalette: ToolDefinition = {
   name: "get_palette",
   description:
-    "List the currently open asset's palette: each index, the character that represents it in the grid, its hex colour, and how many pixels currently use it. Use it to pick an index before drawing, or to find which colours are actually carrying the image. Indices not listed do not exist and will be rejected.",
+    "Read the open asset's palette indices, grid characters, hex colours and pixel usage counts. Choose indices before drawing; unlisted indices are invalid.",
   readOnly: true,
   inputSchema: { type: "object", properties: {} },
   example: {},
@@ -82,7 +82,7 @@ export const getPalette: ToolDefinition = {
 export const readRegion: ToolDefinition = {
   name: "read_region",
   description:
-    "Read a rectangular region of the currently open asset's selected frame as an indexed character grid, in the same format read_canvas returns. Coordinates are asset-local: (0,0) is the top-left pixel, x increases right, y increases down. The region must fit inside the canvas. Prefer this to read_canvas when you only care about part of a large asset — it costs a fraction of the tokens.",
+    "Read part of the open asset's selected frame in read_canvas grid format. Asset-local (0,0) is top-left; +x right, +y down. The rectangle must fit the canvas. Cheaper than reading the full frame.",
   readOnly: true,
   inputSchema: { type: "object", properties: {
     x: { type: "integer", minimum: 0 }, y: { type: "integer", minimum: 0 },
@@ -107,7 +107,7 @@ export const readRegion: ToolDefinition = {
 export const getColorAt: ToolDefinition = {
   name: "get_color_at",
   description:
-    "Read the palette index and hex colour of a single pixel in the currently open asset's selected frame. Coordinates are asset-local: (0,0) is the top-left pixel, x increases right, y increases down. Cheaper than read_canvas when you only need to know what one pixel is — for example before deciding which index to bucket_fill with. Returns -1 for a transparent pixel.",
+    "Read a selected-frame pixel's palette index and hex colour; transparent is -1. Asset-local (0,0) is top-left; +x right, +y down. Cheaper than read_canvas.",
   readOnly: true,
   inputSchema: { type: "object", properties: { x: { type: "integer", minimum: 0 }, y: { type: "integer", minimum: 0 } }, required: ["x", "y"] },
   example: { x: 0, y: 0 },

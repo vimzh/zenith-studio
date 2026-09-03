@@ -15,6 +15,17 @@
 export type ToolScope =
   /** Always available, including on the library screen with nothing open. */
   | "always"
+  /**
+   * The library screen only — structural work on projects, folders and the
+   * deletion undo.
+   *
+   * The opposite of `editor`, and it exists for the byte budget as much as for
+   * clarity. Discovery payloads are capped, the editor view already carries
+   * every tool that acts on open art, and an agent mid-stroke on a character
+   * has no use for "delete this project". Registering these only where they
+   * apply keeps the largest view under its limit.
+   */
+  | "library"
   /** Needs an open asset. */
   | "editor"
   /** Needs an open asset with more than one frame. */
@@ -50,6 +61,7 @@ const TILE_TYPES = new Set(["tile", "texture"]);
 
 export function scopeApplies(scope: ToolScope, context: ScopeContext): boolean {
   if (scope === "always") return true;
+  if (scope === "library") return context.assetId === null;
   if (context.assetId === null) return false;
 
   switch (scope) {

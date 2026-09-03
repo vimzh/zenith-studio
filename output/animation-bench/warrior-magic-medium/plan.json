@@ -1,0 +1,37 @@
+{
+  "subject": "muscular adult warrior in dark briefs, bare-chested, holding an enormous slab greatsword twice his height with both hands",
+  "motion": "Heavy two-handed sword swing: wind-up overhead, diagonal downward slash, low follow-through, return to ready.",
+  "facing": "in a three-quarter fighting stance facing screen-left",
+  "effects": "a glowing purple magic trail following the blade's path, and a white air-cut arc at the moment of the slash",
+  "frames": 4,
+  "plan": {
+    "source": "Facing left in 3/4, wide stance: left foot forward and right back; torso braced; right hand grips pommel by hip, left hand under the guard by cheek; slab greatsword held two‑handed, angled up-left towering overhead.",
+    "frames": [
+      {
+        "pose": "Anticipation: sink and coil to the right; hips load back. Hands keep the hilt, drawing it near right ear; blade shifts overhead to back-right. Head stays facing left. Right foot planted, left toes pivot light but grounded.",
+        "contact": "grounded",
+        "ms": 90,
+        "effect": "Short purple trail arcing above his head from high-left toward back-right behind the blade, clear of face."
+      },
+      {
+        "pose": "Key: explosive diagonal slash. Weight drives onto left leg; left foot planted, right heel up pivoting. Torso leans forward-left, arms extend; blade sweeps from over-right across front to low-left outside the lead knee.",
+        "contact": "grounded",
+        "ms": 180,
+        "effect": "White air-cut arc from above-right to low-left in front of him; bright and outside silhouette. Purple trail lags along the same path behind the blade."
+      },
+      {
+        "pose": "Follow-through low: sword passes past target; hands down near left thigh, tip forward-left low. Torso folded over left. Left foot still planted; right toes skid forward slightly, heel up.",
+        "contact": "grounded",
+        "ms": 100,
+        "effect": "Purple trail low-left, curling just behind the tip along the continuing arc near the ground; no air-cut."
+      },
+      {
+        "pose": "Recovery: lift blade back up-left toward ready; hands draw in to chest—left near guard by cheek, right at pommel. Torso rises and recenters. Left foot planted; right foot steps back and plants.",
+        "contact": "grounded",
+        "ms": 160,
+        "effect": "Faint purple trail rising from low-left toward up-left along the lift path, kept to the outer left edge."
+      }
+    ]
+  },
+  "planSeconds": 0.00010079199999999843
+}

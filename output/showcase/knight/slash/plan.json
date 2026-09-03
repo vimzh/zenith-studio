@@ -1,0 +1,34 @@
+{
+  "subject": "stout armoured knight in blue plate with a red plume, longsword in the right hand, kite shield on the left arm",
+  "motion": "a heavy overhead sword slash",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "a white air-cut arc along the blade's path at the moment of the slash",
+  "frames": 4,
+  "plan": {
+    "source": "Knight faces right; weight split, right/front foot forward; right hand holds longsword low across front pointing down-right; left arm bears kite shield forward; head level.",
+    "frames": [
+      {
+        "pose": "Anticipation: torso dips slightly back; right arm draws sword to near right shoulder, blade angled back; shield presses a bit forward; head tucks; weight shifts toward left/rear; right/front foot planted, rear heel light.",
+        "contact": "grounded",
+        "ms": 90
+      },
+      {
+        "pose": "Key: torso coils back and up; right arm lifts sword high over head, elbow bent behind crest; shield retracts to chest, angled in; chin up facing right; weight on right/front foot, rear on ball.",
+        "contact": "grounded",
+        "ms": 170
+      },
+      {
+        "pose": "Slash: torso snaps forward; right arm drives blade down through front-right, finishing near knee height; shield yanks back for balance; head follows strike; weight drives to front; rear pivots.",
+        "contact": "grounded",
+        "ms": 90,
+        "effect": "White arc from above helm to in front-right, trailing the blade’s downward path."
+      },
+      {
+        "pose": "Follow-through: torso leans slightly forward; sword settles low across front pointing down-right; shield returns forward to guard; head level; weight re-centers; both feet planted, ready to blend to rest.",
+        "contact": "grounded",
+        "ms": 180
+      }
+    ]
+  },
+  "planSeconds": 19.372954791
+}

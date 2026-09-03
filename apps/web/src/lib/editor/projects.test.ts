@@ -358,3 +358,41 @@ describe("persistence", () => {
     expect(restored.snapshot()).not.toHaveProperty("workspaces");
   });
 });
+
+describe("style references follow project membership", () => {
+  test("shared place removes a departing exemplar in the same notification as its move", () => {
+    const source = library.createProject("Source");
+    const destination = library.createProject("Destination");
+    library.place("hero", source);
+    library.setStyle(source, { references: ["hero"] });
+    const snapshots: ReturnType<ProjectLibrary["snapshot"]>[] = [];
+    const unsubscribe = library.subscribe(() => snapshots.push(library.snapshot()));
+    expect(library.place("hero", destination)).toBe(true);
+    unsubscribe();
+    expect(library.getProject(source)!.style.references).toEqual([]);
+    expect(library.getProject(destination)!.style.references).toEqual([]);
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0]!.projects.find(project => project.id === source)!.style.references).toEqual([]);
+  });
+
+  test("folder moves and invalid destinations preserve the reference", () => {
+    const project = library.createProject("Source");
+    const folder = library.createFolder(project, "Characters")!;
+    library.place("hero", project);
+    library.setStyle(project, { references: ["hero"] });
+    expect(library.place("hero", project, folder)).toBe(true);
+    expect(library.getProject(project)!.style.references).toEqual(["hero"]);
+    const before = library.snapshot();
+    expect(library.place("hero", "missing")).toBe(false);
+    expect(library.place("hero", project, "missing")).toBe(false);
+    expect(library.snapshot()).toEqual(before);
+  });
+
+  test("shared unplace removes an exemplar without altering other references", () => {
+    const project = library.createProject("Source");
+    library.place("hero", project);
+    library.setStyle(project, { references: ["other", "hero"] });
+    expect(library.unplace("hero")).toBe(true);
+    expect(library.getProject(project)!.style.references).toEqual(["other"]);
+  });
+});

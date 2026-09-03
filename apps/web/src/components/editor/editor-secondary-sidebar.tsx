@@ -5,11 +5,11 @@ import type { Cell, DocumentStore } from "@zenith/core";
 import { AgentConsole } from "@/components/agent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { AssetType } from "@/lib/editor";
-import type { Pose } from "@/lib/skeleton";
 import { useToolRunnerState } from "@/lib/webmcp";
 import { AssetPanel } from "./asset-panel";
 import { PalettePanel } from "./palette-panel";
 import { TilePreview } from "./tile-preview";
+import type { SkeletonController } from "./use-skeleton-rig";
 
 /** One tabbed secondary sidebar for asset controls and agent collaboration. */
 export function EditorSecondarySidebar({
@@ -17,8 +17,6 @@ export function EditorSecondarySidebar({
   onPaletteSelect,
   onOpacity,
   opacity,
-  onSkeleton,
-  onSkeletonBake,
   paletteIndex,
   revision,
   selection,
@@ -30,12 +28,10 @@ export function EditorSecondarySidebar({
   onPaletteSelect: (index: Cell) => void;
   onOpacity: (opacity: number) => void;
   opacity: number;
-  onSkeleton: (pose: Pose | null) => void;
-  onSkeletonBake: () => string;
   paletteIndex: Cell;
   revision: number;
   selection: Parameters<typeof AgentConsole>[0]["selection"];
-  skeleton: Pose | null;
+  skeleton: SkeletonController;
   store: DocumentStore;
   type: AssetType;
 }) {
@@ -79,8 +75,6 @@ export function EditorSecondarySidebar({
           />
           <AssetPanel
             assetId={assetId}
-            onSkeleton={onSkeleton}
-            onSkeletonBake={onSkeletonBake}
             selection={selection}
             skeleton={skeleton}
             store={store}

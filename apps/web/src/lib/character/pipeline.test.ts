@@ -26,6 +26,7 @@ describe("buildCharacter", () => {
 
     // north is the base; west mirrors from east — but east itself needs a model.
     expect(result.directions.has("north")).toBe(true);
+    expect(result.sheet.atlas.frames.every((frame) => frame.duration === 250)).toBe(true);
     expect(result.skipped.length).toBeGreaterThan(0);
     expect(result.steps.map((s) => s.step)).toEqual([
       "pixelize",

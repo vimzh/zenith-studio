@@ -4,28 +4,30 @@ import { useCallback, useState } from "react";
 import { Compass, Grid2x2, Palette, PersonStanding, RotateCw, Shapes, Sparkles, WandSparkles } from "lucide-react";
 import { paletteHexes, type DocumentStore, type Region } from "@zenith/core";
 import {
-  applySkeletonTemplate,
+  directionFamily,
   generateDirections,
   generateTileset,
   readabilityOf,
   recolorAsset,
   rotateAsset,
   session,
+  useSessionSelector,
   type AssetType,
+  type ProjectLibrary,
 } from "@/lib/editor";
 import { BUILTIN_PALETTES, paletteHexes as hexesOf } from "@zenith/core";
 import { CANVAS_PRESETS } from "@/lib/pixel";
 import {
   DIRECTION_SETS,
-  DIRECTIONS,
   generationCount,
   mirrorableFrom,
   planDirectionSet,
-  type Direction,
   type DirectionSet,
 } from "@/lib/directions";
-import { estimateSkeleton, poseTemplate, TEMPLATE_NAMES, type Pose } from "@/lib/skeleton";
+import { TEMPLATE_NAMES, type CharacterType } from "@/lib/skeleton";
 import { useStoreSelector } from "@/lib/pixel";
+import { animationPanelCopy, directionPanelCopy, skeletonPanelCopy } from "@/data/agent";
+import { useProjectSelector } from "@/components/app/use-projects";
 import { cn } from "@/lib/utils";
 import { Button as ShadcnButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { findTool, runTool } from "@/lib/webmcp";
 import { ReferenceTray } from "./reference-tray";
+import type { Facing, SkeletonController } from "./use-skeleton-rig";
 
 /**
  * The contextual panel.
@@ -50,6 +53,7 @@ import { ReferenceTray } from "./reference-tray";
  */
 
 const selectPalette = (store: DocumentStore) => paletteHexes(store.palette);
+const selectProjectRevision = (library: ProjectLibrary) => library.revision;
 
 async function executeTool(name: string, args: Readonly<Record<string, unknown>>): Promise<string> {
   const tool = findTool(name);
@@ -61,18 +65,14 @@ async function executeTool(name: string, args: Readonly<Record<string, unknown>>
 
 export function AssetPanel({
   assetId,
-  onSkeleton,
-  onSkeletonBake,
   selection,
   skeleton,
   store,
   type,
 }: {
   assetId: string;
-  onSkeleton: (pose: Pose | null) => void;
-  onSkeletonBake: () => string;
   selection: Region | null;
-  skeleton: Pose | null;
+  skeleton: SkeletonController;
   store: DocumentStore;
   type: AssetType;
 }) {
@@ -101,14 +101,7 @@ export function AssetPanel({
         <>
           <DirectionsSection assetId={assetId} busy={busy} run={run} />
           <AnimationSection busy={busy} run={run} />
-          <SkeletonSection
-            busy={busy}
-            onSkeleton={onSkeleton}
-            onSkeletonBake={onSkeletonBake}
-            run={run}
-            skeleton={skeleton}
-            store={store}
-          />
+          <SkeletonSection busy={busy} run={run} skeleton={skeleton} />
         </>
       ) : null}
 
@@ -119,7 +112,11 @@ export function AssetPanel({
       <PaletteSection assetId={assetId} busy={busy} run={run} />
       <TransformSection assetId={assetId} busy={busy} run={run} />
       <InpaintSection busy={busy} run={run} selection={selection} />
-      <ReferenceTray allowDirectionGeneration={type === "character"} />
+      <ReferenceTray
+        allowDirectionGeneration={type === "character"}
+        assetId={assetId}
+        store={store}
+      />
 
       {status !== null ? (
         <p
@@ -232,23 +229,28 @@ function DirectionsSection({
   /**
    * What this set would actually cost, shown before the click.
    *
-   * Mirroring only helps once a partner exists, and the base of a cardinal set
-   * has none — so "generate cardinal4" from a single sprite mirrors nothing.
+   * Mirroring only helps once a partner exists. A front- or back-facing base
+   * has none — so "generate cardinal4" from that single sprite mirrors nothing.
    * Promising free mirrors and delivering zero is worse than saying plainly
    * that three of the four need a model.
    */
-  const base = DIRECTION_SETS[set][0] as Direction;
-  const plan = planDirectionSet([base], set);
+  const projectRevision = useProjectSelector(selectProjectRevision);
+  const family = useSessionSelector(useCallback(() => {
+    // Placement changes do not bump the editor session's revision.
+    void projectRevision;
+    return directionFamily(assetId);
+  }, [assetId, projectRevision]));
+  const base = family.direction ?? (set === "side2" ? "east" : "south");
+  const have = [...new Set([...family.assets.keys(), base])];
+  const plan = planDirectionSet(have, set);
   // `mirrorableFrom`, not the plan's mirror count: the plan assumes every
   // generation succeeds, so it counts west as mirrorable because east will
   // exist by then. With no generator east never arrives and west is unreachable
   // too, so the plan's number promises assets that cannot be produced.
-  const mirrored = mirrorableFrom([base], set).length;
-  const needsModel = DIRECTION_SETS[set].length - 1 - mirrored;
+  const mirrored = mirrorableFrom(have, set).length;
+  const missing = plan.filter((step) => step.method !== "have").length;
+  const needsModel = missing - mirrored;
   const withGeneration = generationCount(plan);
-  const assetName = session.list().find((asset) => asset.id === assetId)?.name ?? "";
-  const namedDirection = DIRECTIONS.find((direction) => assetName.toLowerCase().endsWith(` ${direction}`));
-  const baseDirection = namedDirection ?? (set === "side2" ? "east" : "south");
 
   return (
     <Section icon={Compass} title="Directions">
@@ -268,9 +270,11 @@ function DirectionsSection({
         </SelectContent>
       </Select>
       <p className="mb-1.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
-        {mirrored > 0
-          ? `${String(mirrored)} free by mirroring, ${String(needsModel)} need a model.`
-          : `All ${String(needsModel)} need a model — nothing to mirror from a single ${base} sprite. With generation, ${String(withGeneration)} calls would cover the set.`}
+        {missing === 0
+          ? directionPanelCopy.complete(set)
+          : mirrored > 0
+            ? directionPanelCopy.mirrored(mirrored, needsModel)
+            : directionPanelCopy.missing(missing, withGeneration)}
       </p>
       <Button
         busy={busy || mirrored === 0}
@@ -280,10 +284,10 @@ function DirectionsSection({
       </Button>
       <div className="mt-1">
         <Button
-          busy={busy}
+          busy={busy || missing === 0}
           onClick={() => void run(() => executeTool("generate_direction_set", {
             set,
-            base_direction: baseDirection,
+            base_direction: base,
           }))}
         >
           Complete {set}
@@ -301,20 +305,21 @@ function AnimationSection({
   run: (work: () => string | Promise<string>) => Promise<void>;
 }) {
   const [description, setDescription] = useState("");
+  const [effects, setEffects] = useState("");
   const [frames, setFrames] = useState(4);
 
   return (
-    <Section icon={Sparkles} title="Text animation">
+    <Section icon={Sparkles} title={animationPanelCopy.title}>
       <div className="grid grid-cols-[1fr_4.5rem] gap-1.5">
         <Input
-          aria-label="Animation description"
+          aria-label={animationPanelCopy.descriptionLabel}
           className="h-7 rounded-sm text-xs"
           onChange={(event) => setDescription(event.target.value)}
-          placeholder="Sword swing…"
+          placeholder={animationPanelCopy.descriptionPlaceholder}
           value={description}
         />
         <Input
-          aria-label="Animation frame count"
+          aria-label={animationPanelCopy.framesLabel}
           className="h-7 rounded-sm font-mono text-xs"
           max={12}
           min={2}
@@ -323,16 +328,31 @@ function AnimationSection({
           value={frames}
         />
       </div>
+      <Input
+        aria-label={animationPanelCopy.effectsLabel}
+        className="mt-1.5 h-7 rounded-sm text-xs"
+        onChange={(event) => setEffects(event.target.value)}
+        placeholder={animationPanelCopy.effectsPlaceholder}
+        value={effects}
+      />
       <div className="mt-1.5">
         <Button
           busy={busy || description.trim() === ""}
-          onClick={() => void run(() => executeTool("animate_with_text", { description: description.trim(), frames }))}
+          onClick={() =>
+            void run(() =>
+              executeTool("animate_with_text", {
+                description: description.trim(),
+                frames,
+                ...(effects.trim() === "" ? {} : { effects: effects.trim() }),
+              }),
+            )
+          }
         >
-          Generate frames
+          {animationPanelCopy.generateLabel}
         </Button>
       </div>
       <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
-        Results appear in the timeline below the canvas.
+        {animationPanelCopy.hint}
       </p>
     </Section>
   );
@@ -418,69 +438,93 @@ function TilesetSection({
 
 function SkeletonSection({
   busy,
-  onSkeleton,
-  onSkeletonBake,
   run,
   skeleton,
-  store,
 }: {
   busy: boolean;
-  onSkeleton: (pose: Pose | null) => void;
-  onSkeletonBake: () => string;
   run: (work: () => string | Promise<string>) => Promise<void>;
-  skeleton: Pose | null;
-  store: DocumentStore;
+  skeleton: SkeletonController;
 }) {
   const [template, setTemplate] = useState("walk");
   const [frames, setFrames] = useState(4);
+  const copy = skeletonPanelCopy;
+  const open = skeleton.pose !== null;
+  const quadruped = skeleton.type === "quadrupedal";
 
   return (
-    <Section icon={PersonStanding} title="Skeleton">
+    <Section icon={PersonStanding} title={copy.title}>
       <div className="flex flex-col gap-1">
-        <Button
-          onClick={() =>
-            onSkeleton(skeleton === null ? estimateSkeleton(store.readComposite()) : null)
-          }
+        <Select
+          onValueChange={(value) => void run(() => skeleton.estimate(value as CharacterType))}
+          value={skeleton.type}
         >
-          {skeleton === null ? "Estimate from silhouette" : "Hide skeleton"}
+          <SelectTrigger aria-label={copy.typeLabel} className="w-full rounded-sm font-mono text-[11px]" size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {copy.types.map((entry) => (
+              <SelectItem key={entry.value} value={entry.value}>{entry.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button busy={busy} onClick={() => void run(() => skeleton.estimate())}>
+          {open ? copy.reestimateLabel : copy.estimateLabel}
         </Button>
-        {skeleton !== null ? (
+        {open ? (
           <>
-            <Select
-              onValueChange={(value) => {
-                setTemplate(value);
-                onSkeleton(poseTemplate(value).poses[0] as Pose);
-              }}
-              value={template}
-            >
-              <SelectTrigger aria-label="Pose template" className="w-full rounded-sm font-mono text-[11px]" size="sm">
-                <SelectValue placeholder="Pose…" />
-              </SelectTrigger>
-              <SelectContent>
-                {TEMPLATE_NAMES.map((name) => (
-                  <SelectItem key={name} value={name}>{name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="grid grid-cols-[1fr_4.5rem] gap-1">
-              <Button busy={busy} onClick={() => void run(() => applySkeletonTemplate(store, template, frames))}>
-                Build {template} cycle — local
-              </Button>
-              <Input
-                aria-label="Skeleton animation frame count"
-                className="h-7 rounded-sm font-mono text-xs"
-                max={32}
-                min={2}
-                onChange={(event) => setFrames(Math.max(2, Math.min(32, Number(event.target.value) || 2)))}
-                type="number"
-                value={frames}
-              />
-            </div>
-            <Button busy={busy} onClick={() => void run(onSkeletonBake)}>
-              Create posed frame — local
+            {quadruped ? null : (
+              <>
+                <Select onValueChange={(value) => skeleton.setFacing(value as Facing)} value={skeleton.facing}>
+                  <SelectTrigger aria-label={copy.facingLabel} className="w-full rounded-sm font-mono text-[11px]" size="sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {copy.facings.map((entry) => (
+                      <SelectItem key={entry.value} value={entry.value}>{entry.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  onValueChange={(value) => {
+                    setTemplate(value);
+                    skeleton.applyTemplatePose(value);
+                  }}
+                  value={template}
+                >
+                  <SelectTrigger aria-label={copy.templateLabel} className="w-full rounded-sm font-mono text-[11px]" size="sm">
+                    <SelectValue placeholder={copy.templatePlaceholder} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TEMPLATE_NAMES.map((name) => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="grid grid-cols-[1fr_4.5rem] gap-1">
+                  <Button busy={busy} onClick={() => void run(() => skeleton.buildCycle(template, frames))}>
+                    {copy.buildCycleLabel(template)}
+                  </Button>
+                  <Input
+                    aria-label={copy.framesLabel}
+                    className="h-7 rounded-sm font-mono text-xs"
+                    max={32}
+                    min={2}
+                    onChange={(event) => setFrames(Math.max(2, Math.min(32, Number(event.target.value) || 2)))}
+                    type="number"
+                    value={frames}
+                  />
+                </div>
+              </>
+            )}
+            <Button busy={busy} onClick={() => void run(skeleton.bake)}>
+              {copy.bakeLabel}
             </Button>
+            <div className="grid grid-cols-2 gap-1">
+              <Button onClick={skeleton.reset}>{copy.resetLabel}</Button>
+              <Button onClick={skeleton.hide}>{copy.hideLabel}</Button>
+            </div>
             <p className="font-mono text-[10px] leading-relaxed text-muted-foreground">
-              Drag yellow joints on the canvas. The pose snaps to art pixels and creates a new editable frame without a prompt.
+              {quadruped ? copy.quadrupedHint : copy.hint}
             </p>
           </>
         ) : null}

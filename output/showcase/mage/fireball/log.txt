@@ -1,0 +1,23 @@
+128x128 source, 4 frames -> 3x2@4 (1536x1024); effects: an orange-and-yellow fireball with a flame trail leaving the staff tip
+planned 4 poses in 17.1s; source read as: Three-quarter to the right: left hand grips an upright gnarled staff with ember crystal, right arm extended forward, head looking right, wide stance with both feet planted.
+  1. [grounded, 100ms] Anticipation: shift weight back, torso leans left; left hand draws staff back/down beside hip; right arm retracts near chest, hand cupped; head dips toward crystal; left foot planted, right heel light. | effect: Small orange-yellow sparks gather at crystal; faint glow at staff tip.
+  2. [grounded, 200ms] Key: drive weight forward; torso lunges right; left arm snaps staff forward-right, tip leading; right arm swings back for counter; head fixed on target; both feet planted, right foot pressing. | effect: Orange-yellow fireball bursts from staff tip and shoots right with short flame trail; bright ember arc along the thrust path.
+  3. [grounded, 100ms] Follow-through: torso over front foot; left arm extended then starting to recoil downward; right hand floats forward open; head tracks the shot; both feet planted. | effect: Fireball further right with trailing flame taper; a few sparks shed from the trail near the path.
+  4. [grounded, 140ms] Settle: torso returns upright; left hand brings staff back upright beside body; right arm extends forward, relaxing toward point; head forward; feet resettle to wide stance. | effect: Trail fades to tiny embers near staff tip; no new projectile.
+1 sheet(s) generated concurrently in 113.1s
+  baseline 512px, tolerance down 102px / up 41px, shifts 37, 33, 37, 3
+palette: added nothing; unmatched none
+judged in 17.9s
+  frame 1: REJECTED — No orange-yellow sparks gathering at the crystal. No faint glow at the staff tip.
+  frame 2: ok
+  frame 3: ok
+  frame 4: ok
+1 sheet(s) generated concurrently in 151.0s
+  baseline 512px, tolerance down 102px / up 41px, shifts 44
+judged in 18.2s
+  after repair, frame 1: still rejected — Staff missing; equipment mismatch with source. Effects gather at hand, not at staff crystal. No glow at staff tip.
+  after repair, frame 2: ok
+  after repair, frame 3: ok
+  after repair, frame 4: ok
+wrote 4 frames to ../../output/showcase/mage/fireball; holds 100, 200, 100, 140ms; bottom rows 127, 127, 127, 127, 127; sheets 2; sheet seconds 113, 151
+exit 0, wall 318s

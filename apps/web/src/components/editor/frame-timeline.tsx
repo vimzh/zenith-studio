@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Copy, Layers, Pause, Play, Plus, Sparkles, Trash2 } from "lucide-react";
-import { paletteHexes, type DocumentStore } from "@zenith/core";
+import { DEFAULT_FRAME_DURATION_MS, paletteHexes, type DocumentStore } from "@zenith/core";
 import { animateProcedural, checkAnimationCoherence, type ProceduralPreset } from "@/lib/animation";
 import { gridToImageData, useStoreRevision, useStoreSelector } from "@/lib/pixel";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { timelineCopy } from "@/data/agent";
 
 /**
  * The frame timeline.
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 
 const selectFrameCount = (store: DocumentStore) => store.frameCount;
 const selectPalette = (store: DocumentStore) => paletteHexes(store.palette);
+const selectDurations = (store: DocumentStore) => store.snapshot().frames.map((frame) => frame.durationMs);
 
 const PRESETS: readonly { id: ProceduralPreset; label: string; frames: number }[] = [
   { id: "bob", label: "Bob", frames: 2 },
@@ -41,13 +43,15 @@ export function FrameTimeline({
   const revision = useStoreRevision(store);
   const frameCount = useStoreSelector(store, selectFrameCount);
   const palette = useStoreSelector(store, selectPalette);
+  const durations = useStoreSelector(store, selectDurations);
 
   const [wantsPlayback, setWantsPlayback] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [coherence, setCoherence] = useState<readonly string[]>([]);
-  const [fps, setFps] = useState(8);
   const active = store.activeFrame;
-  const duration = store.snapshot().frames[active]?.durationMs ?? 100;
+  const duration = durations[active] ?? DEFAULT_FRAME_DURATION_MS;
+  const uniformDuration = durations.every((value) => value === durations[0]);
+  const fps = uniformDuration ? Number((1000 / (durations[0] ?? DEFAULT_FRAME_DURATION_MS)).toFixed(2)) : "";
 
   // A single-frame asset has nothing to animate; showing transport controls for
   // it invites the question "why is play doing nothing".
@@ -71,8 +75,8 @@ export function FrameTimeline({
       const total = frames.reduce((sum, frame) => sum + frame.durationMs, 0);
       let remaining = elapsed % total;
       let index = 0;
-      while (index < frames.length - 1 && remaining >= (frames[index]?.durationMs ?? 100)) {
-        remaining -= frames[index]?.durationMs ?? 100;
+      while (index < frames.length - 1 && remaining >= (frames[index]?.durationMs ?? DEFAULT_FRAME_DURATION_MS)) {
+        remaining -= frames[index]?.durationMs ?? DEFAULT_FRAME_DURATION_MS;
         index += 1;
       }
       if (index !== store.activeFrame) {
@@ -223,7 +227,9 @@ export function FrameTimeline({
           className="h-6 w-12 rounded-sm border border-border bg-background px-1 text-right"
           max={30}
           min={1}
-          onChange={(event) => { const next = Math.max(1, Math.min(30, Number(event.target.value) || 1)); setFps(next); const ms = Math.round(1000 / next); store.transaction("Set animation FPS", () => { for (let index = 0; index < store.frameCount; index += 1) store.setFrameDuration(index, ms); }); }}
+          onChange={(event) => { const next = Math.max(1, Math.min(30, Number(event.target.value) || 1)); const ms = Math.round(1000 / next); store.transaction("Set animation FPS", () => { for (let index = 0; index < store.frameCount; index += 1) store.setFrameDuration(index, ms); }); }}
+          placeholder={timelineCopy.mixedFps}
+          step="any"
           type="number"
           value={fps}
         />

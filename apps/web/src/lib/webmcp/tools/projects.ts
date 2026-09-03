@@ -12,6 +12,7 @@ import {
 } from "@zenith/core";
 import { projects, session } from "@/lib/editor";
 import { readArray, readBoolean, readEnum, readInteger, readOptionalString, readString } from "../args";
+import { assetNavigation } from "../navigation";
 import { ToolError, type ToolDefinition } from "../types";
 import { requireActiveAsset, toToolError } from "./active";
 
@@ -43,7 +44,7 @@ export const listProjects: ToolDefinition = {
   scope: "always",
   name: "list_projects",
   description:
-    "List every project, with its name, how many assets it holds, its canvas sizes and palette size, and which one is open. A project is a game: it carries a style contract that every asset in it is checked and conformed against. Call this before asking about style.",
+    "List project IDs, names, asset counts, canvas/palette sizes and the open project. Call before opening a project or inspecting its style contract.",
   readOnly: true,
   inputSchema: { type: "object", properties: {} },
   example: {},
@@ -69,7 +70,7 @@ export const createProject: ToolDefinition = {
   scope: "always",
   name: "create_project",
   description:
-    "Create a project and open it. A project holds a style contract — palette, canvas size per asset type, view, outline, shading — that everything in it is measured against, so that assets made weeks apart still belong to one game. The contract starts from sensible defaults and can be changed with set_style_profile.",
+    "Create a project with a default style contract and request its visible project route. Returns its ID; use set_style_profile to set palette, sizes and art direction.",
   inputSchema: {
     type: "object",
     properties: {
@@ -87,6 +88,8 @@ export const createProject: ToolDefinition = {
     const name = readString(args, "name");
     const notes = readOptionalString(args, "notes");
     const id = projects.createProject(name, notes === undefined ? {} : { notes });
+    projects.openProject(id);
+    assetNavigation.requestProject(id);
     const project = projects.getProject(id);
     return (
       `Created project '${name}' as ${id} and opened it. Style: ` +
@@ -120,6 +123,7 @@ export const openProject: ToolDefinition = {
       );
     }
     const project = projects.getProject(id);
+    assetNavigation.requestProject(id);
     return `Opened project '${project?.name ?? id}' with ${String(projects.assetsInProject(id).length)} asset(s).`;
   },
 };
@@ -143,7 +147,7 @@ export const getStyleProfile: ToolDefinition = {
   scope: "always",
   name: "get_style_profile",
   description:
-    "Read the open project's style contract: palette, canvas size per asset type, view, projection, direction set, outline, shading, proportions, reference assets and free-text art direction. Read this before generating anything into a project — it is what turns 'generate a slime enemy' from underspecified into fully determined.",
+    "Read the open project's palette, canvas sizes, camera, directions, outline, shading, proportions, references and art brief. Consult before generating project assets.",
   readOnly: true,
   inputSchema: { type: "object", properties: {} },
   example: {},
@@ -157,7 +161,7 @@ export const setStyleProfile: ToolDefinition = {
   scope: "always",
   name: "set_style_profile",
   description:
-    "Change part of the open project's style contract. Only the fields you pass are changed. Note that tightening the contract does not retroactively change any asset — call check_style_consistency to find what now violates it, and conform_to_style to fix each one.",
+    "Update only supplied fields of the open project's style contract; existing artwork is unchanged. Returns newly violating assets. Use check_style_consistency and explicit conform_to_style to repair them.",
   inputSchema: {
     type: "object",
     properties: {
@@ -180,6 +184,7 @@ export const setStyleProfile: ToolDefinition = {
       item_size: { type: "integer", minimum: 4, maximum: 256 },
       ui_size: { type: "integer", minimum: 4, maximum: 256 },
       notes: { type: "string", description: "Free-text art direction used to steer generation." },
+      reference_asset_ids: { type: "array", items: { type: "string" }, description: "Replace style references with existing project asset IDs; [] clears them." },
     },
   },
   example: { view: "high top-down", outline: "dark", tile_size: 32 },
@@ -194,6 +199,13 @@ export const setStyleProfile: ToolDefinition = {
     if (args["shading"] !== undefined) patch.shading = readEnum(args, "shading", SHADINGS);
     if (args["proportions"] !== undefined) patch.proportions = readEnum(args, "proportions", PROPORTIONS);
     if (args["notes"] !== undefined) patch.notes = readString(args, "notes");
+    if (args["reference_asset_ids"] !== undefined) {
+      const references = args["reference_asset_ids"];
+      if (!Array.isArray(references) || references.some((assetId) => typeof assetId !== "string" || !session.has(assetId) || projects.placementOf(assetId).projectId !== id)) {
+        throw new ToolError("reference_asset_ids must be an array of existing asset IDs in this project; pass [] to clear stale references.");
+      }
+      patch.references = [...new Set(references as string[])];
+    }
     if (args["colors"] !== undefined) {
       const colors = readArray(args, "colors");
       if (colors.length > 16 || colors.some((color) => typeof color !== "string")) {
@@ -252,7 +264,7 @@ export const addStyleReference: ToolDefinition = {
   scope: "always",
   name: "add_style_reference",
   description:
-    "Mark an asset as a style exemplar for the open project. References are shown to the image model when generating, which is how style consistency is enforced rather than merely described — showing the model what the game looks like works where telling it does not. Use your best existing asset of that kind.",
+    "Mark an asset belonging to the open project as a style exemplar shown to the image model during generation. Omit asset_id to use the open asset.",
   inputSchema: {
     type: "object",
     properties: {
@@ -286,7 +298,7 @@ export const checkStyleConsistencyTool: ToolDefinition = {
   scope: "editor",
   name: "check_style_consistency",
   description:
-    "Check the open asset against the open project's style contract, reporting every violation with coordinates rather than a verdict: which pixels are outside the palette, and whether the canvas is the size the project expects for this asset type. Only the deterministic aspects are checked — outline, shading and proportions are judgements a model makes, not properties a grid has, so this never claims to have verified them.",
+    "Check the open asset against the open project's palette and type-specific canvas size. Returns exact out-of-palette coordinates and dimensions. Does not certify outline, shading or proportions.",
   readOnly: true,
   inputSchema: { type: "object", properties: {} },
   example: {},
@@ -313,7 +325,7 @@ export const conformToStyleTool: ToolDefinition = {
   scope: "editor",
   name: "conform_to_style",
   description:
-    "Bring the open asset, or every asset with all=true, into conformance with the open project's style contract: remap source colours to the nearest project colour and resize each canvas to the expected size. Deterministic — same input, same output, every time, with no model involved. Resizing crops or pads from the top-left and never scales. Outline and shading are left alone because they are not derivable from a grid. Palette and dimensions are document invariants, so conformance replaces each document and clears its prior pixel undo history.",
+    "Conform the open asset, or all project assets with all=true: remap to nearest project colours and crop/pad from the top-left to expected sizes, never scale. Deterministic; outline/shading unchanged. Replaces documents and clears prior pixel undo history.",
   inputSchema: {
     type: "object",
     properties: {

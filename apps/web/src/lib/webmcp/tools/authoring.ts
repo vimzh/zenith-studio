@@ -3,13 +3,15 @@ import {
   buildCharacterFromReference,
   generateTileset,
   importImageAsAsset,
+  projects,
   recolorAsset,
   session,
   type AssetType,
 } from "@/lib/editor";
 import { DIRECTIONS, DIRECTION_SETS, type Direction, type DirectionSet } from "@/lib/directions";
 import { CANVAS_PRESETS } from "@/lib/pixel";
-import { estimateSkeleton, POSE_TEMPLATES, TEMPLATE_NAMES } from "@/lib/skeleton";
+import { encodeIndexedPng } from "@/lib/export";
+import { estimateSkeleton } from "@/lib/skeleton";
 import { readEnum, readOptionalInteger, readOptionalString, readString } from "../args";
 import { assetNavigation } from "../navigation";
 import { deriveImage } from "../api";
@@ -60,7 +62,7 @@ export const generateTilesetTool: ToolDefinition = {
   name: "generate_tileset",
   scope: "tile",
   description:
-    "Derive the 47-tile blob autotile set from the open tile and add it to the library as one sheet. Deterministic and free — no model is involved, so every tile shares the source texture and the edges meet by construction. Prefer this over generating tiles individually. Optionally pass edge_index to darken or outline the outer border of each tile.",
+    "Build one 47-tile blob-autotile sheet from the open tile. Instant, deterministic and free; shared texture and matching edges. Optional edge_index outlines or darkens tile borders.",
   inputSchema: {
     type: "object",
     properties: {
@@ -83,7 +85,7 @@ export const generateTilesetTool: ToolDefinition = {
 export const setPaletteTool: ToolDefinition = {
   name: "set_palette",
   description:
-    `Remap the open asset into another palette, matching every colour to its nearest shade perceptually in Oklab. Structure is preserved, so this is safe on finished art and works even when the new palette has fewer colours. Pass palette for a named one (${PALETTE_NAMES.join(", ")}) or colors for an explicit list of hex strings.`,
+    "Remap the open asset by nearest Oklab colour, preserving structure even with fewer colours. Pass a named palette from the schema or 2–16 explicit hex colors.",
   inputSchema: {
     type: "object",
     properties: {
@@ -130,11 +132,11 @@ export const estimateSkeletonTool: ToolDefinition = {
   scope: "character",
   readOnly: true,
   description:
-    "Estimate joint positions from the open character's silhouette. Coordinates are normalised against the sprite's content bounds, not pixels, so a pose read from one character transfers to another of a different size. Limb joints are hung off the measured shoulder and hip spread and may sit marginally outside 0-1 (roughly -0.1 to 1.1) on a wide or square silhouette, so clamp before converting to pixels. Use it to check proportions before editing, or to confirm a limb is where you think it is.",
+    "Estimate the open character's skeleton from its silhouette: joints normalised 0-1 across the content bounds, origin top-left, x right, y down, each on a pixel of the part it names. A held staff is ignored. Read this, then pass changed joints to animate_with_skeleton.",
   inputSchema: {
     type: "object",
     properties: {
-      character_type: { type: "string", enum: ["bipedal", "quadrupedal"], description: "Defaults to bipedal." },
+      character_type: { type: "string", enum: ["bipedal", "bipedal-chibi", "quadrupedal"], description: "Defaults to bipedal." },
     },
   },
   example: { character_type: "bipedal" },
@@ -143,7 +145,12 @@ export const estimateSkeletonTool: ToolDefinition = {
     const store = session.get(id);
     if (store === undefined) throw new ToolError(`No asset '${id}' is open.`);
 
-    const type = readEnum<"bipedal" | "quadrupedal">(args, "character_type", ["bipedal", "quadrupedal"], "bipedal");
+    const type = readEnum<"bipedal" | "bipedal-chibi" | "quadrupedal">(
+      args,
+      "character_type",
+      ["bipedal", "bipedal-chibi", "quadrupedal"],
+      "bipedal",
+    );
     const pose = estimateSkeleton(store.readComposite(), type);
     if (pose === null) {
       throw new ToolError(`'${name}' is empty, so it has no silhouette to estimate a skeleton from.`);
@@ -156,28 +163,12 @@ export const estimateSkeletonTool: ToolDefinition = {
   },
 };
 
-export const listPoseTemplatesTool: ToolDefinition = {
-  name: "list_pose_templates",
-  scope: "character",
-  readOnly: true,
-  description:
-    "List the built-in pose sequences available for characters, with the number of poses in each. These describe joint positions over time; they are reference material for drawing frames, not an automatic redraw.",
-  inputSchema: { type: "object", properties: {} },
-  example: {},
-  execute: () =>
-    `Pose templates: ${TEMPLATE_NAMES.map((name) => {
-      const sequence = POSE_TEMPLATES[name];
-      const count = sequence === undefined ? 0 : sequence.poses.length;
-      return `${name} (${String(count)} pose${count === 1 ? "" : "s"}, ${sequence?.type ?? "bipedal"})`;
-    }).join(", ")}.`,
-};
-
 export const importImageTool: ToolDefinition = {
   network: true,
   name: "import_image",
   scope: "always",
   description:
-    "Turn a base64 PNG into an editable pixel-art asset and open it. Runs the full pixelisation pipeline: classifies the input, detects its native cell size, picks one colour per cell perceptually, binarises alpha and reduces to an indexed palette. The result is a real indexed grid every editing tool can write to — not a resized bitmap. Use this when the human gives you an image to work from.",
+    "Open a base64 PNG as an editable indexed asset. Local pixelisation detects the grid, chooses cell colours, binarises alpha and reduces the palette. Use for supplied images, not simple bitmap resizing.",
   inputSchema: {
     type: "object",
     properties: {
@@ -208,17 +199,18 @@ export const buildCharacterTool: ToolDefinition = {
   name: "build_character_from_reference",
   scope: "always",
   description:
-    "Turn a base64 PNG reference into one clean base game sprite. SLOW AND PAID: an image edit isolates and redraws the primary character as a clean full-body raster, then local framing and pixelisation create the indexed sprite. Call generate_direction_set afterwards for cardinal or eight-angle output; keeping the steps separate lets the human inspect and repair the base before multiplying it. Use import_image only when the input is already a clean isolated sprite.",
+    "Extract one base sprite from exactly one image (base64 PNG) or source_asset_id (selected-frame composite/palette); source unchanged. Slow paid edit then local framing/pixelisation. Inspect before generate_direction_set; import_image is for clean sprites.",
   inputSchema: {
     type: "object",
     properties: {
       image: { type: "string", description: "Base64-encoded PNG of the concept art. No data: URL prefix." },
+      source_asset_id: { type: "string", description: "Existing asset ID from list_assets. Uses its selected-frame composite and palette, without altering it. Omit image when supplied." },
       name: { type: "string", description: "Base name; each direction is named '<name> <direction>'." },
       direction_set: { type: "string", enum: [...SETS], description: "Defaults to cardinal4." },
       base_direction: { type: "string", enum: [...DIRECTIONS], description: "Direction shown by the reference. Defaults to south/front, or east for side2." },
       target_width: { type: "integer", minimum: 8, maximum: 128, description: "Square sprite size in pixels. Defaults to 32." },
     },
-    required: ["image", "name"],
+    required: ["name"],
   },
   example: { image: TINY_PNG, name: "Knight", direction_set: "cardinal4", base_direction: "south" },
   execute: async (args) => {
@@ -234,7 +226,10 @@ export async function buildCharacterFromConcept(args: ToolArgs): Promise<{
   readonly baseId: string;
   readonly summary: string;
 }> {
-  const sourceBase64 = readString(args, "image");
+  const destination = { projectId: projects.activeProjectId, folderId: projects.activeFolderId };
+  if ((args["image"] === undefined) === (args["source_asset_id"] === undefined)) {
+    throw new ToolError("Pass exactly one of image or source_asset_id for the character reference.");
+  }
   const targetWidth = readOptionalInteger(args, "target_width", 8, 128) ?? 32;
   const name = readString(args, "name");
   const directionSet = readEnum<DirectionSet>(args, "direction_set", SETS, "cardinal4");
@@ -244,10 +239,21 @@ export async function buildCharacterFromConcept(args: ToolArgs): Promise<{
     throw new ToolError(`${baseDirection} is not part of ${directionSet}.`);
   }
 
-  // Decode first so malformed uploads fail before a paid request is attempted.
-  await decodeBase64Png(sourceBase64);
-  const binary = atob(sourceBase64);
-  const source = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  let source: Uint8Array;
+  if (args["source_asset_id"] !== undefined) {
+    const id = readString(args, "source_asset_id");
+    const store = session.get(id);
+    if (store === undefined) throw new ToolError(`No asset '${id}'. Call list_assets for valid source_asset_id values.`);
+    // Match the reference tray's nearest-neighbour staging without a base64 round trip.
+    const scale = Math.max(1, Math.floor(512 / Math.max(store.width, store.height)));
+    source = encodeIndexedPng(store.readComposite(), paletteHexes(store.palette), { scale });
+  } else {
+    // Decode first so malformed uploads fail before a paid request is attempted.
+    const sourceBase64 = readString(args, "image");
+    await decodeBase64Png(sourceBase64);
+    const binary = atob(sourceBase64);
+    source = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  }
   const extracted = await deriveImage(
     source,
     `Extract the most visually prominent character as one complete, clean, isolated full-body game-character reference prepared for a ${String(targetWidth)}x${String(targetWidth)} sprite.`,
@@ -260,6 +266,7 @@ export async function buildCharacterFromConcept(args: ToolArgs): Promise<{
     directionSet,
     baseDirection,
     targetWidth,
+    destination,
   });
 
   const base = session.list().find(
@@ -279,7 +286,6 @@ export const AUTHORING_TOOLS: readonly ToolDefinition[] = [
   generateTilesetTool,
   setPaletteTool,
   estimateSkeletonTool,
-  listPoseTemplatesTool,
   importImageTool,
   buildCharacterTool,
 ];

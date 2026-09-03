@@ -1,0 +1,34 @@
+{
+  "subject": "slender elf archer in a green hooded cloak with a tall recurve longbow in the left hand and a quiver on the back",
+  "motion": "drawing the bow fully and loosing an arrow",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "a streaking arrow with a thin green magic trail",
+  "frames": 4,
+  "plan": {
+    "source": "Three-quarter facing right; right hand holds tall recurve bow down and forward; left hand raised near the quiver behind head; feet staggered with left forward; head looking right.",
+    "frames": [
+      {
+        "pose": "Anticipation: torso leans slightly toward target; right arm dips the bow a notch forward; left hand reaches back to quiver to grab an arrow; head right; left foot forward planted, right back planted.",
+        "contact": "grounded",
+        "ms": 100
+      },
+      {
+        "pose": "Key: torso leans back and opens; right arm extends, bow up at chest height to screen-right; left hand draws string to cheek with arrow nocked; head sights along arrow; left foot planted, right light but planted.",
+        "contact": "grounded",
+        "ms": 190
+      },
+      {
+        "pose": "Release: left fingers open past cheek; right arm steadies as bow snaps; torso rotates into shot; head tracks right; both feet planted.",
+        "contact": "grounded",
+        "ms": 90,
+        "effect": "Arrow streaks off screen-right from bow, thin green magic trail lagging; small pale arc at bow tips showing snap."
+      },
+      {
+        "pose": "Recovery: torso returns upright; right arm lowers bow toward vertical at side; left hand drops then starts lifting back toward quiver; head relaxes; feet as before, weight centered.",
+        "contact": "grounded",
+        "ms": 150
+      }
+    ]
+  },
+  "planSeconds": 24.311437374999997
+}

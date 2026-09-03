@@ -36,6 +36,8 @@ const QUALITIES = ["low", "medium", "high"] as const;
 const DEFAULT_QUALITY = "medium" as const;
 /** One character per pixel caps the palette at 16; a longer list is a client mistake. */
 const MAX_PALETTE = 16;
+/** Includes client-composed style text; leaves room for server drawing rules. */
+const MAX_IMAGE_TEXT_LENGTH = 16_000;
 
 /**
  * Errors leave in the same shape as every other route in this service.
@@ -66,8 +68,8 @@ function validate(body: GenerateBody): string | null {
   if (typeof body.prompt !== "string" || body.prompt.trim().length === 0) {
     return 'A non-empty "prompt" is required.';
   }
-  if (body.prompt.length > 1000) {
-    return "Prompt must be 1000 characters or fewer.";
+  if (body.prompt.length > MAX_IMAGE_TEXT_LENGTH) {
+    return `Prompt must be ${MAX_IMAGE_TEXT_LENGTH} characters or fewer, including project style text; received ${body.prompt.length}.`;
   }
   if (body.size !== undefined && !SIZES.includes(body.size)) {
     return `"size" must be one of ${SIZES.join(", ")}.`;
@@ -327,7 +329,133 @@ const MAX_MASK_BYTES = 4 * 1024 * 1024;
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 export type DeriveKind = "sprite" | "texture";
 /** `vary` changes the subject and keeps the angle; `rotate` does the reverse. */
-export type DeriveMode = "vary" | "rotate" | "pose" | "extract" | "inpaint";
+export type DeriveMode = "vary" | "rotate" | "pose" | "extract" | "inpaint" | "animate";
+const DERIVE_MODES: readonly DeriveMode[] = ["vary", "rotate", "pose", "extract", "inpaint", "animate"];
+
+/** A 4x4 sheet less its reference cell. Beyond this each cell is a thumbnail. */
+export const MAX_SHEET_POSES = 15;
+/** Per pose, with room for an effect note and a repair note; fifteen of these stay far below the model's prompt limit. */
+export const MAX_POSE_LENGTH = 600;
+/** The effects brief shared by every frame of a sheet. */
+export const MAX_EFFECTS_LENGTH = 400;
+const MAX_SHEET_AXIS = 4;
+
+/**
+ * The frames of an animation, drawn as one sheet beside the source.
+ *
+ * `poses` are frame descriptions in order; frame `i` is drawn into cell `i + 2`
+ * because cell 1 holds the source. The client composes the sheet PNG and cuts
+ * the result; the server only needs the layout to describe it. `effects` is
+ * the one thing that may be *added* to the character — without it the prompt
+ * forbids every trail and glow, because a model left to itself adds them.
+ */
+export interface AnimationSheet {
+  readonly columns: number;
+  readonly rows: number;
+  readonly poses: readonly string[];
+  readonly effects?: string;
+  /** Fidelity to buy for the sheet; the client chooses from measurement. */
+  readonly quality?: (typeof QUALITIES)[number];
+}
+
+/** Reads and checks the sheet fields of an `animate` request, or explains what is wrong. */
+export function parseAnimationSheet(form: FormData): AnimationSheet | string {
+  const axis = (name: string): number | string => {
+    const raw = form.get(name);
+    const value = typeof raw === "string" ? Number.parseInt(raw, 10) : Number.NaN;
+    return Number.isInteger(value) && value >= 1 && value <= MAX_SHEET_AXIS
+      ? value
+      : `"${name}" must be an integer between 1 and ${String(MAX_SHEET_AXIS)} when mode is "animate".`;
+  };
+  const columns = axis("columns");
+  if (typeof columns === "string") return columns;
+  const rows = axis("rows");
+  if (typeof rows === "string") return rows;
+
+  const raw = form.get("poses");
+  let poses: unknown;
+  try {
+    poses = typeof raw === "string" ? JSON.parse(raw) : undefined;
+  } catch {
+    return '"poses" must be a JSON array of frame descriptions when mode is "animate".';
+  }
+  if (!Array.isArray(poses) || poses.length === 0 || poses.length > MAX_SHEET_POSES) {
+    return `"poses" must be a JSON array of 1 to ${String(MAX_SHEET_POSES)} frame descriptions when mode is "animate".`;
+  }
+  for (const [index, pose] of poses.entries()) {
+    if (typeof pose !== "string" || pose.trim().length === 0) {
+      return `Pose ${String(index + 1)} must be a non-empty string.`;
+    }
+    if (pose.length > MAX_POSE_LENGTH) {
+      return `Pose ${String(index + 1)} is ${String(pose.length)} characters; the cap is ${String(MAX_POSE_LENGTH)}.`;
+    }
+  }
+  if (columns * rows < poses.length + 1) {
+    return `A ${String(columns)}x${String(rows)} sheet holds ${String(columns * rows - 1)} frames beside the source, not ${String(poses.length)}.`;
+  }
+  const effectsField = form.get("effects");
+  if (effectsField !== null && typeof effectsField !== "string") return '"effects" must be a string.';
+  const effects = effectsField === null ? "" : effectsField.trim();
+  if (effects.length > MAX_EFFECTS_LENGTH) {
+    return `"effects" is ${String(effects.length)} characters; the cap is ${String(MAX_EFFECTS_LENGTH)}.`;
+  }
+  const qualityField = form.get("quality");
+  if (qualityField !== null && (typeof qualityField !== "string" || !QUALITIES.includes(qualityField as (typeof QUALITIES)[number]))) {
+    return `"quality" must be one of ${QUALITIES.join(", ")}.`;
+  }
+  return {
+    columns,
+    rows,
+    poses: poses as string[],
+    ...(effects.length === 0 ? {} : { effects }),
+    ...(qualityField === null ? {} : { quality: qualityField as (typeof QUALITIES)[number] }),
+  };
+}
+
+/**
+ * One sheet, one call, one camera.
+ *
+ * The per-frame prompt asked N separate generations to "preserve scale and
+ * registration", and N separate generations cannot: each is drawn with nothing
+ * to register against but a description. Here the reference sits in cell 1 at
+ * the exact scale every other cell must match, so consistency is the easiest
+ * thing for the model to do rather than the hardest thing to ask for. Note what
+ * is *absent*: no "preserve the pose" clause, because the pose is the one thing
+ * every cell changes — the contradiction that silently defeated rotation.
+ */
+export function buildAnimationSheetPrompt(instruction: string, sheet: AnimationSheet): string {
+  const count = sheet.poses.length;
+  const frames = sheet.poses
+    .map((pose, index) => `Cell ${String(index + 2)}, frame ${String(index + 1)}: ${pose.trim()}`)
+    .join(" ");
+  // Effects are the one addition a frame may carry, and only when asked for.
+  // Left unsaid, the model adds glows and motion lines on its own; said as a
+  // blanket ban, it would also refuse the purple trail the frame lines ask
+  // for. So the clause is conditional, and the ban names no effect the
+  // request permits.
+  const effects =
+    sheet.effects === undefined
+      ? `No effects of any kind: no motion lines, trails, glows, dust, sparkles or impact marks. `
+      : `Requested effects: ${sheet.effects.trim()}. Draw an effect only in a frame whose line asks for it and only where that ` +
+        `line places it, as flat hard-edged pixel-art shapes in one to three colours — an arc, a streak, a trail, a burst, ` +
+        `sparkles — with no glow, blur, gradient or transparency, never covering the character's face or breaking its ` +
+        `silhouette, and always inside the frame's own cell. `;
+  return (
+    `This image is a sprite sheet: a grid of ${String(sheet.columns)} columns by ${String(sheet.rows)} rows of equal cells on a ` +
+    `fully transparent background, numbered in reading order, left to right then top to bottom. Cell 1, top-left, holds the ` +
+    `finished source sprite in its rest pose. Keep cell 1 exactly as it is. Draw the same character into the next ${String(count)} ` +
+    `cells as consecutive frames of one animation: ${instruction.trim()}. Frame 1 goes in cell 2, frame 2 in cell 3, and so on. ` +
+    `${frames} Every cell from 2 to ${String(count + 1)} must contain its frame; none of them may be left empty. ` +
+    `Leave every remaining cell completely empty and transparent. ` +
+    `Every frame is the identical character at the identical scale, camera angle and facing as cell 1, in the same pixel-art style, ` +
+    `outline weight, pixel-cluster size and colours. Keep one shared ground line: planted feet sit at the same height inside their ` +
+    `cell as in cell 1, and the body stays at cell 1's horizontal position unless its pose moves it. Each frame stays fully inside ` +
+    `its own cell with a clear transparent margin, and nothing crosses into a neighbouring cell. Change only what each frame's pose ` +
+    `describes, and make every frame visibly different from the frame before it. ${effects}` +
+    `No cell borders, grid lines, labels, numbers, arrows, shadows, ground, scenery, text, or extra copies of cell 1. ` +
+    `Hard-edged grid-aligned pixels, flat colour fills, no anti-aliasing, blur, gradients or drop shadows.`
+  );
+}
 
 function isPng(bytes: Uint8Array): boolean {
   return PNG_SIGNATURE.every((byte, index) => bytes[index] === byte);
@@ -353,12 +481,23 @@ export function buildDerivePrompt(
   instruction: string,
   kind: DeriveKind,
   mode: DeriveMode = "vary",
+  sheet?: AnimationSheet,
 ): string {
+  if (mode === "animate") {
+    if (sheet === undefined) throw new Error('mode "animate" needs the sheet layout and poses.');
+    return buildAnimationSheetPrompt(instruction, sheet);
+  }
+
   if (mode === "inpaint") {
     return (
       `Edit only the masked region of the supplied pixel-art asset: ${instruction.trim()}. ` +
       `The transparent area of the mask is the only area that may change; preserve all unmasked pixels, composition, ` +
-      `silhouette, palette, outline weight, pixel-cluster scale, lighting direction, and style exactly. ` +
+      `outline weight, pixel-cluster scale, lighting direction, and style exactly. ` +
+      `Return the complete edited canvas at exactly the source's framing, not an isolated replacement fragment. ` +
+      `The mask marks where edits are permitted; it is not a cutout to erase or make transparent. ` +
+      `Inside it change only the requested feature, leaving every other feature in its original position. ` +
+      `For a colour or clothing edit, do not erase body parts, move the figure, change its pose, or disconnect its head and limbs. ` +
+      `Keep existing colours except where the requested edit explicitly needs a different colour. ` +
       `Keep hard grid-aligned pixels, crisp clusters, and a limited cohesive palette. ` +
       `No anti-aliasing, blur, gradients, text, borders, drop shadows, new background elements, or changes outside the mask.`
     );
@@ -415,13 +554,15 @@ export function buildDerivePrompt(
           // default clause forbids exactly the change being asked for.
           `Change ONLY the subject's pose and the position of its moving parts, exactly as instructed — ` +
           `this is one frame of an animation cycle, not a redesign. The pose must be visibly different from ` +
-          `the source. Keep the subject centred at the same scale so the frames register against each other. ` +
+          `the source. Preserve per-part proportions and source registration: keep stable body parts and grounded contact points ` +
+          `at their source positions unless the motion explicitly requires a jump or airborne pose, locomotion, or lifted contact. ` +
+          `Let moving limbs and equipment change the silhouette naturally; do not re-centre, crop, or rescale the subject to fit each pose. ` +
           `Preserve the subject's identity, materials, ornament, colours, camera angle, perspective, `
         : `Preserve the subject's identity, camera angle, perspective, `;
 
   const common =
     `Edit the supplied pixel-art asset: ${instruction.trim()}. Treat the source as the canonical art direction. ` +
-    `${camera}canvas occupancy, outline weight, pixel-cluster scale, ` +
+    `${camera}${mode === "pose" ? "" : "canvas occupancy, "}outline weight, pixel-cluster scale, ` +
     `lighting direction, contrast hierarchy, and palette complexity. Make the requested transformation unmistakable and ` +
     `game-readable while keeping it recognisably part of the same asset family. Change only what the instruction names; ` +
     `keep existing equipment and every unmentioned design feature recognisable, and do not invent or remove props or ` +
@@ -434,8 +575,13 @@ export function buildDerivePrompt(
         `Opposite edges must join without a visible seam.`
     : common +
         `Return exactly one isolated sprite at the source's scale on a transparent background, not a mockup, sprite sheet, ` +
-        `frame, card, or scene. Keep the same functional silhouette, but allow deliberate material, ornament, age, damage, ` +
-        `biome, rarity, or magical details requested by the instruction.`;
+        `frame, card, or scene. ` +
+        (mode === "vary"
+          ? `Keep the same functional silhouette, but allow deliberate material, ornament, age, damage, biome, rarity, or magical details requested by the instruction.`
+          : `Redraw the silhouette and occlusion for the requested angle or pose; do not preserve the old projected outline. ` +
+            `Keep the full figure anatomically connected: head to neck, arms to shoulders, hands to wrists, legs to hips, feet to legs. ` +
+            `Show only the features visible from the requested view; a profile has one visible eye and a back view does not show the face. ` +
+            `Keep the complete body and equipment inside the canvas with a small transparent margin; no detached parts or overlapping duplicate views.`);
 }
 
 /**
@@ -468,7 +614,7 @@ export function createDeriveRoute(): Hono {
     const source = form.get("source");
     const mask = form.get("mask");
     const kind = form.get("kind") ?? "texture";
-    const mode = form.get("mode") ?? "vary";
+    const modeField = form.get("mode") ?? "vary";
     if (typeof instruction !== "string" || instruction.trim().length === 0) {
       return c.json(
         {
@@ -480,23 +626,24 @@ export function createDeriveRoute(): Hono {
         400,
       );
     }
-    if (instruction.length > 1000) {
+    if (instruction.length > MAX_IMAGE_TEXT_LENGTH) {
       return c.json(
         {
           error: {
             code: "invalid_argument",
-            message: "Instruction must be 1000 characters or fewer.",
+            message: `Instruction must be ${MAX_IMAGE_TEXT_LENGTH} characters or fewer, including project style text; received ${instruction.length}.`,
           },
         },
         400,
       );
     }
-    if (mode !== "vary" && mode !== "rotate" && mode !== "pose" && mode !== "extract" && mode !== "inpaint") {
+    if (typeof modeField !== "string" || !DERIVE_MODES.includes(modeField as DeriveMode)) {
       return c.json(
-        { error: { code: "invalid_argument", message: '"mode" must be "vary", "rotate", "pose", "extract" or "inpaint".' } },
+        { error: { code: "invalid_argument", message: `"mode" must be one of ${DERIVE_MODES.map((name) => `"${name}"`).join(", ")}.` } },
         400,
       );
     }
+    const mode = modeField as DeriveMode;
     if (kind !== "sprite" && kind !== "texture") {
       return c.json(
         {
@@ -546,6 +693,28 @@ export function createDeriveRoute(): Hono {
         },
         400,
       );
+    }
+
+    // A sheet is generated at its own size, which must be one the model
+    // returns: the client composes it to exactly 1024x1024, 1536x1024 or
+    // 1024x1536 so the cells it cuts afterwards are where it put them.
+    let sheet: AnimationSheet | undefined;
+    let size: (typeof SIZES)[number] = DEFAULT_SIZE;
+    if (mode === "animate") {
+      const parsed = parseAnimationSheet(form);
+      if (typeof parsed === "string") {
+        return c.json({ error: { code: "invalid_argument", message: parsed } }, 400);
+      }
+      sheet = parsed;
+      const dimensions = pngDimensions(bytes);
+      const sheetSize = dimensions === null ? undefined : `${String(dimensions.width)}x${String(dimensions.height)}`;
+      if (sheetSize === undefined || !SIZES.includes(sheetSize as (typeof SIZES)[number])) {
+        return c.json(
+          { error: { code: "invalid_argument", message: `An animation sheet must be exactly one of ${SIZES.join(", ")} pixels; received ${sheetSize ?? "an unreadable size"}.` } },
+          400,
+        );
+      }
+      size = sheetSize as (typeof SIZES)[number];
     }
 
     let maskBytes: Uint8Array | undefined;
@@ -605,7 +774,7 @@ export function createDeriveRoute(): Hono {
       return c.json(failed, status);
     }
 
-    const prompt = buildDerivePrompt(instruction, kind, mode);
+    const prompt = buildDerivePrompt(instruction, kind, mode, sheet);
 
     try {
       const openai = new OpenAI({ apiKey: key });
@@ -618,9 +787,12 @@ export function createDeriveRoute(): Hono {
         image,
         ...(editMask === undefined ? {} : { mask: editMask }),
         prompt,
-        size: DEFAULT_SIZE,
-        quality: "high",
+        size,
+        quality: sheet?.quality ?? "high",
         background: mode === "extract" || kind === "sprite" ? "transparent" : "opaque",
+        // No `input_fidelity: "high"` for sheets, although a faithfully
+        // reproduced reference cell is exactly what it promises: gpt-image-2
+        // rejects the parameter outright (measured: 400, "does not support").
         output_format: "png",
         n: 1,
       });

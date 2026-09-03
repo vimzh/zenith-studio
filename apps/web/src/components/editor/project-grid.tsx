@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FolderOpen, LayoutGrid, Pencil, Plus, Settings, Trash2 } from "lucide-react";
 import { checkStyleConsistency } from "@zenith/core";
-import { hydrateProjects, projects, session, useSessionSelector } from "@/lib/editor";
+import { ensureSeeded, hydrateProjects, projects, session, useSessionSelector } from "@/lib/editor";
 import { projectsContent } from "@/data/projects";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -80,8 +80,12 @@ export function ProjectGrid() {
   // Both stores, because this screen shows projects *and* the loose assets that
   // belong to none. Hydrating only the tree left every pre-existing asset
   // invisible on the one screen that is supposed to prove they still work.
+  //
+  // `ensureSeeded` rather than a bare hydrate: this is the front door, and it
+  // used to greet a cold visitor with "No projects yet" and nothing else. The
+  // seeding lived in the flat library, which is a screen almost nobody reaches.
   useEffect(() => {
-    void session.hydrate();
+    void ensureSeeded();
     void hydrateProjects();
   }, []);
 

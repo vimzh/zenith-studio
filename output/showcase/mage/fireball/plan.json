@@ -1,0 +1,37 @@
+{
+  "subject": "fire mage in a crimson hooded robe holding a gnarled staff topped with an ember crystal",
+  "motion": "casting a fireball forward from the staff",
+  "facing": "in a three-quarter view facing screen-right",
+  "effects": "an orange-and-yellow fireball with a flame trail leaving the staff tip",
+  "frames": 4,
+  "plan": {
+    "source": "Three-quarter to the right: left hand grips an upright gnarled staff with ember crystal, right arm extended forward, head looking right, wide stance with both feet planted.",
+    "frames": [
+      {
+        "pose": "Anticipation: shift weight back, torso leans left; left hand draws staff back/down beside hip; right arm retracts near chest, hand cupped; head dips toward crystal; left foot planted, right heel light.",
+        "contact": "grounded",
+        "ms": 100,
+        "effect": "Small orange-yellow sparks gather at crystal; faint glow at staff tip."
+      },
+      {
+        "pose": "Key: drive weight forward; torso lunges right; left arm snaps staff forward-right, tip leading; right arm swings back for counter; head fixed on target; both feet planted, right foot pressing.",
+        "contact": "grounded",
+        "ms": 200,
+        "effect": "Orange-yellow fireball bursts from staff tip and shoots right with short flame trail; bright ember arc along the thrust path."
+      },
+      {
+        "pose": "Follow-through: torso over front foot; left arm extended then starting to recoil downward; right hand floats forward open; head tracks the shot; both feet planted.",
+        "contact": "grounded",
+        "ms": 100,
+        "effect": "Fireball further right with trailing flame taper; a few sparks shed from the trail near the path."
+      },
+      {
+        "pose": "Settle: torso returns upright; left hand brings staff back upright beside body; right arm extends forward, relaxing toward point; head forward; feet resettle to wide stance.",
+        "contact": "grounded",
+        "ms": 140,
+        "effect": "Trail fades to tiny embers near staff tip; no new projectile."
+      }
+    ]
+  },
+  "planSeconds": 17.080993792
+}

@@ -21,6 +21,11 @@ interface Props {
   readonly onionSkin?: boolean;
   readonly skeleton?: readonly { x: number; y: number; joint: string }[];
   readonly onSkeletonMove?: (joint: string, x: number, y: number) => void;
+  /**
+   * Drawn in place of the document while set: the skeleton rig's live pose.
+   * The document itself is untouched until the pose is baked into a frame.
+   */
+  readonly preview?: Grid;
   readonly selection?: Selection | null;
   readonly className?: string;
   readonly onPointerDown: (event: React.PointerEvent<HTMLCanvasElement>) => void;
@@ -45,6 +50,7 @@ export function PixelCanvas({
   onionSkin = false,
   skeleton,
   onSkeletonMove,
+  preview,
   selection,
   className,
   onPointerDown,
@@ -56,6 +62,8 @@ export function PixelCanvas({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const draggedJoint = useRef<string | null>(null);
+  /** The joint under the pointer, or being dragged: drawn larger with its name. */
+  const [hoverJoint, setHoverJoint] = useState<string | null>(null);
   const grid = useStoreSelector(store, selectComposite);
   const palette = useStoreSelector(store, selectPalette);
   /**
@@ -100,33 +108,56 @@ export function PixelCanvas({
     const rect = event.currentTarget.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   };
+  const rigging = skeleton !== undefined && onSkeletonMove !== undefined;
   const moveJoint = (event: React.PointerEvent<HTMLCanvasElement>, joint: string) => {
     const local = pointer(event);
     const art = screenToArt(viewport, local.x, local.y);
     onSkeletonMove?.(joint, art.x, art.y);
   };
-  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (skeleton !== undefined && onSkeletonMove !== undefined) {
-      const local = pointer(event);
-      const hitRadius = Math.max(8, Math.min(14, viewport.zoom));
-      const hit = skeleton.find((joint) => {
-        const origin = artToScreen(viewport, joint.x, joint.y);
-        const dx = local.x - (origin.x + viewport.zoom / 2);
-        const dy = local.y - (origin.y + viewport.zoom / 2);
-        return dx * dx + dy * dy <= hitRadius * hitRadius;
-      });
-      if (hit !== undefined) {
-        draggedJoint.current = hit.joint;
-        event.currentTarget.setPointerCapture(event.pointerId);
-        moveJoint(event, hit.joint);
-        return;
+  /** The nearest joint within reach of the pointer. Joints are small; the reach is not. */
+  const jointAt = (event: React.PointerEvent<HTMLCanvasElement>): string | null => {
+    if (skeleton === undefined) return null;
+    const local = pointer(event);
+    const hitRadius = Math.max(8, Math.min(14, viewport.zoom));
+    let nearest: string | null = null;
+    let best = hitRadius * hitRadius;
+    for (const joint of skeleton) {
+      const origin = artToScreen(viewport, joint.x, joint.y);
+      const dx = local.x - (origin.x + viewport.zoom / 2);
+      const dy = local.y - (origin.y + viewport.zoom / 2);
+      const distance = dx * dx + dy * dy;
+      if (distance <= best) {
+        best = distance;
+        nearest = joint.joint;
       }
+    }
+    return nearest;
+  };
+  /**
+   * While a skeleton is open the canvas only poses. A stroke that missed a
+   * joint would paint the document underneath a preview that hides it, and
+   * nothing would show until the skeleton closed.
+   */
+  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (rigging) {
+      const hit = jointAt(event);
+      if (hit !== null) {
+        draggedJoint.current = hit;
+        setHoverJoint(hit);
+        event.currentTarget.setPointerCapture(event.pointerId);
+        moveJoint(event, hit);
+      }
+      return;
     }
     onPointerDown(event);
   };
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (draggedJoint.current !== null) {
       moveJoint(event, draggedJoint.current);
+      return;
+    }
+    if (rigging) {
+      setHoverJoint(jointAt(event));
       return;
     }
     onPointerMove(event);
@@ -138,6 +169,11 @@ export function PixelCanvas({
       return;
     }
     onPointerUp(event);
+  };
+  const handlePointerLeave = () => {
+    if (draggedJoint.current !== null) return;
+    setHoverJoint(null);
+    onPointerLeave();
   };
 
   // Match the backing store to the element's device pixels, so a 1px grid line
@@ -181,19 +217,26 @@ export function PixelCanvas({
     const ratio = window.devicePixelRatio || 1;
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.clearRect(0, 0, canvas.width / ratio, canvas.height / ratio);
-    renderDocument(context, grid, palette, viewport, { showGrid, onionSkin: skins, skeleton, selection });
-  }, [grid, palette, viewport, showGrid, skins, skeleton, selection, sizeToken]);
+    renderDocument(context, preview ?? grid, palette, viewport, {
+      showGrid,
+      onionSkin: skins,
+      skeleton,
+      skeletonHighlight: hoverJoint,
+      selection,
+    });
+  }, [grid, preview, palette, viewport, showGrid, skins, skeleton, hoverJoint, selection, sizeToken]);
 
   return (
     <canvas
       aria-label={skeleton === undefined ? "Pixel canvas" : "Pixel canvas with draggable skeleton joints"}
       className={className}
       onPointerDown={handlePointerDown}
-      onPointerLeave={() => { if (draggedJoint.current === null) onPointerLeave(); }}
+      onPointerLeave={handlePointerLeave}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onWheel={onWheel}
       ref={canvasRef}
+      style={rigging ? { cursor: hoverJoint === null ? "default" : "grab" } : undefined}
     />
   );
 }
