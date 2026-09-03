@@ -178,9 +178,3 @@ bun run build
 
 Conventions, performance rules and the invariants live in
 [`AGENTS.md`](./AGENTS.md).
-
-## Licence and attributions
-
-MIT — see [`LICENSE`](./LICENSE). Third-party licences, algorithms implemented
-from published descriptions, and work studied but not copied are recorded in
-[`NOTICE`](./NOTICE).
