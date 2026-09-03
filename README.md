@@ -5,7 +5,7 @@
 <h1 align="center">Zenith Studio</h1>
 
 <p align="center">
-  A browser-native pixel-art studio where a person and an AI agent edit the same indexed canvas, share one undo history, and ship game-ready assets through WebMCP.
+  A seamless way to generate, edit, animate, and ship game assets with Codex in the same workflow it already uses to write your game.
 </p>
 
 <p align="center">
@@ -16,46 +16,19 @@
 
 <!-- README-HACK:NEEDS-OWNER key="demo-video" instruction="Add the final public YouTube demo URL after replacing the four-minute cut with a version under three minutes." -->
 
-## The idea
+## Codex writes the game. Zenith creates its world.
 
-AI image generators can imitate pixel art, but their output usually breaks the constraints that make pixel art useful: exact cells, a controlled palette, hard alpha, aligned frames, and repeatable edits.
+Codex is already helping you build the code. Zenith Studio lets it create the visual side of the game in that same workflow—and keeps every result open for you to edit.
 
-Zenith Studio makes those constraints the document model. A 32×32 sprite on a 16-colour palette becomes 1,024 indexed cells: `0`–`9` and `A`–`F` select colours, while `.` means transparent.
+Ask for a character, item, tile set, texture, animation, interface asset, or map. Codex can generate it inside the live studio, inspect the result, refine exact pixels, keep related assets consistent, and export everything for your engine. You and Codex work on the same canvas, so you can take over, adjust any detail, undo a change, or continue together.
 
-```text
-................
-......2222......
-....22333322....
-...2333333332...
-...2331331332...
-...2333333332...
-...2333113332...
-....23311332....
-.....222222.....
-......1111......
-```
+## From an idea to game-ready assets
 
-An agent can read this grid, reason about coordinates, change exact cells, inspect the result, and try again. It edits the canonical artwork instead of generating another approximation of it.
-
-## What Zenith Studio does
-
-- **Shares one canvas.** Human gestures and WebMCP calls reach the same document store and the same undo stack.
-- **Keeps every edit pixel-exact.** Indexed palettes, integer coordinates, binary transparency, and nearest-neighbour rendering are enforced at the model boundary.
-- **Lets agents inspect before editing.** Tools expose canvas regions, palettes, silhouettes, frame differences, and validation results as structured data.
-- **Builds complete asset workflows.** Create and organize sprites, derive directions, animate frames, check tile seams, and export PNG, GIF, engine, palette, or project files.
-- **Scopes tools to the current work.** The library exposes project operations; an open character adds direction and skeleton tools; a tile adds tiling tools.
-
-```text
-Prompt or existing sprite
-          │
-          ▼
- Human ── shared indexed canvas ── WebMCP agent
-          │                         │
-          └──── read → edit → check ┘
-                    │
-                    ▼
-       PNG · GIF · engine bundle · project
-```
+- **Generate a visual direction.** Turn a prompt or reference into editable characters, props, environments, tiles, and interface art.
+- **Build complete game worlds.** Create coherent asset sets, directional views, animations, textures, tile sets, and maps in one project.
+- **Edit everything.** Draw by hand or ask Codex to change a pose, palette, silhouette, frame, region, or individual pixel.
+- **Keep the style consistent.** Reuse palettes and project style profiles across every asset.
+- **Ship to the game.** Export PNGs, GIFs, engine bundles, palettes, or the complete restorable project.
 
 ## The result
 
@@ -69,15 +42,11 @@ The editor also supports deterministic animation, direction mirroring, palette e
 
 ## Why WebMCP fits
 
-Most creative integrations stop at a prompt box. Zenith Studio exposes the application's real editing vocabulary, so the agent can participate in the same loop as the artist:
+WebMCP lets Codex work inside the live studio instead of handing back a detached image. It can see the asset you have open, use Zenith Studio's real creative tools, inspect what changed, and keep refining until the result is ready.
 
-1. Read the open asset and its constraints.
-2. Make a precise, named operation.
-3. Inspect the changed pixels or frame diff.
-4. Run a domain check such as readability, animation coherence, or tile continuity.
-5. Repair only the coordinates that failed and export the result.
+Ask it to “make this knight face east,” “turn these tiles into a map,” or “animate this character and export the result.” Every action appears on your canvas, stays editable, and shares the same undo history as your own work.
 
-Tools register through `document.modelContext.registerTool`. A compatibility adapter also supports the earlier `navigator.modelContext` surface. Both WebMCP calls and the built-in Agent Console pass through the same runner, which records one transcript and refuses to edit when the visible route and active asset disagree.
+Zenith Studio registers its tools through `document.modelContext.registerTool`. WebMCP and the built-in Agent Console use the same tool runner, document, and validation path.
 
 ## Architecture
 
