@@ -10,7 +10,7 @@ Nothing was retouched.
 - `run-animations.sh <slug>` — one character's three animations in sequence through `scripts/animate-bench.ts`; the five characters ran as five parallel processes.
 - `<slug>/character.json`, `character-4x.png`, `source.png` — the indexed sprite and palette, its 4× preview, and the raw model output.
 - `<slug>/<animation>/` — `plan.json` (the planner's reading of the source and per-frame poses, holds and effects), `sheet-*-input.png` and `sheet-*-output.png`, `judge.json` (per-pass verdicts), `strip-4x.png` (source then frames), `cycle.gif`, `frames.json`, `timing.json`, `log.txt`.
-- `index.html` — everything above on one page (`scripts/showcase-page.ts`), published at https://claude.ai/code/artifact/20abcf78-9904-402d-b653-06be5aa8cbed.
+- `index.html` — everything above on one page (`scripts/showcase-page.ts`).
 
 Result: 15 of 15 animations completed; 10 passed the judge on the first sheet
 (about 145s each) and 5 needed one repair sheet (about 320s each). After the
